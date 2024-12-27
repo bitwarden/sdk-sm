@@ -12,7 +12,7 @@
     <Copyright>Bitwarden Inc.</Copyright>
     <Product>SDK</Product>
 
-    <RepositoryUrl>https://github.com/bitwarden/sdk/tree/main/languages/csharp</RepositoryUrl>
+    <RepositoryUrl>https://github.com/bitwarden/sdk-sm/tree/main/languages/csharp</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
 
     <PackageProjectUrl>https://bitwarden.com/products/secrets-manager/</PackageProjectUrl>

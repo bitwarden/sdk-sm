@@ -28,7 +28,7 @@ the `bws` binary and the configuration directory (`~/.bws`).
 
 ### GitHub Releases (Manual)
 
-Download a pre-built binary from the [Releases](https://github.com/bitwarden/sdk/releases) page.
+Download a pre-built binary from the [Releases](https://github.com/bitwarden/sdk-sm/releases) page.
 
 ## Usage
 

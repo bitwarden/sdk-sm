@@ -46,7 +46,7 @@ jobs:
         id: version-output
         run: |
           if [[ "${{ inputs.version }}" == "latest" || "${{ inputs.version }}" == "" ]]; then
-            TAG_NAME=$(curl  "https://api.github.com/repos/bitwarden/sdk/releases" | jq -c '.[] | select(.tag_name | contains("napi")) | .tag_name' | head -1)
+            TAG_NAME=$(curl  "https://api.github.com/repos/bitwarden/sdk-sm/releases" | jq -c '.[] | select(.tag_name | contains("napi")) | .tag_name' | head -1)
             VERSION=$(echo $TAG_NAME | grep -ohE '20[0-9]{2}\.([1-9]|1[0-2])\.[0-9]+')
             echo "Latest Released Version: $VERSION"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -91,7 +91,7 @@ jobs:
 
       - name: Download schemas.ts artifact
         run: |
-          wget https://github.com/bitwarden/sdk/releases/download/napi-v${{ env._PKG_VERSION }}/schemas.ts
+          wget https://github.com/bitwarden/sdk-sm/releases/download/napi-v${{ env._PKG_VERSION }}/schemas.ts
           mv schemas.ts ${{ github.workspace }}/crates/bitwarden-napi/src-ts/bitwarden_client/schemas.ts
 
       - name: Install dependencies
@@ -114,10 +114,10 @@ jobs:
 
       - name: Download sdk-napi artifacts
         run: |
-          wget https://github.com/bitwarden/sdk/releases/download/napi-v${{ env._PKG_VERSION }}/sdk-napi.darwin-arm64.node
-          wget https://github.com/bitwarden/sdk/releases/download/napi-v${{ env._PKG_VERSION }}/sdk-napi.darwin-x64.node
-          wget https://github.com/bitwarden/sdk/releases/download/napi-v${{ env._PKG_VERSION }}/sdk-napi.win32-x64-msvc.node
-          wget https://github.com/bitwarden/sdk/releases/download/napi-v${{ env._PKG_VERSION }}/sdk-napi.linux-x64-gnu.node
+          wget https://github.com/bitwarden/sdk-sm/releases/download/napi-v${{ env._PKG_VERSION }}/sdk-napi.darwin-arm64.node
+          wget https://github.com/bitwarden/sdk-sm/releases/download/napi-v${{ env._PKG_VERSION }}/sdk-napi.darwin-x64.node
+          wget https://github.com/bitwarden/sdk-sm/releases/download/napi-v${{ env._PKG_VERSION }}/sdk-napi.win32-x64-msvc.node
+          wget https://github.com/bitwarden/sdk-sm/releases/download/napi-v${{ env._PKG_VERSION }}/sdk-napi.linux-x64-gnu.node
           mv sdk-napi.*.node ${{ github.workspace }}/crates/bitwarden-napi/artifacts
 
       - name: Move artifacts

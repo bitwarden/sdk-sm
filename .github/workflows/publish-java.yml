@@ -50,7 +50,7 @@ jobs:
         id: version-output
         run: |
           if [[ "${{ inputs.version }}" == "latest" || "${{ inputs.version }}" == "" ]]; then
-            TAG_NAME=$(curl  "https://api.github.com/repos/bitwarden/sdk/releases" | jq -rc '.[] | select(.tag_name | contains("java")) | .tag_name' | head -1)
+            TAG_NAME=$(curl  "https://api.github.com/repos/bitwarden/sdk-sm/releases" | jq -rc '.[] | select(.tag_name | contains("java")) | .tag_name' | head -1)
             VERSION=$(echo $TAG_NAME | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
             echo "Latest Released Version: $VERSION"
             echo "version=$VERSION" >> $GITHUB_OUTPUT

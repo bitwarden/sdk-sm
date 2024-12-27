@@ -1,13 +1,13 @@
 {
   "name": "@bitwarden/sdk-napi-win32-x64-msvc",
   "version": "1.0.0",
-  "homepage": "https://github.com/bitwarden/sdk#readme",
+  "homepage": "https://github.com/bitwarden/sdk-sm#readme",
   "bugs": {
-    "url": "https://github.com/bitwarden/sdk/issues"
+    "url": "https://github.com/bitwarden/sdk-sm/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bitwarden/sdk.git"
+    "url": "git+https://github.com/bitwarden/sdk-sm.git"
   },
   "license": "SEE LICENSE IN LICENSE",
   "author": "Bitwarden Inc. <hello@bitwarden.com> (https://bitwarden.com)",

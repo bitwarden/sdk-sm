@@ -44,7 +44,7 @@ jobs:
         id: version-output
         run: |
           if [[ "${{ inputs.version }}" == "latest" || "${{ inputs.version }}" == "" ]]; then
-            TAG_NAME=$(curl  "https://api.github.com/repos/bitwarden/sdk/releases" | jq -c '.[] | select(.tag_name | contains("dotnet")) | .tag_name' | head -1)
+            TAG_NAME=$(curl  "https://api.github.com/repos/bitwarden/sdk-sm/releases" | jq -c '.[] | select(.tag_name | contains("dotnet")) | .tag_name' | head -1)
             VERSION=$(echo $TAG_NAME | grep -ohE '20[0-9]{2}\.([1-9]|1[0-2])\.[0-9]+')
             echo "Latest Released Version: $VERSION"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -76,7 +76,7 @@ jobs:
         run: |
           mkdir -p nuget-output
           cd nuget-output
-          wget https://github.com/bitwarden/sdk/releases/download/dotnet-v${{ needs.validate.outputs.version }}/Bitwarden.Sdk.${{ needs.validate.outputs.version }}.nupkg
+          wget https://github.com/bitwarden/sdk-sm/releases/download/dotnet-v${{ needs.validate.outputs.version }}/Bitwarden.Sdk.${{ needs.validate.outputs.version }}.nupkg
 
       - name: Login to Azure - Prod Subscription
         uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0

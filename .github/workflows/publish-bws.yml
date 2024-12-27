@@ -47,7 +47,7 @@ jobs:
         id: version-output
         run: |
           if [[ "${{ inputs.version }}" == "latest" || "${{ inputs.version }}" == "" ]]; then
-            TAG_NAME=$(curl  "https://api.github.com/repos/bitwarden/sdk/releases" | jq -c '.[] | select(.tag_name | contains("bws")) | .tag_name' | head -1)
+            TAG_NAME=$(curl  "https://api.github.com/repos/bitwarden/sdk-sm/releases" | jq -c '.[] | select(.tag_name | contains("bws")) | .tag_name' | head -1)
             VERSION=$(echo $TAG_NAME | grep -ohE '20[0-9]{2}\.([1-9]|1[0-2])\.[0-9]+')
             echo "Latest Released Version: $VERSION"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -95,7 +95,7 @@ jobs:
           secrets: "cratesio-api-token"
 
       - name: Install rust
-        uses: dtolnay/rust-toolchain@7b1c307e0dcbda6122208f10795a713336a9b35a # stable
+        uses: dtolnay/rust-toolchain@315e265cd78dad1e1dcf3a5074f6d6c47029d5aa # stable
         with:
           toolchain: stable
 
@@ -115,7 +115,11 @@ jobs:
   publish-docker:
     name: Publish docker versioned and latest image
     runs-on: ubuntu-22.04
+    permissions:
+      security-events: write
+      id-token: write
     needs: setup
+
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -171,6 +175,7 @@ jobs:
           azure-keyvault-name: "bitwarden-ci"
 
       - name: Build and push Docker image
+        id: build-docker
         uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # v6.9.0
         with:
           context: .
@@ -182,6 +187,34 @@ jobs:
           tags: ${{ steps.tag-list.outputs.tags }}
           secrets: |
             "GH_PAT=${{ steps.retrieve-secret-pat.outputs.github-pat-bitwarden-devops-bot-repo-scope }}"
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v3.7.0
+
+      - name: Sign image with Cosign
+        env:
+          DIGEST: ${{ steps.build-docker.outputs.digest }}
+          TAGS: ${{ steps.tag-list.outputs.tags }}
+        run: |
+          IFS="," read -a tags <<< "${TAGS}"
+          images=""
+          for tag in "${tags[@]}"; do
+            images+="${tag}@${DIGEST} "
+          done
+          cosign sign --yes ${images}
+
+      - name: Scan Docker image
+        id: container-scan
+        uses: anchore/scan-action@5ed195cc06065322983cae4bb31e2a751feb86fd # v5.2.0
+        with:
+          image: ${{ steps.tag-list.outputs.primary_tag }}
+          fail-build: false
+          output-format: sarif
+
+      - name: Upload Grype results to GitHub
+        uses: github/codeql-action/upload-sarif@662472033e021d55d94146f66f6058822b0b39fd # v3.27.0
+        with:
+          sarif_file: ${{ steps.container-scan.outputs.sarif }}
 
       - name: Log out of Docker and disable Docker Notary
         if: ${{ inputs.release_type != 'Dry Run' }}

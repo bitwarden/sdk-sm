@@ -16,7 +16,7 @@ defaults:
 jobs:
   msrv:
     name: Check MSRV for - ${{ matrix.settings.os }} - ${{ matrix.settings.target }}
-    runs-on: ${{ matrix.settings.os || 'ubuntu-latest' }}
+    runs-on: ${{ matrix.settings.os || 'ubuntu-24.04' }}
     strategy:
       fail-fast: false
       matrix:
@@ -41,5 +41,5 @@ jobs:
         with:
           key: msrv-${{ matrix.settings.target }}-cargo-${{ matrix.settings.os }}
 
-      - name: cargo check MSRV
+      - name: Run cargo check MSRV
         run: cargo check -p bitwarden --all-features

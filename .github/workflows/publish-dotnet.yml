@@ -76,7 +76,7 @@ jobs:
         run: |
           mkdir -p nuget-output
           cd nuget-output
-          wget https://github.com/bitwarden/sdk-sm/releases/download/dotnet-v${{ needs.validate.outputs.version }}/Bitwarden.Sdk.${{ needs.validate.outputs.version }}.nupkg
+          wget https://github.com/bitwarden/sdk-sm/releases/download/dotnet-v${{ needs.validate.outputs.version }}/Bitwarden.Secrets.Sdk.${{ needs.validate.outputs.version }}.nupkg
 
       - name: Login to Azure - Prod Subscription
         uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0

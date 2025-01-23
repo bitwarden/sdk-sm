@@ -72,4 +72,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           draft: true
           artifacts: |
-            ./nuget-output/Bitwarden.Sdk.${{ needs.setup.outputs.version }}.nupkg
+            ./nuget-output/Bitwarden.Secrets.Sdk.${{ needs.setup.outputs.version }}.nupkg

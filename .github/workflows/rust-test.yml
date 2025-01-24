@@ -18,7 +18,8 @@ jobs:
       - test
       - wasm
     steps:
-      - run: exit 0
+      - name: Exit 0
+        run: exit 0
 
   test:
     name: ${{ matrix.os }} / default

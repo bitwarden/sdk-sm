@@ -16,7 +16,7 @@ defaults:
 jobs:
   direct-minimal-versions:
     name: Check dependencies minimal versions for - ${{ matrix.settings.os }} - ${{ matrix.settings.target }}
-    runs-on: ${{ matrix.settings.os || 'ubuntu-latest' }}
+    runs-on: ${{ matrix.settings.os || 'ubuntu-24.04' }}
     strategy:
       fail-fast: false
       matrix:
@@ -48,5 +48,5 @@ jobs:
         with:
           key: dmv-${{ matrix.settings.target }}-cargo-${{ matrix.settings.os }}
 
-      - name: cargo check direct-minimal-versions
+      - name: Run cargo check direct-minimal-versions
         run: cargo check -Z direct-minimal-versions --all-features

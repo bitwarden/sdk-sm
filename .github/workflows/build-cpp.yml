@@ -12,9 +12,11 @@ on:
 
 jobs:
   generate-schemas:
+    name: Generate schemas
     uses: ./.github/workflows/generate_schemas.yml
 
   build_rust:
+    name: Build Rust
     uses: ./.github/workflows/build-rust-cross-platform.yml
 
   build:
@@ -43,13 +45,13 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: install dependencies linux
+      - name: Install dependencies linux
         if: runner.os == 'Linux'
         run: |
           sudo apt-get install -y nlohmann-json3-dev
           sudo apt-get install -y libboost-all-dev
 
-      - name: install dependencies macos
+      - name: Install dependencies macos
         if: runner.os == 'macOS'
         run: |
           brew install nlohmann-json

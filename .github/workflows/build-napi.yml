@@ -16,11 +16,12 @@ defaults:
 
 jobs:
   generate_schemas:
+    name: Generate schemas
     uses: ./.github/workflows/generate_schemas.yml
 
   build:
     name: Building @bitwarden/sdk-napi for - ${{ matrix.settings.os }}
-    runs-on: ${{ matrix.settings.os || 'ubuntu-latest' }}
+    runs-on: ${{ matrix.settings.os || 'ubuntu-24.04' }}
     needs: generate_schemas
     strategy:
       fail-fast: false

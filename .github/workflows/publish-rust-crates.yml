@@ -21,11 +21,11 @@ on:
 
 jobs:
   setup:
-    name: setup
+    name: Setup
     runs-on: ubuntu-22.04
     outputs:
-      release-version: ${{ steps.version-output.outputs.version }}
-      release-tag: ${{ steps.version-output.outputs.tag_name }}
+      release_version: ${{ steps.version-output.outputs.version }}
+      release_tag: ${{ steps.version-output.outputs.tag_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -64,7 +64,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: ${{ needs.setup.outputs.release-tag }}
+          ref: ${{ needs.setup.outputs.release_tag }}
 
       - name: Login to Azure
         uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0
@@ -113,7 +113,7 @@ jobs:
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
           state: "success"
-          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
 
       - name: Update deployment status to Failure
         if: ${{ inputs.release_type != 'Dry Run' && failure() }}
@@ -121,4 +121,4 @@ jobs:
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
           state: "failure"
-          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}

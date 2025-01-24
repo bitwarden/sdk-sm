@@ -26,8 +26,8 @@ jobs:
     name: Setup
     runs-on: ubuntu-22.04
     outputs:
-      release-version: ${{ steps.version-output.outputs.version }}
-      tag-name: ${{ steps.version-output.outputs.tag_name }}
+      release_version: ${{ steps.version-output.outputs.version }}
+      tag_name: ${{ steps.version-output.outputs.tag_name }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -63,8 +63,8 @@ jobs:
     runs-on: ubuntu-22.04
     needs: setup
     env:
-      _VERSION: ${{ needs.setup.outputs.release-version }}
-      _TAG_NAME: ${{ needs.setup.outputs.tag-name }}
+      _VERSION: ${{ needs.setup.outputs.release_version }}
+      _TAG_NAME: ${{ needs.setup.outputs.tag_name }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -115,7 +115,7 @@ jobs:
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
           state: "success"
-          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
 
       - name: Update deployment status to Failure
         if: ${{ inputs.release_type != 'Dry Run' && failure() }}
@@ -123,4 +123,4 @@ jobs:
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
           state: "failure"
-          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}

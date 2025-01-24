@@ -26,9 +26,9 @@ jobs:
     name: Setup
     runs-on: ubuntu-22.04
     outputs:
-      release-version: ${{ steps.version-output.outputs.version }}
-      release-tag: ${{ steps.version-output.outputs.tag_name }}
-      deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+      release_version: ${{ steps.version-output.outputs.version }}
+      release_tag: ${{ steps.version-output.outputs.tag_name }}
+      deployment_id: ${{ steps.deployment.outputs.deployment_id }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -75,8 +75,8 @@ jobs:
     runs-on: ubuntu-22.04
     needs: setup
     env:
-      _VERSION: ${{ needs.setup.outputs.release-version }}
-      _TAG_NAME: ${{ needs.setup.outputs.release-tag }}
+      _VERSION: ${{ needs.setup.outputs.release_version }}
+      _TAG_NAME: ${{ needs.setup.outputs.release_tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -129,7 +129,7 @@ jobs:
       - name: Generate tag list
         id: tag-list
         env:
-          VERSION: ${{ needs.setup.outputs.release-version }}
+          VERSION: ${{ needs.setup.outputs.release_version }}
           DRY_RUN: ${{ inputs.release_type == 'Dry Run' }}
         run: |
           if [[ "${DRY_RUN}" == "true" ]]; then
@@ -228,7 +228,7 @@ jobs:
     needs: setup
     if: ${{ inputs.release_type != 'Dry Run' }}
     env:
-      _DEPLOYMENT_ID: ${{ needs.setup.outputs.deployment-id }}
+      _DEPLOYMENT_ID: ${{ needs.setup.outputs.deployment_id }}
     steps:
       - name: Update deployment status to Success
         if: ${{ inputs.release_type != 'Dry Run' && success() }}
@@ -236,7 +236,7 @@ jobs:
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
           state: "success"
-          deployment-id: ${{ env._DEPLOYMENT_ID }}
+          deployment_id: ${{ env._DEPLOYMENT_ID }}
 
       - name: Update deployment status to Failure
         if: ${{ inputs.release_type != 'Dry Run' && failure() }}
@@ -244,4 +244,4 @@ jobs:
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
           state: "failure"
-          deployment-id: ${{ env._DEPLOYMENT_ID }}
+          deployment_id: ${{ env._DEPLOYMENT_ID }}

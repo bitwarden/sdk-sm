@@ -34,13 +34,7 @@ repositories {
                 // Main: Grab it from `crates/bitwarden/Cargo.toml`
 
                 def branchName = "git branch --show-current".execute().text.trim()
-
-                if (branchName == "main" || branchName == "rc" || branchName == "hotfix-rc") {
-                    version = "1.0.0"
-                } else {
-                    // branchName-SNAPSHOT
-                    version = "${branchName.replaceAll('/', '-')}-SNAPSHOT"
-                }
+                version = "1.0.1"
 
                 afterEvaluate {
                     from components.java
@@ -50,7 +44,7 @@ repositories {
         repositories {
             maven {
                 name = "GitHubPackages"
-                url = "https://maven.pkg.github.com/bitwarden/sdk"
+                url = "https://maven.pkg.github.com/bitwarden/sdk-sm"
                 credentials {
                     username = System.getenv("GITHUB_ACTOR")
                     password = System.getenv("GITHUB_TOKEN")

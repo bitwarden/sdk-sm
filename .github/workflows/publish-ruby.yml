@@ -26,11 +26,11 @@ jobs:
     name: Setup
     runs-on: ubuntu-22.04
     outputs:
-      release-version: ${{ steps.version-output.outputs.version }}
-      tag-name: ${{ steps.version-output.outputs.tag_name }}
+      release_version: ${{ steps.version-output.outputs.version }}
+      tag_name: ${{ steps.version-output.outputs.tag_name }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Branch check
         if: ${{ inputs.release_type != 'Dry Run' }}
@@ -46,7 +46,7 @@ jobs:
         id: version-output
         run: |
           if [[ "${{ inputs.version }}" == "latest" || "${{ inputs.version }}" == "" ]]; then
-            TAG_NAME=$(curl  "https://api.github.com/repos/bitwarden/sdk/releases" | jq -c '.[] | select(.tag_name | contains("ruby")) | .tag_name' | head -1)
+            TAG_NAME=$(curl  "https://api.github.com/repos/bitwarden/sdk-sm/releases" | jq -c '.[] | select(.tag_name | contains("ruby")) | .tag_name' | head -1)
             VERSION=$(echo $TAG_NAME | grep -ohE '20[0-9]{2}\.([1-9]|1[0-2])\.[0-9]+')
             echo "Latest Released Version: $VERSION"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -63,11 +63,11 @@ jobs:
     runs-on: ubuntu-22.04
     needs: setup
     env:
-      _VERSION: ${{ needs.setup.outputs.release-version }}
-      _TAG_NAME: ${{ needs.setup.outputs.tag-name }}
+      _VERSION: ${{ needs.setup.outputs.release_version }}
+      _TAG_NAME: ${{ needs.setup.outputs.tag_name }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ env._TAG_NAME }}
 
@@ -95,7 +95,7 @@ jobs:
           secrets: "rubygem-api-key"
 
       - name: Download ruby artifact
-        run: wget https://github.com/bitwarden/sdk/releases/download/ruby-v${{ env._VERSION }}/bitwarden-sdk-secrets-${{ env._VERSION }}.gem
+        run: wget https://github.com/bitwarden/sdk-sm/releases/download/ruby-v${{ env._VERSION }}/bitwarden-sdk-secrets-${{ env._VERSION }}.gem
 
       - name: Push gem to Rubygems
         if: ${{ inputs.release_type != 'Dry Run' }}
@@ -115,7 +115,7 @@ jobs:
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
           state: "success"
-          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
 
       - name: Update deployment status to Failure
         if: ${{ inputs.release_type != 'Dry Run' && failure() }}
@@ -123,4 +123,4 @@ jobs:
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
           state: "failure"
-          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}

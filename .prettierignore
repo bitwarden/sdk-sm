@@ -1,13 +1,5 @@
 target
 languages/*
-!languages/js
-languages/js/*
-!languages/js/sdk-internal
-languages/js/sdk-internal/bitwarden_wasm_internal_bg.wasm.js
 schemas
 /crates/bitwarden-napi/src-ts/bitwarden_client/schemas.ts
 about.hbs
-support/docs/template.hbs
-
-# Test fixtures
-crates/bitwarden-exporters/resources/*

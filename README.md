@@ -1,16 +1,7 @@
-# Bitwarden SDK
+# Bitwarden Secrets Manager SDK
 
-This repository houses the Bitwarden SDKs. We currently provide a public Secrets Manager SDK and an
-internal SDK for the Bitwarden Password Manager which is used for the native mobile applications.
-The SDK is written in Rust and provides a Rust API, CLI and various language bindings.
-
-### Disclaimer
-
-The password manager SDK is not intended for public use and is not supported by Bitwarden at this
-stage. It is solely intended to centralize the business logic and to provide a single source of
-truth for the internal applications. As the SDK evolves into a more stable and feature complete
-state we will re-evaluate the possibility of publishing stable bindings for the public. **The
-password manager interface is unstable and will change without warning.**
+This repository houses the Bitwarden Secret Manager SDK. The SDK is written in Rust and provides a
+Rust API, CLI and various language bindings.
 
 # We're Hiring!
 
@@ -41,12 +32,8 @@ Please refer to our [Contributing Docs](https://contributing.bitwarden.com/) for
 [getting started](https://contributing.bitwarden.com/getting-started/sdk/) instructions and
 [architectural documentation](https://contributing.bitwarden.com/architecture/sdk/).
 
-You can also browse the latest published documentation:
-
-- [docs.rs](https://docs.rs/bitwarden/latest/bitwarden/) for the public SDK.
-- Or for developers of the SDK, view the internal
-  [API documentation](https://sdk-api-docs.bitwarden.com/bitwarden/index.html) which includes
-  private items.
+You can also browse the latest published documentation on
+[docs.rs](https://docs.rs/bitwarden/latest/bitwarden/).
 
 ## Crates
 
@@ -54,10 +41,6 @@ The project is structured as a monorepo using cargo workspaces. Some of the more
 are:
 
 - [`bitwarden`](./crates/bitwarden/): Rust friendly API for interacting with the secrets manager.
-- [`bitwarden-api-api`](./crates/bitwarden-api-api/): Auto-generated API bindings for the API
-  server.
-- [`bitwarden-api-identity`](./crates/bitwarden-api-identity/): Auto-generated API bindings for the
-  Identity server.
 - [`bitwarden-c`](./crates/bitwarden-c/): C bindings for FFI interop.
 - [`bitwarden-json`](./crates/bitwarden-json/): JSON wrapper around the `bitwarden` crate. Powers
   the other language bindings.
@@ -80,39 +63,6 @@ the API bindings for each language using [QuickType](https://github.com/quicktyp
 npm run schemas
 ```
 
-## API Bindings
-
-We autogenerate the server bindings using
-[openapi-generator](https://github.com/OpenAPITools/openapi-generator). To do this we first need to
-build the internal swagger documentation.
-
-### Swagger generation
-
-The first step is to generate the swagger documents from the server repository.
-
-```bash
-# src/Api
-dotnet swagger tofile --output ../../api.json ./bin/Debug/net8.0/Api.dll internal
-
-# src/Identity
-ASPNETCORE_ENVIRONMENT=development dotnet swagger tofile --output ../../identity.json ./bin/Debug/net8.0/Identity.dll v1
-```
-
-### OpenApi Generator
-
-To generate a new version of the bindings run the following script from the root of the SDK project.
-
-```bash
-./support/build-api.sh
-```
-
-This project uses customized templates which lives in the `support/openapi-templates` directory.
-These templates resolves some outstanding issues we've experienced with the rust generator. But we
-strive towards modifying the templates as little as possible to ease future upgrades.
-
-Note: If you don't have the nightly toolchain installed, the `build-api.sh` script will install it
-for you.
-
 ## Developer tools
 
 This project recommends the use of certain developer tools, and also includes configurations for
@@ -131,9 +81,6 @@ The list of developer tools is:
   much nicer output compared to `cargo test`. This tool needs to be installed separately by running
   `cargo install cargo-nextest --locked`. It can be manually run using
   `cargo nextest run --all-features`
-
-[secrets-manager]: https://bitwarden.com/products/secrets-manager/
-[bws-help]: https://bitwarden.com/help/secrets-manager-cli/
 
 ## Cargo fmt
 
@@ -167,3 +114,6 @@ No grant of any rights in the trademarks, service marks, or logos of Bitwarden i
 may be necessary to comply with the notice requirements as applicable), and use of any Bitwarden
 trademarks must comply with
 [Bitwarden Trademark Guidelines](https://github.com/bitwarden/server/blob/main/TRADEMARK_GUIDELINES.md).
+
+[secrets-manager]: https://bitwarden.com/products/secrets-manager/
+[bws-help]: https://bitwarden.com/help/secrets-manager-cli/

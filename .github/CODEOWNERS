@@ -4,15 +4,27 @@
 #
 # https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
+# BRE for publish workflow changes
+.github/workflows/publish-*.yml @bitwarden/dept-bre
 
-# DevOps for Actions and other workflow changes.
-.github/workflows @bitwarden/dept-devops
+# Shared workflows ownership
 
-# Secrets Manager team
-crates/bitwarden-sm @bitwarden/team-secrets-manager-dev
-crates/bws @bitwarden/team-secrets-manager-dev
+## BRE & Platform teams shared ownership
+.github/workflows/release-* @bitwarden/dept-bre @bitwarden/team-platform-dev
+
+# Platform team
+.github/workflows/build-* @bitwarden/team-platform-dev
+.github/workflows/version-bump.yml @bitwarden/team-platform-dev
+crates/bitwarden-sm @bitwarden/team-platform-dev
+crates/bws @bitwarden/team-platform-dev
 
 # BRE Automations
 crates/bws/Cargo.toml
 crates/bws/scripts/install.ps1
 crates/bws/scripts/install.sh
+
+## Docker files have shared ownership ##
+**/Dockerfile
+**/*.Dockerfile
+**/.dockerignore
+**/entrypoint.sh

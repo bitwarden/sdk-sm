@@ -109,13 +109,6 @@ struct SchemaTypes {
     projects: Response<bitwarden::secrets_manager::projects::ProjectsResponse>,
     projects_delete: Response<bitwarden::secrets_manager::projects::ProjectsDeleteResponse>,
     password: Response<String>,
-
-    #[cfg(feature = "internal")]
-    fingerprint: Response<bitwarden::platform::FingerprintResponse>,
-    #[cfg(feature = "internal")]
-    sync: Response<bitwarden::vault::SyncResponse>,
-    #[cfg(feature = "internal")]
-    user_api_key: Response<bitwarden::platform::UserApiKeyResponse>,
 }
 
 fn main() -> Result<()> {

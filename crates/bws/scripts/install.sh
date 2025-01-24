@@ -99,14 +99,14 @@ extract() {
 }
 
 download_bws() {
-  bws_url="https://github.com/bitwarden/sdk/releases/download/bws-v${BWS_VERSION}/bws-${ARCH}-${PLATFORM}-${BWS_VERSION}.zip"
+  bws_url="https://github.com/bitwarden/sdk-sm/releases/download/bws-v${BWS_VERSION}/bws-${ARCH}-${PLATFORM}-${BWS_VERSION}.zip"
   echo "Downloading bws from: $bws_url"
   tmp_dir="$(mktemp -d)"
   downloader "$bws_url" "$tmp_dir/bws.zip"
 }
 
 validate_checksum() {
-  checksum_url="https://github.com/bitwarden/sdk/releases/download/bws-v${BWS_VERSION}/bws-sha256-checksums-${BWS_VERSION}.txt"
+  checksum_url="https://github.com/bitwarden/sdk-sm/releases/download/bws-v${BWS_VERSION}/bws-sha256-checksums-${BWS_VERSION}.txt"
   echo "Downloading checksum file from: $checksum_url"
   checksum_file="$tmp_dir/bws-checksums.txt"
   downloader "$checksum_url" "$checksum_file"

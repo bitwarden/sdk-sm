@@ -1,4 +1,3 @@
----
 name: Build Java SDK
 
 on:
@@ -10,9 +9,11 @@ on:
 
 jobs:
   generate_schemas:
+    name: Generate schemas
     uses: ./.github/workflows/generate_schemas.yml
 
   build_rust:
+    name: Build Rust
     uses: ./.github/workflows/build-rust-cross-platform.yml
 
   build_java:
@@ -24,7 +25,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Download Java schemas artifact
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
@@ -33,7 +34,7 @@ jobs:
           path: languages/java/src/main/java/bit/sdk/schema/
 
       - name: Setup Java
-        uses: actions/setup-java@b36c23c0d998641eff861008f374ee103c25ac73 # v4.4.0
+        uses: actions/setup-java@8df1039502a15bceb9433410b1a100fbe190c53b # v4.5.0
         with:
           distribution: temurin
           java-version: 17
@@ -67,21 +68,21 @@ jobs:
         working-directory: languages/java
 
       - name: Upload Java SDK Build
-        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: build
           path: ${{ github.workspace }}/languages/java/build
           if-no-files-found: error
 
       - name: Upload Java SDK Build
-        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: resources
           path: ${{ github.workspace }}/languages/java/src/main/resources
           if-no-files-found: error
 
       - name: Upload Java SDK Build
-        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: schemas
           path: languages/java/src/main/java/bit/sdk/schema

@@ -61,34 +61,7 @@ mod readme {}
 pub use bitwarden_core::*;
 pub mod error;
 
-#[cfg(feature = "internal")]
-pub mod internal {
-    pub mod generators {
-        pub use bitwarden_generators::*;
-    }
-
-    pub mod exporters {
-        pub use bitwarden_exporters::*;
-    }
-
-    pub mod send {
-        pub use bitwarden_send::*;
-    }
-
-    pub mod vault {
-        pub use bitwarden_vault::*;
-    }
-
-    #[cfg(feature = "uniffi")]
-    pub mod fido {
-        pub use bitwarden_fido::*;
-    }
-}
-#[cfg(feature = "internal")]
-pub use internal::*;
-
-// Re-export generators used for secrets-manager, internal flag already exports all generators
-#[cfg(all(feature = "secrets", not(feature = "internal")))]
+#[cfg(feature = "secrets")]
 pub mod generators {
     pub use bitwarden_generators::{ClientGeneratorExt, PasswordError, PasswordGeneratorRequest};
 }

@@ -7,18 +7,6 @@ import {
 } from "quicktype-core";
 
 import fs from "fs";
-import path from "path";
-
-async function* walk(dir: string): AsyncIterable<string> {
-  for await (const d of await fs.promises.opendir(dir)) {
-    const entry = path.join(dir, d.name);
-    if (d.isDirectory()) {
-      yield* walk(entry);
-    } else if (d.isFile()) {
-      yield entry;
-    }
-  }
-}
 
 async function main() {
   const schemaInput = new JSONSchemaInput(new FetchingJSONSchemaStore());

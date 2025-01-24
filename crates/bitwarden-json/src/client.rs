@@ -1,5 +1,3 @@
-#[cfg(feature = "internal")]
-use bitwarden::vault::ClientVaultExt;
 use bitwarden::ClientSettings;
 #[cfg(feature = "secrets")]
 use bitwarden::{
@@ -54,22 +52,10 @@ impl Client {
         let client = &self.0;
 
         match cmd {
-            #[cfg(feature = "internal")]
-            Command::PasswordLogin(req) => client.auth().login_password(&req).await.into_string(),
             #[cfg(feature = "secrets")]
             Command::LoginAccessToken(req) => {
                 client.auth().login_access_token(&req).await.into_string()
             }
-            #[cfg(feature = "internal")]
-            Command::GetUserApiKey(req) => {
-                client.platform().get_user_api_key(req).await.into_string()
-            }
-            #[cfg(feature = "internal")]
-            Command::ApiKeyLogin(req) => client.auth().login_api_key(&req).await.into_string(),
-            #[cfg(feature = "internal")]
-            Command::Sync(req) => client.vault().sync(&req).await.into_string(),
-            #[cfg(feature = "internal")]
-            Command::Fingerprint(req) => client.platform().fingerprint(&req).into_string(),
 
             #[cfg(feature = "secrets")]
             Command::Secrets(cmd) => match cmd {

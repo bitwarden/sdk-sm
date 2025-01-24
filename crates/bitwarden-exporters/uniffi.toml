@@ -1,9 +1,0 @@
-[bindings.kotlin]
-package_name = "com.bitwarden.exporters"
-generate_immutable_records = true
-android = true
-
-[bindings.swift]
-ffi_module_name = "BitwardenExportersFFI"
-module_name = "BitwardenExporters"
-generate_immutable_records = true

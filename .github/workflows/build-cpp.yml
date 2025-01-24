@@ -12,9 +12,11 @@ on:
 
 jobs:
   generate-schemas:
+    name: Generate schemas
     uses: ./.github/workflows/generate_schemas.yml
 
   build_rust:
+    name: Build Rust
     uses: ./.github/workflows/build-rust-cross-platform.yml
 
   build:
@@ -41,15 +43,15 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: install dependencies linux
+      - name: Install dependencies linux
         if: runner.os == 'Linux'
         run: |
           sudo apt-get install -y nlohmann-json3-dev
           sudo apt-get install -y libboost-all-dev
 
-      - name: install dependencies macos
+      - name: Install dependencies macos
         if: runner.os == 'macOS'
         run: |
           brew install nlohmann-json
@@ -152,7 +154,7 @@ jobs:
           fi
 
       - name: Upload C++ package for ${{ matrix.settings.target }}
-        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: libbitwarden_cpp-${{ matrix.settings.target }}
           path: languages/cpp/build/artifacts

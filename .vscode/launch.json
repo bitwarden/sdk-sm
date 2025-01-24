@@ -39,20 +39,6 @@
       },
       "args": [],
       "cwd": "${workspaceFolder}"
-    },
-    {
-      "type": "lldb",
-      "request": "launch",
-      "name": "bw login",
-      "cargo": {
-        "args": ["build", "--package=bw"],
-        "filter": {
-          "name": "bw",
-          "kind": "bin"
-        }
-      },
-      "args": ["login", "api-key", "--server", "https://localhost:8080"],
-      "cwd": "${workspaceFolder}"
     }
   ]
 }

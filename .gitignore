@@ -44,13 +44,6 @@ crates/bitwarden-napi/sdk-napi.*.node
 crates/bitwarden-napi/dist
 languages/js/sdk-client/dist/
 
-# Uniffi
-languages/swift/BitwardenFFI.xcframework
-languages/swift/tmp
-languages/swift/.build
-languages/swift/.swiftpm
-languages/kotlin/sdk/src/main/java/com/bitwarden/**/*.kt
-
 # Schemas
 crates/bitwarden-napi/src-ts/bitwarden_client/schemas.ts
 languages/cpp/include/schemas.hpp

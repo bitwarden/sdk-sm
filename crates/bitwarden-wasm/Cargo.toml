@@ -19,16 +19,14 @@ argon2 = { version = ">=0.5.0, <0.6", features = [
     "alloc",
     "zeroize",
 ], default-features = false }
-bitwarden-json = { path = "../bitwarden-json", features = [
-    "secrets",
-    "internal",
-] }
+bitwarden-json = { path = "../bitwarden-json", features = ["secrets"] }
 console_error_panic_hook = "0.1.7"
 console_log = { version = "1.0.0", features = ["color"] }
 js-sys = "0.3.68"
 log = "0.4.20"
 serde = { version = "1.0.196", features = ["derive"] }
-wasm-bindgen = { version = "0.2.91", features = ["serde-serialize"] }
+# When upgrading wasm-bindgen, make sure to update the version in the workflows!
+wasm-bindgen = { version = "=0.2.95", features = ["serde-serialize"] }
 wasm-bindgen-futures = "0.4.41"
 
 [dev-dependencies]

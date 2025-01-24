@@ -12,13 +12,11 @@ license-file.workspace = true
 keywords.workspace = true
 
 [features]
-internal = ["bitwarden/internal", "bitwarden-json/internal"]
 
 [dependencies]
 anyhow = "1.0.82"
 bitwarden = { workspace = true }
 bitwarden-json = { path = "../bitwarden-json" }
-bitwarden-uniffi = { path = "../bitwarden-uniffi", optional = true }
 itertools = "0.13.0"
 schemars = { workspace = true, features = ["preserve_order"] }
 serde_json = "1.0.113"

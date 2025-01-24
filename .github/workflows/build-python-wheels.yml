@@ -16,6 +16,7 @@ defaults:
 
 jobs:
   generate_schemas:
+    name: Generate schemas
     uses: ./.github/workflows/generate_schemas.yml
 
   setup:
@@ -35,7 +36,7 @@ jobs:
 
   build:
     name: Building Python wheel for - ${{ matrix.settings.os }} - ${{ matrix.settings.target }}
-    runs-on: ${{ matrix.settings.os || 'ubuntu-latest' }}
+    runs-on: ${{ matrix.settings.os || 'ubuntu-24.04' }}
     needs:
       - generate_schemas
       - setup

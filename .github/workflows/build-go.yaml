@@ -34,7 +34,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: npm ci
+      - name: Run npm ci
         run: npm ci
 
       - name: Generate schemas

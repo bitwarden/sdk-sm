@@ -10,13 +10,7 @@
 # Shared workflows ownership
 
 ## BRE & Platform teams shared ownership
-.github/workflows/release-* @bitwarden/dept-bre @bitwarden/team-platform-dev
-
-# Platform team
-.github/workflows/build-* @bitwarden/team-platform-dev
-.github/workflows/version-bump.yml @bitwarden/team-platform-dev
-crates/bitwarden-sm @bitwarden/team-platform-dev
-crates/bws @bitwarden/team-platform-dev
+.github/workflows/release-* @bitwarden/dept-bre
 
 # BRE Automations
 crates/bws/Cargo.toml

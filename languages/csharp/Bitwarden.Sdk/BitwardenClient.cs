@@ -1,6 +1,8 @@
-﻿namespace Bitwarden.Sdk;
+﻿using System.Text.Json;
 
-public sealed class BitwardenClient : IDisposable
+namespace Bitwarden.Sdk;
+
+public sealed partial class BitwardenClient : IDisposable
 {
     private readonly CommandRunner _commandRunner;
     private readonly BitwardenSafeHandle _handle;

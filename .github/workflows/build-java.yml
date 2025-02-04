@@ -34,7 +34,7 @@ jobs:
           path: languages/java/src/main/java/bit/sdk/schema/
 
       - name: Setup Java
-        uses: actions/setup-java@8df1039502a15bceb9433410b1a100fbe190c53b # v4.5.0
+        uses: actions/setup-java@3a4f6e1af504cf6a31855fa899c6aa5355ba6c12 # v4.7.0
         with:
           distribution: temurin
           java-version: 17
@@ -68,21 +68,21 @@ jobs:
         working-directory: languages/java
 
       - name: Upload Java SDK Build
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           name: build
           path: ${{ github.workspace }}/languages/java/build
           if-no-files-found: error
 
       - name: Upload Java SDK Build
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           name: resources
           path: ${{ github.workspace }}/languages/java/src/main/resources
           if-no-files-found: error
 
       - name: Upload Java SDK Build
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           name: schemas
           path: languages/java/src/main/java/bit/sdk/schema

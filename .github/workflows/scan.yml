@@ -74,3 +74,4 @@ jobs:
             -Dsonar.organization=${{ github.repository_owner }}
             -Dsonar.projectKey=${{ github.repository_owner }}_${{ github.event.repository.name }}
             -Dsonar.exclusions=languages/**
+            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}

@@ -85,6 +85,34 @@ impl Client {
                     client.generator().password(req).into_string()
                 }
             },
+            #[cfg(debug_assertions)]
+            Command::Debug(cmd) => {
+                use bitwarden::Error;
+
+                use crate::command::DebugCommand;
+
+                match cmd {
+                    DebugCommand::CancellationTest { duration_millis } => {
+                        use tokio::time::sleep;
+                        let duration = std::time::Duration::from_millis(duration_millis);
+                        sleep(duration).await;
+                        println!("After wait #1");
+                        sleep(duration).await;
+                        println!("After wait #2");
+                        sleep(duration).await;
+                        println!("After wait #3");
+                        Ok::<i32, Error>(42).into_string()
+                    }
+                    DebugCommand::ErrorTest {} => {
+                        use bitwarden::Error;
+
+                        Err::<i32, Error>(Error::Internal(std::borrow::Cow::Borrowed(
+                            "This is an error.",
+                        )))
+                        .into_string()
+                    }
+                }
+            }
         }
     }
 

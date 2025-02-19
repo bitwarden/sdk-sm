@@ -1,4 +1,4 @@
-﻿using Bitwarden.Sdk;
+using Bitwarden.Sdk;
 
 // Get environment variables
 var identityUrl = Environment.GetEnvironmentVariable("IDENTITY_URL")!;
@@ -15,10 +15,10 @@ using var bitwardenClient = new BitwardenClient(new BitwardenSettings
 });
 
 // Authenticate
-bitwardenClient.Auth.LoginAccessToken(accessToken, stateFile);
+await bitwardenClient.Auth.LoginAccessTokenAsync(accessToken, stateFile);
 
 // Projects List
-var projectsList = bitwardenClient.Projects.List(organizationId).Data;
+var projectsList = (await bitwardenClient.Projects.ListAsync(organizationId)).Data;
 Console.WriteLine("A list of all projects:");
 foreach (ProjectResponse pr in projectsList)
 {
@@ -30,9 +30,9 @@ Console.ReadLine();
 
 // Projects Create, Update, & Get
 Console.WriteLine("Creating and updating a project");
-var projectResponse = bitwardenClient.Projects.Create(organizationId, "NewTestProject");
-projectResponse = bitwardenClient.Projects.Update(organizationId, projectResponse.Id, "NewTestProject Renamed");
-projectResponse = bitwardenClient.Projects.Get(projectResponse.Id);
+var projectResponse = await bitwardenClient.Projects.CreateAsync(organizationId, "NewTestProject");
+projectResponse = await bitwardenClient.Projects.UpdateAsync(organizationId, projectResponse.Id, "NewTestProject Renamed");
+projectResponse = await bitwardenClient.Projects.GetAsync(projectResponse.Id);
 Console.WriteLine("Here is the project we created and updated:");
 Console.WriteLine(projectResponse.Name);
 
@@ -40,7 +40,7 @@ Console.Write("Press enter to continue...");
 Console.ReadLine();
 
 // Secrets list
-var secretsList = bitwardenClient.Secrets.List(organizationId).Data;
+var secretsList = (await bitwardenClient.Secrets.ListAsync(organizationId)).Data;
 Console.WriteLine("A list of all secrets:");
 foreach (SecretIdentifierResponse sr in secretsList)
 {
@@ -52,9 +52,9 @@ Console.ReadLine();
 
 // Secrets Create, Update, Get
 Console.WriteLine("Creating and updating a secret");
-var secretResponse = bitwardenClient.Secrets.Create(organizationId, "New Secret", "the secret value", "the secret note", new[] { projectResponse.Id });
-secretResponse = bitwardenClient.Secrets.Update(organizationId, secretResponse.Id, "New Secret Name", "the secret value", "the secret note", new[] { projectResponse.Id });
-secretResponse = bitwardenClient.Secrets.Get(secretResponse.Id);
+var secretResponse = await bitwardenClient.Secrets.CreateAsync(organizationId, "New Secret", "the secret value", "the secret note", new[] { projectResponse.Id });
+secretResponse = await bitwardenClient.Secrets.UpdateAsync(organizationId, secretResponse.Id, "New Secret Name", "the secret value", "the secret note", new[] { projectResponse.Id });
+secretResponse = await bitwardenClient.Secrets.GetAsync(secretResponse.Id);
 Console.WriteLine("Here is the secret we created and updated:");
 Console.WriteLine(secretResponse.Key);
 
@@ -62,12 +62,12 @@ Console.Write("Press enter to continue...");
 Console.ReadLine();
 
 // Secrets GetByIds
-var secretsResponse = bitwardenClient.Secrets.GetByIds(new[] { secretResponse.Id });
+var secretsResponse = await bitwardenClient.Secrets.GetByIdsAsync(new[] { secretResponse.Id });
 
 // Secrets Sync
-var syncResponse = bitwardenClient.Secrets.Sync(organizationId, null);
+var syncResponse = await bitwardenClient.Secrets.SyncAsync(organizationId, null);
 
 // Secrets & Projects Delete
 Console.WriteLine("Deleting our secret and project");
-bitwardenClient.Secrets.Delete(new[] { secretResponse.Id });
-bitwardenClient.Projects.Delete(new[] { projectResponse.Id });
+await bitwardenClient.Secrets.DeleteAsync(new[] { secretResponse.Id });
+await bitwardenClient.Projects.DeleteAsync(new[] { projectResponse.Id });

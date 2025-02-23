@@ -66,7 +66,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Node
-        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
         with:
           node-version: 18
 
@@ -77,7 +77,7 @@ jobs:
           targets: ${{ matrix.settings.target }}
 
       - name: Cache cargo registry
-        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
           key: ${{ matrix.settings.target }}-cargo-${{ matrix.settings.os }}
 
@@ -89,7 +89,7 @@ jobs:
 
       - name: Build wheels
         if: ${{ matrix.settings.target != 'x86_64-unknown-linux-gnu' }}
-        uses: PyO3/maturin-action@ea5bac0f1ccd0ab11c805e2b804bfcb65dac2eab # v1.45.0
+        uses: PyO3/maturin-action@5f8a1b3b0aad13193f46c9131f9b9e663def8ce5 # v1.46.0
         with:
           target: ${{ matrix.settings.target }}
           args: --release --find-interpreter --sdist
@@ -99,7 +99,7 @@ jobs:
 
       - name: Build wheels (Linux - x86_64)
         if: ${{ matrix.settings.target == 'x86_64-unknown-linux-gnu' }}
-        uses: PyO3/maturin-action@ea5bac0f1ccd0ab11c805e2b804bfcb65dac2eab # v1.45.0
+        uses: PyO3/maturin-action@5f8a1b3b0aad13193f46c9131f9b9e663def8ce5 # v1.46.0
         with:
           target: ${{ matrix.settings.target }}
           args: --release --find-interpreter --sdist
@@ -109,14 +109,14 @@ jobs:
           working-directory: ${{ github.workspace }}/languages/python
 
       - name: Upload wheels
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           name: bitwarden_sdk-${{ env._PACKAGE_VERSION }}-${{ matrix.settings.target }}
           path: ${{ github.workspace }}/target/wheels/bitwarden_sdk*.whl
 
       - name: Upload sdists
         if: ${{ matrix.settings.target == 'x86_64-unknown-linux-gnu' }} # we only need one sdist
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           name: bitwarden_sdk-${{ env._PACKAGE_VERSION }}-sdist
           path: ${{ github.workspace }}/target/wheels/bitwarden_sdk-*.tar.gz

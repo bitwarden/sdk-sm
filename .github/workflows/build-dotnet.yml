@@ -55,7 +55,7 @@ jobs:
           path: languages/csharp/Bitwarden.Sdk
 
       - name: Set up .NET Core
-        uses: actions/setup-dotnet@3e891b0cb619bf60e2c25674b222b8940e2c1c25 # v4.1.0
+        uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
         with:
           global-json-file: languages/csharp/global.json
 
@@ -94,7 +94,7 @@ jobs:
         working-directory: languages/csharp/Bitwarden.Sdk
 
       - name: Upload NuGet package
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           name: Bitwarden.Sdk.${{ needs.version.outputs.version }}.nupkg
           path: |

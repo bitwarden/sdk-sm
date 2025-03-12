@@ -59,6 +59,12 @@ jobs:
       - name: Install Zigbuild
         if: ${{ contains(matrix.settings.target, 'musl') }}
         run: cargo install cargo-zigbuild --locked --git https://github.com/rust-cross/cargo-zigbuild --rev 6f7e1336c9cd13cf1b3704f93c40fcf84caaed6b # 0.18.4
+      
+      - name: Install arm-linux-gnueabihf-gcc
+        if: ${{ contains(matrix.settings.target, 'gnueabihf') }}
+        run: |
+          sudo apt update
+          sudo apt install -y arm-linux-gnueabihf-gcc
 
       - name: Add build architecture
         run: rustup target add ${{ matrix.settings.target }}

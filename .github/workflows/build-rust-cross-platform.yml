@@ -64,7 +64,7 @@ jobs:
         if: ${{ contains(matrix.settings.target, 'gnueabihf') }}
         run: |
           sudo apt update
-          sudo apt install -y arm-linux-gnueabihf-gcc
+          sudo apt install -y gcc-arm-linux-gnueabihf
 
       - name: Add build architecture
         run: rustup target add ${{ matrix.settings.target }}

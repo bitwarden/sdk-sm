@@ -1,8 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
+# 
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bitwarden.Sdk", "Bitwarden.Sdk\Bitwarden.Sdk.csproj", "{DADE59E5-E573-430A-8EB2-BC21D8E8C1D3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bitwarden.Sdk.Samples", "Bitwarden.Sdk.Samples\Bitwarden.Sdk.Samples.csproj", "{CA9F8EDC-643F-4624-AC00-F741E1F30CA4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bitwarden.Sdk.Tests", "Bitwarden.Sdk.Tests\Bitwarden.Sdk.Tests.csproj", "{6E62CBBF-E9E6-4661-A3DC-D89C18E15A89}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,5 +21,9 @@ Global
 		{CA9F8EDC-643F-4624-AC00-F741E1F30CA4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CA9F8EDC-643F-4624-AC00-F741E1F30CA4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CA9F8EDC-643F-4624-AC00-F741E1F30CA4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6E62CBBF-E9E6-4661-A3DC-D89C18E15A89}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6E62CBBF-E9E6-4661-A3DC-D89C18E15A89}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6E62CBBF-E9E6-4661-A3DC-D89C18E15A89}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6E62CBBF-E9E6-4661-A3DC-D89C18E15A89}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

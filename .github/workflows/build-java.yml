@@ -28,37 +28,37 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Download Java schemas artifact
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           name: sdk-schemas-java
           path: languages/java/src/main/java/bit/sdk/schema/
 
       - name: Setup Java
-        uses: actions/setup-java@8df1039502a15bceb9433410b1a100fbe190c53b # v4.5.0
+        uses: actions/setup-java@3a4f6e1af504cf6a31855fa899c6aa5355ba6c12 # v4.7.0
         with:
           distribution: temurin
           java-version: 17
 
       - name: Download x86_64-apple-darwin files
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           name: libbitwarden_c_files-x86_64-apple-darwin
           path: languages/java/src/main/resources/darwin-x86-64
 
       - name: Download aarch64-apple-darwin files
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           name: libbitwarden_c_files-aarch64-apple-darwin
           path: languages/java/src/main/resources/darwin-aarch64
 
       - name: Download x86_64-unknown-linux-gnu files
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           name: libbitwarden_c_files-x86_64-unknown-linux-gnu
           path: languages/java/src/main/resources/linux-x86-64
 
       - name: Download x86_64-pc-windows-msvc files
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           name: libbitwarden_c_files-x86_64-pc-windows-msvc
           path: languages/java/src/main/resources/win32-x86-64
@@ -68,21 +68,21 @@ jobs:
         working-directory: languages/java
 
       - name: Upload Java SDK Build
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: build
           path: ${{ github.workspace }}/languages/java/build
           if-no-files-found: error
 
       - name: Upload Java SDK Build
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: resources
           path: ${{ github.workspace }}/languages/java/src/main/resources
           if-no-files-found: error
 
       - name: Upload Java SDK Build
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: schemas
           path: languages/java/src/main/java/bit/sdk/schema

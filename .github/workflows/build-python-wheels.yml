@@ -98,7 +98,7 @@ jobs:
         uses: PyO3/maturin-action@ea5bac0f1ccd0ab11c805e2b804bfcb65dac2eab # v1.45.0
         with:
           target: ${{ matrix.settings.target }}
-          args: --release --find-interpreter --sdist --interpreter python3.10
+          args: --release --sdist --interpreter python3.10
           sccache: "true"
           manylinux: "2_28" # https://github.com/pola-rs/polars/pull/12211
           working-directory: ${{ github.workspace }}/languages/python
@@ -108,7 +108,7 @@ jobs:
         uses: PyO3/maturin-action@ea5bac0f1ccd0ab11c805e2b804bfcb65dac2eab # v1.45.0
         with:
           target: ${{ matrix.settings.target }}
-          args: --release --find-interpreter --sdist --interpreter python3.10
+          args: --release --sdist --interpreter python3.10
           container: quay.io/pypa/manylinux_2_28_x86_64:2023-11-20-745eb52
           sccache: "true"
           manylinux: "2_28" # https://github.com/pola-rs/polars/pull/12211

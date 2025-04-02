@@ -14,6 +14,12 @@ defaults:
     shell: bash
     working-directory: languages/python
 
+env:
+  # minimum supported Python version
+  # will be EOL in October 2025
+  # https://devguide.python.org/versions/#supported-versions
+  PYTHON_VERSION: "3.9"
+
 jobs:
   generate_schemas:
     name: Generate schemas
@@ -73,7 +79,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 # v5.5.0
         with:
-          python-version: '3.10'
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install rust
         uses: dtolnay/rust-toolchain@c5a29ddb4d9d194e7c84ec8c3fba61b1c31fee8c # stable
@@ -97,7 +103,7 @@ jobs:
         uses: PyO3/maturin-action@ea5bac0f1ccd0ab11c805e2b804bfcb65dac2eab # v1.45.0
         with:
           target: ${{ matrix.settings.target }}
-          args: --release --sdist --interpreter python3.10
+          args: --release --sdist --interpreter python${{ env.PYTHON_VERSION }}
           sccache: "true"
           manylinux: "2_28" # https://github.com/pola-rs/polars/pull/12211
           working-directory: ${{ github.workspace }}/languages/python
@@ -107,7 +113,7 @@ jobs:
         uses: PyO3/maturin-action@ea5bac0f1ccd0ab11c805e2b804bfcb65dac2eab # v1.45.0
         with:
           target: ${{ matrix.settings.target }}
-          args: --release --sdist --interpreter python3.10
+          args: --release --sdist --interpreter python${{ env.PYTHON_VERSION }}
           container: quay.io/pypa/manylinux_2_28_x86_64:2023-11-20-745eb52
           sccache: "true"
           manylinux: "2_28" # https://github.com/pola-rs/polars/pull/12211

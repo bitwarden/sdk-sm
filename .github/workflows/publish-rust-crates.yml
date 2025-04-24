@@ -79,7 +79,7 @@ jobs:
           secrets: "cratesio-api-token"
 
       - name: Install rust
-        uses: dtolnay/rust-toolchain@315e265cd78dad1e1dcf3a5074f6d6c47029d5aa # stable
+        uses: dtolnay/rust-toolchain@c5a29ddb4d9d194e7c84ec8c3fba61b1c31fee8c # stable
         with:
           toolchain: stable
 
@@ -113,7 +113,7 @@ jobs:
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
           state: "success"
-          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
 
       - name: Update deployment status to Failure
         if: ${{ inputs.release_type != 'Dry Run' && failure() }}
@@ -121,4 +121,4 @@ jobs:
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
           state: "failure"
-          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}

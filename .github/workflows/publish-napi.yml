@@ -143,7 +143,7 @@ jobs:
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
           state: "success"
-          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
 
       - name: Update deployment status to Failure
         if: ${{ inputs.release_type != 'Dry Run' && failure() }}
@@ -151,4 +151,4 @@ jobs:
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
           state: "failure"
-          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}

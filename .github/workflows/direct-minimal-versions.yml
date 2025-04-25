@@ -16,7 +16,7 @@ defaults:
 jobs:
   direct-minimal-versions:
     name: Check dependencies minimal versions for - ${{ matrix.settings.os }} - ${{ matrix.settings.target }}
-    runs-on: ${{ matrix.settings.os || 'ubuntu-latest' }}
+    runs-on: ${{ matrix.settings.os || 'ubuntu-24.04' }}
     strategy:
       fail-fast: false
       matrix:
@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install rust
-        uses: dtolnay/rust-toolchain@7b1c307e0dcbda6122208f10795a713336a9b35a # stable
+        uses: dtolnay/rust-toolchain@c5a29ddb4d9d194e7c84ec8c3fba61b1c31fee8c # stable
         with:
           toolchain: nightly
           targets: ${{ matrix.settings.target }}
@@ -48,5 +48,5 @@ jobs:
         with:
           key: dmv-${{ matrix.settings.target }}-cargo-${{ matrix.settings.os }}
 
-      - name: cargo check direct-minimal-versions
+      - name: Run cargo check direct-minimal-versions
         run: cargo check -Z direct-minimal-versions --all-features

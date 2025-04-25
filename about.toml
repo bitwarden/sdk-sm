@@ -11,6 +11,6 @@ accepted = [
     "OpenSSL",
 ]
 
-# Ring has all the licenses combined into a single file, which causes cargo about to 
+# Ring has all the licenses combined into a single file, which causes cargo about to
 # be confused about it. Thankfully it includes a workaround for this that we can enable.
 workarounds = ["ring"]

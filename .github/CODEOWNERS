@@ -9,36 +9,8 @@
 
 # Shared workflows ownership
 
-## BRE & SM teams shared ownership
-.github/workflows/build-cli-docker.yml @bitwarden/dept-bre @bitwarden/team-secrets-manager-dev
-.github/workflows/build-cli.yml @bitwarden/dept-bre @bitwarden/team-secrets-manager-dev
-.github/workflows/build-cpp.yml @bitwarden/dept-bre @bitwarden/team-secrets-manager-dev
-.github/workflows/build-dotnet.yml @bitwarden/dept-bre @bitwarden/team-secrets-manager-dev
-.github/workflows/build-go.yml @bitwarden/dept-bre @bitwarden/team-secrets-manager-dev
-.github/workflows/build-java.yml @bitwarden/dept-bre @bitwarden/team-secrets-manager-dev
-.github/workflows/build-napi.yml @bitwarden/dept-bre @bitwarden/team-secrets-manager-dev
-.github/workflows/build-python-wheels.yml @bitwarden/dept-bre @bitwarden/team-secrets-manager-dev
-.github/workflows/build-ruby.yml @bitwarden/dept-bre @bitwarden/team-secrets-manager-dev
-.github/workflows/release-bws.yml @bitwarden/dept-bre @bitwarden/team-secrets-manager-dev
-.github/workflows/release-cpp.yml @bitwarden/dept-bre @bitwarden/team-secrets-manager-dev
-.github/workflows/release-dotnet.yml @bitwarden/dept-bre @bitwarden/team-secrets-manager-dev
-.github/workflows/release-go.yml @bitwarden/dept-bre @bitwarden/team-secrets-manager-dev
-.github/workflows/release-java.yml @bitwarden/dept-bre @bitwarden/team-secrets-manager-dev
-.github/workflows/release-napi.yml @bitwarden/dept-bre @bitwarden/team-secrets-manager-dev
-.github/workflows/release-python.yml @bitwarden/dept-bre @bitwarden/team-secrets-manager-dev
-.github/workflows/release-ruby.yml @bitwarden/dept-bre @bitwarden/team-secrets-manager-dev
-
-## Multiple owners
-.github/workflows/build-rust-crates.yml
-.github/workflows/build-rust-cross-platform.yml
-.github/workflows/build-wasm.yml
-.github/workflows/release-rust-crates.yml
-.github/workflows/release-wasm.yml
-.github/workflows/version-bump.yml
-
-# Secrets Manager team
-crates/bitwarden-sm @bitwarden/team-secrets-manager-dev
-crates/bws @bitwarden/team-secrets-manager-dev
+## BRE & Platform teams shared ownership
+.github/workflows/release-* @bitwarden/dept-bre
 
 # BRE Automations
 crates/bws/Cargo.toml

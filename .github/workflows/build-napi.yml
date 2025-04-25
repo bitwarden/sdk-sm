@@ -16,11 +16,12 @@ defaults:
 
 jobs:
   generate_schemas:
+    name: Generate schemas
     uses: ./.github/workflows/generate_schemas.yml
 
   build:
     name: Building @bitwarden/sdk-napi for - ${{ matrix.settings.os }}
-    runs-on: ${{ matrix.settings.os || 'ubuntu-latest' }}
+    runs-on: ${{ matrix.settings.os || 'ubuntu-24.04' }}
     needs: generate_schemas
     strategy:
       fail-fast: false
@@ -60,7 +61,7 @@ jobs:
           cache-dependency-path: crates/bitwarden-napi/package-lock.json
 
       - name: Install rust
-        uses: dtolnay/rust-toolchain@7b1c307e0dcbda6122208f10795a713336a9b35a # stable
+        uses: dtolnay/rust-toolchain@c5a29ddb4d9d194e7c84ec8c3fba61b1c31fee8c # stable
         with:
           toolchain: stable
           targets: ${{ matrix.settings.target }}

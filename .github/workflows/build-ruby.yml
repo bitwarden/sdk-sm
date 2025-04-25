@@ -79,7 +79,7 @@ jobs:
             cp "temp/${platforms[$i]}/${files[$i]}" "languages/ruby/bitwarden_sdk_secrets/lib/${platforms[$i]}/${files[$i]}"
           done
 
-      - name: bundle install
+      - name: Run bundle install
         run: bundle install
         working-directory: languages/ruby/bitwarden_sdk_secrets
 

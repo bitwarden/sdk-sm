@@ -32,7 +32,7 @@ function Test-BwsInstallation {
 function Invoke-BwsDownload {
   Write-Host "Detected architecture: $arch"
 
-  $bwsUrl = "https://github.com/bitwarden/sdk/releases/download/bws-v$bwsVersion/bws-$arch-pc-windows-msvc-$bwsVersion.zip"
+  $bwsUrl = "https://github.com/bitwarden/sdk-sm/releases/download/bws-v$bwsVersion/bws-$arch-pc-windows-msvc-$bwsVersion.zip"
   Write-Host "Downloading bws from: $bwsUrl"
   $outputPath = Join-Path $env:TEMP "bws.zip"
   Invoke-WebRequest -Uri $bwsUrl -OutFile $outputPath
@@ -43,7 +43,7 @@ function Test-Checksum {
   param($zipPath)
   Write-Host "Validating checksum..."
 
-  $checksumUrl = "https://github.com/bitwarden/sdk/releases/download/bws-v$bwsVersion/bws-sha256-checksums-$bwsVersion.txt"
+  $checksumUrl = "https://github.com/bitwarden/sdk-sm/releases/download/bws-v$bwsVersion/bws-sha256-checksums-$bwsVersion.txt"
   $checksumFile = Join-Path $env:TEMP "bws-checksums.txt"
   Invoke-WebRequest -Uri $checksumUrl -OutFile $checksumFile
 

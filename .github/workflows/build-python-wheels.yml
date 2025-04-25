@@ -16,6 +16,7 @@ defaults:
 
 jobs:
   generate_schemas:
+    name: Generate schemas
     uses: ./.github/workflows/generate_schemas.yml
 
   setup:
@@ -35,7 +36,7 @@ jobs:
 
   build:
     name: Building Python wheel for - ${{ matrix.settings.os }} - ${{ matrix.settings.target }}
-    runs-on: ${{ matrix.settings.os || 'ubuntu-latest' }}
+    runs-on: ${{ matrix.settings.os || 'ubuntu-24.04' }}
     needs:
       - generate_schemas
       - setup
@@ -70,7 +71,7 @@ jobs:
           node-version: 18
 
       - name: Install rust
-        uses: dtolnay/rust-toolchain@7b1c307e0dcbda6122208f10795a713336a9b35a # stable
+        uses: dtolnay/rust-toolchain@c5a29ddb4d9d194e7c84ec8c3fba61b1c31fee8c # stable
         with:
           toolchain: stable
           targets: ${{ matrix.settings.target }}

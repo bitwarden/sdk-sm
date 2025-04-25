@@ -46,7 +46,7 @@ jobs:
         id: version-output
         run: |
           if [[ "${{ inputs.version }}" == "latest" || "${{ inputs.version }}" == "" ]]; then
-            TAG_NAME=$(curl  "https://api.github.com/repos/bitwarden/sdk/releases" | jq -c '.[] | select(.tag_name | contains("python")) | .tag_name' | head -1)
+            TAG_NAME=$(curl  "https://api.github.com/repos/bitwarden/sdk-sm/releases" | jq -c '.[] | select(.tag_name | contains("python")) | .tag_name' | head -1)
             VERSION=$(echo $TAG_NAME | grep -ohE '20[0-9]{2}\.([1-9]|1[0-2])\.[0-9]+')
             echo "Latest Released Version: $VERSION"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -79,7 +79,7 @@ jobs:
       - name: Get release assets
         working-directory: ${{ github.workspace }}/target/wheels/dist
         run: |
-          ARTIFACT_URLS=$(curl -sSL https://api.github.com/repos/bitwarden/sdk/releases/tags/${{ needs.setup.outputs.tag_name }} | jq -r '.assets[].browser_download_url')
+          ARTIFACT_URLS=$(curl -sSL https://api.github.com/repos/bitwarden/sdk-sm/releases/tags/${{ needs.setup.outputs.tag_name }} | jq -r '.assets[].browser_download_url')
           for url in $ARTIFACT_URLS; do
             wget $url
           done

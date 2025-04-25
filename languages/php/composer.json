@@ -3,7 +3,7 @@
   "description": "PHP bindings for interacting with the Bitwarden Secrets Manager. This is a beta release and might be missing some functionality.",
   "type": "library",
   "keywords": ["bitwarden","sdk","password-manager"],
-  "homepage": "https://github.com/bitwarden/sdk",
+  "homepage": "https://github.com/bitwarden/sdk-sm",
   "version": "1.0.0",
   "require": {
     "php": "^8.0",

@@ -21,11 +21,11 @@ on:
 
 jobs:
   setup:
-    name: setup
+    name: Setup
     runs-on: ubuntu-22.04
     outputs:
-      release-version: ${{ steps.version-output.outputs.version }}
-      release-tag: ${{ steps.version-output.outputs.tag_name }}
+      release_version: ${{ steps.version-output.outputs.version }}
+      release_tag: ${{ steps.version-output.outputs.tag_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -44,7 +44,7 @@ jobs:
         id: version-output
         run: |
           if [[ "${{ inputs.version }}" == "latest" || "${{ inputs.version }}" == "" ]]; then
-            TAG_NAME=$(curl  "https://api.github.com/repos/bitwarden/sdk/releases" | jq -c '.[] | select(.tag_name | contains("rust")) | .tag_name' | head -1)
+            TAG_NAME=$(curl  "https://api.github.com/repos/bitwarden/sdk-sm/releases" | jq -c '.[] | select(.tag_name | contains("rust")) | .tag_name' | head -1)
             VERSION=$(echo $TAG_NAME | grep -ohE '20[0-9]{2}\.([1-9]|1[0-2])\.[0-9]+')
             echo "Latest Released Version: $VERSION"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -64,7 +64,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: ${{ needs.setup.outputs.release-tag }}
+          ref: ${{ needs.setup.outputs.release_tag }}
 
       - name: Login to Azure
         uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0
@@ -79,7 +79,7 @@ jobs:
           secrets: "cratesio-api-token"
 
       - name: Install rust
-        uses: dtolnay/rust-toolchain@7b1c307e0dcbda6122208f10795a713336a9b35a # stable
+        uses: dtolnay/rust-toolchain@c5a29ddb4d9d194e7c84ec8c3fba61b1c31fee8c # stable
         with:
           toolchain: stable
 

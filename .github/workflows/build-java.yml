@@ -9,9 +9,11 @@ on:
 
 jobs:
   generate_schemas:
+    name: Generate schemas
     uses: ./.github/workflows/generate_schemas.yml
 
   build_rust:
+    name: Build Rust
     uses: ./.github/workflows/build-rust-cross-platform.yml
 
   build_java:

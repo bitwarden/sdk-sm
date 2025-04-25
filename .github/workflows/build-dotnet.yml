@@ -84,7 +84,7 @@ jobs:
           path: languages/csharp/Bitwarden.Sdk/windows-x64
 
       - name: Test
-        working-directory: languages/csharp/Bitwarden.Sdk
+        working-directory: languages/csharp
         run: dotnet test
         env:
           IDENTITY_URL: "https://identity.qa.bitwarden.pw"

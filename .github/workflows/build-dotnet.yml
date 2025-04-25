@@ -87,8 +87,8 @@ jobs:
         working-directory: languages/csharp/Bitwarden.Sdk
         run: dotnet test
         env:
-          IDENTITY_URL: "https://identity.bitwarden.pw"
-          API_URL: "https://api.bitwarden.pw"
+          IDENTITY_URL: "https://identity.qa.bitwarden.pw"
+          API_URL: "https://api.qa.bitwarden.pw"
           ORGANIZATION_ID: ${{ secrets.SM_TEST_ORGANIZATION }}
           ACCESS_TOKEN: ${{ secrets.SM_TEST_ACCESS_TOKEN }}
 

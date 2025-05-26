@@ -126,6 +126,13 @@ jobs:
         with:
           ref: ${{ env._TAG_NAME }}
 
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Generate tag list
         id: tag-list
         env:
@@ -135,9 +142,9 @@ jobs:
           if [[ "${DRY_RUN}" == "true" ]]; then
             REF=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
             IMAGE_TAG=$(echo "${REF}" | sed "s#/#-#g")  # slash safe branch name
-            echo "tags=$_AZ_REGISTRY/bws:${IMAGE_TAG},bitwarden/bws:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+            echo "tags=$_AZ_REGISTRY/bws:${IMAGE_TAG},ghcr.io/bitwarden/bws:${IMAGE_TAG}" >> $GITHUB_OUTPUT
           else
-            echo "tags=$_AZ_REGISTRY/bws:${VERSION},bitwarden/bws:${VERSION},$_AZ_REGISTRY/bws:latest,bitwarden/bws:latest" >> $GITHUB_OUTPUT
+            echo "tags=$_AZ_REGISTRY/bws:${VERSION},ghcr.io/bitwarden/bws:${VERSION},$_AZ_REGISTRY/bws:latest,ghcr.io/bitwarden/bws:latest" >> $GITHUB_OUTPUT
           fi
 
       ########## Set up Docker ##########
@@ -167,12 +174,6 @@ jobs:
         with:
           keyvault: "bitwarden-ci"
           secrets: "github-pat-bitwarden-devops-bot-repo-scope"
-
-      - name: Setup Docker Trust
-        uses: bitwarden/gh-actions/setup-docker-trust@main
-        with:
-          azure-creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
-          azure-keyvault-name: "bitwarden-ci"
 
       - name: Build and push Docker image
         id: build-docker
@@ -216,11 +217,10 @@ jobs:
         with:
           sarif_file: ${{ steps.container-scan.outputs.sarif }}
 
-      - name: Log out of Docker and disable Docker Notary
+      - name: Log out of Docker
         if: ${{ inputs.release_type != 'Dry Run' }}
         run: |
-          docker logout
-          echo "DOCKER_CONTENT_TRUST=0" >> $GITHUB_ENV
+          docker logout ghcr.io
 
   update_release_status:
     name: Update GitHub deployment status

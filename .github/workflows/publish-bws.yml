@@ -24,7 +24,7 @@ env:
 jobs:
   setup:
     name: Setup
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       release_version: ${{ steps.version-output.outputs.version }}
       release_tag: ${{ steps.version-output.outputs.tag_name }}
@@ -72,7 +72,7 @@ jobs:
 
   publish:
     name: Publish bws to crates.io
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: setup
     env:
       _VERSION: ${{ needs.setup.outputs.release_version }}
@@ -85,7 +85,6 @@ jobs:
         uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0
         with:
           creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
-          ref: ${{ env._TAG_NAME }}
 
       - name: Retrieve secrets
         id: retrieve-secrets
@@ -114,7 +113,7 @@ jobs:
 
   publish-docker:
     name: Publish docker versioned and latest image
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       security-events: write
       id-token: write
@@ -224,7 +223,7 @@ jobs:
 
   update_release_status:
     name: Update GitHub deployment status
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: setup
     if: ${{ inputs.release_type != 'Dry Run' }}
     env:

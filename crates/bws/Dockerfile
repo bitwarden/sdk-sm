@@ -1,31 +1,20 @@
 ###############################################
 #                 Build stage                 #
 ###############################################
-FROM --platform=$BUILDPLATFORM rust:1.81 AS build
+FROM --platform=$BUILDPLATFORM rust:1.86.0-alpine3.21 AS build
 
 # Docker buildx supplies the value for this arg
 ARG TARGETPLATFORM
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-  ca-certificates \
-  && rm -rf /var/lib/apt/lists/*
+# Add dev libraries. Make a user and HOME directory for the app stage
+RUN apk add --no-cache musl-dev && adduser -D app
 
-# Copy required project files
+WORKDIR /app/crates/bws
 COPY . /app
 
 # Build project
-WORKDIR /app/crates/bws
+
 RUN cargo build --release --bin bws
-
-# Bundle bws dependencies
-RUN mkdir /lib-bws
-RUN mkdir /lib64-bws
-
-RUN ldd /app/target/release/bws | tr -s '[:blank:]' '\n' | grep '^/lib' | xargs -I % cp % /lib-bws
-RUN ldd /app/target/release/bws | tr -s '[:blank:]' '\n' | grep '^/lib64' | xargs -I % cp % /lib64-bws
-
-# Make a user and HOME directory for the app stage
-RUN useradd -m app
 
 ###############################################
 #                  App stage                  #
@@ -36,8 +25,10 @@ ARG TARGETPLATFORM
 LABEL com.bitwarden.product="bitwarden"
 
 # Set a HOME directory and copy the user file
-COPY --from=build /home/app /home/app
+# Must chown home folder, otherwise bws config file writing will cause permission errors in output
+COPY --from=build --chown=app:app /home/app /home/app
 COPY --from=build /etc/passwd /etc/passwd
+COPY --from=build /etc/group /etc/group
 ENV HOME=/home/app
 WORKDIR /home/app
 
@@ -48,10 +39,6 @@ USER app
 COPY --from=build /app/target/release/bws /bin/bws
 
 # Copy certs
-COPY --from=build /etc/ssl/certs /etc/ssl/certs
-
-# Copy bws dependencies
-COPY --from=build /lib-bws /lib
-COPY --from=build /lib64-bws /lib64
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 ENTRYPOINT ["bws"]

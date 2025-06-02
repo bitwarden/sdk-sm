@@ -196,7 +196,7 @@ jobs:
 
       - name: Scan Docker image
         id: container-scan
-        uses: anchore/scan-action@5ed195cc06065322983cae4bb31e2a751feb86fd # v5.2.0
+        uses: anchore/scan-action@2c901ab7378897c01b8efaa2d0c9bf519cc64b9e # v6.2.0
         with:
           image: ${{ steps.tag-list.outputs.primary_tag }}
           fail-build: false

@@ -26,7 +26,7 @@ js-sys = "0.3.68"
 log = "0.4.20"
 serde = { version = "1.0.196", features = ["derive"] }
 # When upgrading wasm-bindgen, make sure to update the version in the workflows!
-wasm-bindgen = { version = "=0.2.95", features = ["serde-serialize"] }
+wasm-bindgen = { version = "=0.2.100", features = ["serde-serialize"] }
 wasm-bindgen-futures = "0.4.41"
 
 [dev-dependencies]

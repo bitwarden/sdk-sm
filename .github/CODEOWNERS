@@ -4,12 +4,11 @@
 #
 # https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
+# Default owners
+* @bitwarden/team-secrets-manager-dev
+
 # BRE for publish workflow changes
 .github/workflows/publish-*.yml @bitwarden/dept-bre
-
-# Shared workflows ownership
-
-## BRE & Platform teams shared ownership
 .github/workflows/release-* @bitwarden/dept-bre
 
 # BRE Automations

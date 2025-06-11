@@ -81,11 +81,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Login to Azure
-        uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0
+      - name: Azure Login
+        id: azure-login
+        uses: bitwarden/gh-actions/azure-login@main
         with:
-          creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
-          ref: ${{ env._TAG_NAME }}
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Retrieve secrets
         id: retrieve-secrets
@@ -93,6 +95,9 @@ jobs:
         with:
           keyvault: "bitwarden-ci"
           secrets: "cratesio-api-token"
+
+      - name: Azure Logout
+        uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Install rust
         uses: dtolnay/rust-toolchain@c5a29ddb4d9d194e7c84ec8c3fba61b1c31fee8c # stable
@@ -148,18 +153,16 @@ jobs:
         uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
 
       ########## Login to Docker registries ##########
-      - name: Login to Azure - Prod Subscription
-        uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0
+      - name: Azure Login
+        id: azure-login
+        uses: bitwarden/gh-actions/azure-login@main
         with:
-          creds: ${{ secrets.AZURE_PROD_KV_CREDENTIALS }}
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Login to Azure ACR
         run: az acr login -n ${_AZ_REGISTRY%.azurecr.io}
-
-      - name: Login to Azure - CI Subscription
-        uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0
-        with:
-          creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
 
       - name: Retrieve github PAT secrets
         id: retrieve-secret-pat
@@ -171,7 +174,6 @@ jobs:
       - name: Setup Docker Trust
         uses: bitwarden/gh-actions/setup-docker-trust@main
         with:
-          azure-creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
           azure-keyvault-name: "bitwarden-ci"
 
       - name: Build and push Docker image
@@ -221,6 +223,9 @@ jobs:
         run: |
           docker logout
           echo "DOCKER_CONTENT_TRUST=0" >> $GITHUB_ENV
+
+      - name: Azure Logout
+        uses: bitwarden/gh-actions/azure-logout@main
 
   update_release_status:
     name: Update GitHub deployment status

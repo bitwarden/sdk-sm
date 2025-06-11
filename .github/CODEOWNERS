@@ -9,6 +9,8 @@
 
 # BRE for publish workflow changes
 .github/workflows/publish-*.yml @bitwarden/dept-bre
+
+# BRE & Secrets Manager teams shared ownership
 .github/workflows/release-* @bitwarden/dept-bre
 
 # BRE Automations

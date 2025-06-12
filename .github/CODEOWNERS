@@ -11,7 +11,7 @@
 .github/workflows/publish-*.yml @bitwarden/dept-bre
 
 # BRE & Secrets Manager teams shared ownership
-.github/workflows/release-* @bitwarden/dept-bre
+.github/workflows/release-*.yml @bitwarden/dept-bre
 
 # BRE Automations
 crates/bws/Cargo.toml

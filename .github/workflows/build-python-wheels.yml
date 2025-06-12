@@ -93,25 +93,23 @@ jobs:
           path: ${{ github.workspace }}/languages/python/bitwarden_sdk
 
       - name: Build wheels
-        # if: ${{ matrix.settings.target != 'x86_64-unknown-linux-gnu' }}
+        if: ${{ matrix.settings.target != 'x86_64-unknown-linux-gnu' }}
         uses: PyO3/maturin-action@ea5bac0f1ccd0ab11c805e2b804bfcb65dac2eab # v1.45.0
         with:
           target: ${{ matrix.settings.target }}
-          args: --release --sdist
-          sccache: "true"
+          args: --release --sdist --interpreter python3.9
+          sccache: ${{ !contains(matrix.settings.target, 'linux') && 'true' || 'false' }} # installing sccache in the Linux build images is very flaky
           manylinux: "2_28" # https://github.com/pola-rs/polars/pull/12211
           working-directory: ${{ github.workspace }}/languages/python
 
-      # - name: Build wheels (Linux - x86_64)
-      #   if: ${{ matrix.settings.target == 'x86_64-unknown-linux-gnu' }}
-      #   uses: PyO3/maturin-action@ea5bac0f1ccd0ab11c805e2b804bfcb65dac2eab # v1.45.0
-      #   with:
-      #     target: ${{ matrix.settings.target }}
-      #     args: --release --sdist
-      #     container: quay.io/pypa/manylinux_2_28_x86_64:2023-11-20-745eb52
-      #     sccache: "true"
-      #     manylinux: "2_28" # https://github.com/pola-rs/polars/pull/12211
-      #     working-directory: ${{ github.workspace }}/languages/python
+      - name: Build wheels (Linux - x86_64)
+        if: ${{ matrix.settings.target == 'x86_64-unknown-linux-gnu' }}
+        uses: PyO3/maturin-action@ea5bac0f1ccd0ab11c805e2b804bfcb65dac2eab # v1.45.0
+        with:
+          target: ${{ matrix.settings.target }}
+          args: --release --sdist --interpreter python3.9
+          manylinux: "2_28" # https://github.com/pola-rs/polars/pull/12211
+          working-directory: ${{ github.workspace }}/languages/python
 
       - name: Upload wheels
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3

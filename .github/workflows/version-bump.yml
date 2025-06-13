@@ -242,6 +242,8 @@ jobs:
   cut_rc:
     name: Cut RC branch
     needs: bump_version
+    permissions:
+      contents: write
     if: ${{ inputs.cut_rc_branch == true }}
     runs-on: ubuntu-22.04
     steps:

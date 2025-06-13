@@ -25,6 +25,8 @@ jobs:
   setup:
     name: Setup
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
     outputs:
       version: ${{ steps.version-output.outputs.version }}
       tag_name: ${{ steps.version-output.outputs.tag_name }}

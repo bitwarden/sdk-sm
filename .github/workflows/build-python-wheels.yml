@@ -65,6 +65,11 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      - name: Setup Python
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.3.0
+        with:
+          python-version: 3.9 # EOL in October 2025: https://devguide.python.org/versions/#supported-versions
+
       - name: Setup Node
         uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
@@ -92,8 +97,8 @@ jobs:
         uses: PyO3/maturin-action@ea5bac0f1ccd0ab11c805e2b804bfcb65dac2eab # v1.45.0
         with:
           target: ${{ matrix.settings.target }}
-          args: --release --find-interpreter --sdist
-          sccache: "true"
+          args: --release --sdist --interpreter python3.9
+          sccache: ${{ !contains(matrix.settings.target, 'linux') && 'true' || 'false' }} # installing sccache in the Linux build images is very flaky
           manylinux: "2_28" # https://github.com/pola-rs/polars/pull/12211
           working-directory: ${{ github.workspace }}/languages/python
 
@@ -102,9 +107,7 @@ jobs:
         uses: PyO3/maturin-action@ea5bac0f1ccd0ab11c805e2b804bfcb65dac2eab # v1.45.0
         with:
           target: ${{ matrix.settings.target }}
-          args: --release --find-interpreter --sdist
-          container: quay.io/pypa/manylinux_2_28_x86_64:2023-11-20-745eb52
-          sccache: "true"
+          args: --release --sdist --interpreter python3.9
           manylinux: "2_28" # https://github.com/pola-rs/polars/pull/12211
           working-directory: ${{ github.workspace }}/languages/python
 

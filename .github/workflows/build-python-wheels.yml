@@ -98,21 +98,12 @@ jobs:
           path: ${{ github.workspace }}/languages/python/bitwarden_sdk
 
       - name: Build wheels
-        if: ${{ matrix.settings.target != 'x86_64-unknown-linux-gnu' }}
-        uses: PyO3/maturin-action@ea5bac0f1ccd0ab11c805e2b804bfcb65dac2eab # v1.45.0
-        with:
-          target: ${{ matrix.settings.target }}
-          args: --release --sdist --interpreter python${{ matrix.settings.python-version }}
-          sccache: ${{ !contains(matrix.settings.target, 'linux') && 'true' || 'false' }} # installing sccache in the Linux build images is very flaky
-          manylinux: "2_28" # https://github.com/pola-rs/polars/pull/12211
-          working-directory: ${{ github.workspace }}/languages/python
-
-      - name: Build wheels (Linux - x86_64)
         if: ${{ matrix.settings.target == 'x86_64-unknown-linux-gnu' }}
         uses: PyO3/maturin-action@ea5bac0f1ccd0ab11c805e2b804bfcb65dac2eab # v1.45.0
         with:
           target: ${{ matrix.settings.target }}
           args: --release --sdist --interpreter python${{ matrix.settings.python-version }}
+          sccache: "true"
           manylinux: "2_28" # https://github.com/pola-rs/polars/pull/12211
           working-directory: ${{ github.workspace }}/languages/python
 

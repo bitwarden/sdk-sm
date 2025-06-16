@@ -103,7 +103,7 @@ jobs:
         with:
           target: ${{ matrix.settings.target }}
           args: --release --sdist --interpreter python${{ matrix.settings.python-version }}
-          sccache: ${{ !contains(matrix.settings.target, 'linux') && 'true' || 'false' }} # installing sccache in the Linux build images is very flaky
+          sccache: true
           manylinux: "2_28" # https://github.com/pola-rs/polars/pull/12211
           working-directory: ${{ github.workspace }}/languages/python
 

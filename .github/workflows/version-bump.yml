@@ -48,7 +48,7 @@ jobs:
       - name: Install cargo-release
         run: cargo install cargo-edit --locked
 
-      - name: Azure Login
+      - name: Log in to Azure
         id: azure-login
         uses: bitwarden/gh-actions/azure-login@main
         with:
@@ -65,7 +65,7 @@ jobs:
             github-gpg-private-key-passphrase,
             github-pat-bitwarden-devops-bot-repo-scope"
 
-      - name: Azure Logout
+      - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Checkout Branch

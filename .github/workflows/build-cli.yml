@@ -78,7 +78,7 @@ jobs:
           TARGET: ${{ matrix.settings.target }}
         run: cargo build -p bws --release --target=${{ matrix.settings.target }}
 
-      - name: Azure Login
+      - name: Log in to Azure
         id: azure-login
         if: ${{ needs.setup.outputs.sign == 'true' }}
         uses: bitwarden/gh-actions/azure-login@main
@@ -99,7 +99,7 @@ jobs:
             code-signing-client-secret,
             code-signing-cert-name"
 
-      - name: Azure Logout
+      - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Install AST
@@ -176,7 +176,7 @@ jobs:
           TARGET: ${{ matrix.settings.target }}
         run: cargo build -p bws --release --target=${{ matrix.settings.target }}
 
-      - name: Azure Login
+      - name: Log in to Azure
         id: azure-login
         uses: bitwarden/gh-actions/azure-login@main
         with:
@@ -195,14 +195,14 @@ jobs:
             macos-bws-certificate-name,
             macos-bws-installer-certificate-name"
 
-      - name: Get KV secrets
+      - name: Get Azure Key Vault Secrets
         id: get-kv-secrets
         uses: bitwarden/gh-actions/get-keyvault-secrets@main
         with:
           keyvault: gh-sdk-sm
           secrets: "DECRYPT-FILE-PASSWORD, KEYCHAIN-PASSWORD, DEVID-CERT-PASSWORD"
 
-      - name: Azure Logout
+      - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Decrypt secrets
@@ -359,7 +359,7 @@ jobs:
 
           lipo -create -output ./bws-macos-universal/bws ./bws-x86_64-apple-darwin/bws ./bws-aarch64-apple-darwin/bws
 
-      - name: Azure Login
+      - name: Log in to Azure
         id: azure-login
         uses: bitwarden/gh-actions/azure-login@main
         with:
@@ -378,14 +378,14 @@ jobs:
             macos-bws-certificate-name,
             macos-bws-installer-certificate-name"
 
-      - name: Get KV secrets
+      - name: Get Azure Key Vault Secrets
         id: get-kv-secrets
         uses: bitwarden/gh-actions/get-keyvault-secrets@main
         with:
           keyvault: gh-sdk-sm
           secrets: "DECRYPT-FILE-PASSWORD, KEYCHAIN-PASSWORD, DEVID-CERT-PASSWORD"
 
-      - name: Azure Logout
+      - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Decrypt secrets

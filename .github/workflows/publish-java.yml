@@ -78,7 +78,7 @@ jobs:
         with:
           ref: ${{ needs.validate.outputs.tag_name }}
 
-      - name: Azure Login
+      - name: Log in to Azure
         id: azure-login
         uses: bitwarden/gh-actions/azure-login@main
         with:
@@ -94,7 +94,7 @@ jobs:
           secrets: "maven-sonartype-ssrh-username,
             maven-sonartype-ossrh-password"
 
-      - name: Azure Logout
+      - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Setup java

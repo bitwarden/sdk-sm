@@ -84,7 +84,7 @@ jobs:
           cd nuget-output
           wget https://github.com/bitwarden/sdk-sm/releases/download/dotnet-v${{ needs.validate.outputs.version }}/Bitwarden.Secrets.Sdk.${{ needs.validate.outputs.version }}.nupkg
 
-      - name: Azure Login
+      - name: Log in to Azure
         id: azure-login
         uses: bitwarden/gh-actions/azure-login@main
         with:
@@ -99,7 +99,7 @@ jobs:
           keyvault: ${{ env._KEY_VAULT }}
           secrets: "nuget-api-key"
 
-      - name: Azure Logout
+      - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Publish NuGet Package

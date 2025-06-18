@@ -13,6 +13,9 @@ defaults:
   run:
     shell: bash
 
+permissions:
+  contents: read
+
 jobs:
   direct-minimal-versions:
     name: Check dependencies minimal versions for - ${{ matrix.settings.os }} - ${{ matrix.settings.target }}

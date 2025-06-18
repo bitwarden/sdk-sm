@@ -14,6 +14,10 @@ defaults:
     shell: bash
     working-directory: crates/bitwarden-wasm
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build:
     name: Building @bitwarden/sdk-wasm

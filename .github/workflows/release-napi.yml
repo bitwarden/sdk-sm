@@ -19,6 +19,10 @@ defaults:
     shell: bash
     working-directory: crates/bitwarden-napi
 
+permissions:
+  contents: write
+  actions: read
+
 jobs:
   setup:
     name: Setup

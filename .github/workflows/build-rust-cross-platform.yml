@@ -10,6 +10,9 @@ on:
       - hotfix-rc
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   build_rust:
     name: Build for ${{ matrix.settings.os }} ${{ matrix.settings.target }}

@@ -17,6 +17,9 @@ defaults:
     shell: bash
     working-directory: languages/python
 
+permissions:
+  contents: read
+
 jobs:
   generate_schemas:
     name: Generate schemas
@@ -84,7 +87,7 @@ jobs:
           node-version: 18
 
       - name: Install rust
-        uses: dtolnay/rust-toolchain@c5a29ddb4d9d194e7c84ec8c3fba61b1c31fee8c # stable
+        uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b # stable
         with:
           toolchain: stable
           targets: ${{ matrix.settings.target }}

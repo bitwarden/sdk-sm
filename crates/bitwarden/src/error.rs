@@ -1,13 +1,13 @@
 //! Errors that can occur when using this SDK
 
-use std::fmt::Debug;
+use std::{borrow::Cow, fmt::Debug};
 
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error(transparent)]
-    Core(#[from] bitwarden_core::Error),
+    #[error("Internal error: {0}")]
+    Internal(Cow<'static, str>),
 }
 
 // Ensure that the error messages implement Send and Sync

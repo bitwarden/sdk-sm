@@ -50,7 +50,7 @@ jobs:
     needs: validate
     permissions:
       actions: read
-      contents: read
+      contents: write
       id-token: write
     env:
       _PKG_VERSION: ${{ needs.validate.outputs.version }}

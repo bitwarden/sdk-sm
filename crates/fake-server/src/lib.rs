@@ -16,7 +16,10 @@ pub fn create_app() -> Router {
             "/api/organizations/{org_id}/secrets",
             get(routes::secrets::list_secrets).post(routes::secrets::create_secret),
         )
-        .route("/api/secrets/get-by-ids", post(routes::secrets::get_secrets_by_ids))
+        .route(
+            "/api/secrets/get-by-ids",
+            post(routes::secrets::get_secrets_by_ids),
+        )
         .route("/api/secrets/{id}", put(routes::secrets::create_secret)) // we don't really have data to edit, so just treat it as create
         .route("/api/secrets/delete", post(routes::secrets::delete_secrets))
         // projects
@@ -26,7 +29,10 @@ pub fn create_app() -> Router {
             get(routes::projects::list_projects).post(routes::projects::create_project),
         )
         .route("/api/projects/{id}", put(routes::projects::create_project)) // we don't really have data to edit, so just treat it as create
-        .route("/api/projects/delete", post(routes::projects::delete_projects))
+        .route(
+            "/api/projects/delete",
+            post(routes::projects::delete_projects),
+        )
         // misc
         .route("/help", get(routes::misc::help))
         .route("/health", get(routes::misc::health_check))

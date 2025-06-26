@@ -1169,6 +1169,7 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "axum",
+ "bitwarden-sm",
  "chrono",
  "serde",
  "serde_json",

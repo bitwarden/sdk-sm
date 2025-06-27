@@ -47,13 +47,6 @@ setup() {
   # shellcheck disable=SC1091
   . "${TMP_DIR}/venv/bin/activate"
 
-  # Verify virtual environment is activated
-  which python
-  python --version
-
-  # Ensure we're using the virtual environment's pip
-  export PATH="${TMP_DIR}/venv/bin:${PATH}"
-
   # Verify we're in the virtual environment
   if [ -z "${VIRTUAL_ENV:-}" ]; then
     echo "ERROR: Virtual environment activation failed" >/dev/stderr
@@ -153,9 +146,6 @@ main() {
   echo
 
   python "${REPO_ROOT}/languages/python/test/crud.py"
-
-  # Ensure we popd from main's pushd
-  popd >/dev/null || true
 }
 
 cleanup() {

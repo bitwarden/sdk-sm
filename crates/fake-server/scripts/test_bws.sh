@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC3040
+# shellcheck disable=SC3040,SC3044
 set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
 
 # This access token is only used for testing purposes with the fake server
 export BWS_ACCESS_TOKEN="0.ec2c1d46-6a4b-4751-a310-af9601317f2d.C2IgxjjLF7qSshsbwe8JGcbM075YXw:X8vbvA0bduihIDe/qrzIQQ=="
@@ -20,7 +22,7 @@ run_test() {
   test_command="$2"
 
   if [ "$BUILD_FROM_SOURCE" -eq 1 ]; then
-    cargo build --bin bws --quiet --release
+    ./target/release/bws --version >/dev/null || cargo build --bin bws --quiet --release
     modified_command=$(echo "$test_command" | sed 's/bws/.\/target\/release\/bws/')
   else
     modified_command="$test_command"
@@ -51,6 +53,7 @@ projects() {
 }
 
 main() {
+  pushd "${REPO_ROOT}" >/dev/null || exit 1
   echo "Testing secrets..."
   secrets
   echo
@@ -69,4 +72,5 @@ main() {
   fi
 }
 
+trap 'popd >/dev/null || exit 1' EXIT
 main "$@"

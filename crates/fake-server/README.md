@@ -1,7 +1,8 @@
 # Fake Server
 
-A minimal API server that emulates the /secrets and /projects endpoints of the official Bitwarden server.
-It does just enough to enable simple CRUD testing with our CLI, language bindings, and integrations.
+A minimal API server that emulates the /secrets and /projects endpoints of the official Bitwarden
+server. It does just enough to enable simple CRUD testing with our CLI, language bindings, and
+integrations.
 
 ## Usage
 
@@ -36,8 +37,9 @@ bws project delete "$(uuidgen)" "$(uuidgen)"
 
 ## Creating new secrets and projects
 
-Because we still need valid cryptography keys (from the fake access token), we need to leverage a Secrets Manager client
-to generate valid ciphers. We can use the server logging to see the generated ciphers:
+Because we still need valid cryptography keys (from the fake access token), we need to leverage a
+Secrets Manager client to generate valid ciphers. We can use the server logging to see the generated
+ciphers:
 
 ```sh
 RUST_LOG=info cargo run --quiet --bin fake-server

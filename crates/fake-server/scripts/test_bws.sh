@@ -72,5 +72,13 @@ main() {
   fi
 }
 
-trap 'popd >/dev/null || exit 1' EXIT
+cleanup() {
+  # Only popd if we have something on the directory stack
+  # shellcheck disable=SC2317
+  if dirs -v | grep -q "1"; then
+    popd >/dev/null 2>&1 || true
+  fi
+}
+
+trap cleanup EXIT
 main "$@"

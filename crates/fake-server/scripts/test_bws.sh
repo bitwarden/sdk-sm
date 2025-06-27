@@ -6,48 +6,67 @@ set -euo pipefail
 export BWS_ACCESS_TOKEN="0.ec2c1d46-6a4b-4751-a310-af9601317f2d.C2IgxjjLF7qSshsbwe8JGcbM075YXw:X8vbvA0bduihIDe/qrzIQQ=="
 export BWS_SERVER_URL="http://localhost:${SM_FAKE_SERVER_PORT:-3000}"
 
+if ! command -v bws >/dev/null; then
+  echo "bws is not installed. Building from source..."
+  BUILD_FROM_SOURCE=1
+else
+  BUILD_FROM_SOURCE=0
+fi
+
+TEST_FAILURES=0
+
+run_test() {
+  test_name="$1"
+  test_command="$2"
+
+  if [ "$BUILD_FROM_SOURCE" -eq 1 ]; then
+    cargo build --bin bws --quiet --release
+    modified_command=$(echo "$test_command" | sed 's/bws/.\/target\/release\/bws/')
+  else
+    modified_command="$test_command"
+  fi
+
+  if eval "$modified_command"; then
+    echo "✅ bws $test_name"
+  else
+    echo "❌ bws $test_name"
+    TEST_FAILURES=$((TEST_FAILURES + 1))
+  fi
+}
+
 secrets() {
-  { bws secret list | grep -q 'FERRIS'; } \
-    && echo "✅ bws secret list" || echo "❌ bws secret list"
-
-  { bws secret get "$(uuidgen)" | grep -q 'btw'; } \
-    && echo "✅ bws secret get" || echo "❌ bws secret get"
-
-  { bws secret create 'secret-key' 'secret-value' --note 'optional note' "$(uuidgen)" | grep -q 'secret-key'; } \
-    && echo "✅ bws secret create" || echo "❌ bws secret create"
-
-  { bws secret edit --key 'something-new' --value 'new-value' --note 'updated note' "$(uuidgen)" | grep -q 'something-new'; } \
-    && echo "✅ bws secret edit" || echo "❌ bws secret edit"
-
-  { bws secret delete "$(uuidgen)" "$(uuidgen)" "$(uuidgen)" | grep -q '3 secrets deleted successfully.'; } \
-    && echo "✅ bws secret delete" || echo "❌ bws secret delete"
+  run_test "secret list"   "bws secret list | grep -q 'FERRIS'"
+  run_test "secret get"    "bws secret get $(uuidgen) | grep -q 'btw'"
+  run_test "secret create" "bws secret create 'secret-key' 'secret-value' --note 'optional note' $(uuidgen) | grep -q 'secret-key'"
+  run_test "secret edit"   "bws secret edit --key 'something-new' --value 'new-value' --note 'updated note' $(uuidgen) | grep -q 'something-new'"
+  run_test "secret delete" "bws secret delete $(uuidgen) $(uuidgen) $(uuidgen) | grep -q '3 secrets deleted successfully.'"
 }
 
 projects() {
-  { bws project list | grep -q 'Production Environment'; } \
-    && echo "✅ bws project list"
-
-  { bws project get "$(uuidgen)" | grep -q 'Production Environment'; } \
-    && echo "✅ bws project get"
-
-  { bws project create 'project-name' | grep -q 'project-name'; } \
-    && echo "✅ bws project create"
-
-  { bws project edit --name 'new-project-name' "$(uuidgen)" | grep -q 'new-project-name'; } \
-    && echo "✅ bws project edit"
-
-  { bws project delete "$(uuidgen)" "$(uuidgen)" | grep -q '2 projects deleted successfully.'; } \
-    && echo "✅ bws project delete"
+  run_test "project list"   "bws project list | grep -q 'Production Environment'"
+  run_test "project get"    "bws project get $(uuidgen) | grep -q 'Production Environment'"
+  run_test "project create" "bws project create 'project-name' | grep -q 'project-name'"
+  run_test "project edit"   "bws project edit --name 'new-project-name' $(uuidgen) | grep -q 'new-project-name'"
+  run_test "project delete" "bws project delete $(uuidgen) $(uuidgen) | grep -q '2 projects deleted successfully.'"
 }
 
 main() {
   echo "Testing secrets..."
-
   secrets
   echo
 
   echo "Testing projects..."
   projects
+
+  if [ "$TEST_FAILURES" -gt 0 ]; then
+    echo
+    echo "❌ $TEST_FAILURES test(s) failed"
+    exit 1
+  else
+    echo
+    echo "✅ All tests passed"
+    exit 0
+  fi
 }
 
 main "$@"

@@ -2,7 +2,8 @@ use bitwarden::{
     secrets_manager::{
         secrets::{
             SecretCreateRequest, SecretGetRequest, SecretIdentifiersByProjectRequest,
-            SecretIdentifiersRequest, SecretPutRequest, SecretsDeleteRequest, SecretsGetRequest,
+            SecretIdentifiersRequest, SecretPutRequest, SecretResponse, SecretsDeleteRequest,
+            SecretsGetRequest,
         },
         ClientSecretsExt,
     },
@@ -105,6 +106,11 @@ pub(crate) async fn list(
             .list(&SecretIdentifiersRequest { organization_id })
             .await?
     };
+
+    if res.data.is_empty() {
+        serialize_response(Vec::<SecretResponse>::new(), output_settings);
+        return Ok(());
+    }
 
     let secret_ids = res.data.into_iter().map(|e| e.id).collect();
     let secrets = client

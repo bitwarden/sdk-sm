@@ -1,6 +1,10 @@
 // This module organizes routes into separate modules by feature
 
-use axum::{extract::Path, response::Json, Form};
+use axum::{
+    extract::{Path, Query},
+    response::Json,
+    Form,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tracing::info;
@@ -9,7 +13,7 @@ use uuid::Uuid;
 pub mod auth {
     use super::*;
 
-    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    #[derive(Debug, Deserialize, Serialize)]
     pub struct IdentityTokenPayloadResponse {
         pub access_token: String,
         pub expires_in: u64,
@@ -58,11 +62,24 @@ pub mod auth {
 
 pub mod secrets {
     use bitwarden_sm::secrets::SecretResponse;
+    use chrono::DateTime;
 
     use super::*;
+    #[derive(Debug, Serialize)]
+    pub struct SecretsSyncResponse {
+        #[serde(rename = "hasChanges")]
+        pub has_changes: bool,
+        pub secrets: Option<serde_json::Value>,
+    }
+
+    #[derive(Debug, Deserialize)]
+    pub struct SyncQueryParams {
+        #[serde(rename = "lastSyncedDate")]
+        pub last_synced_date: Option<DateTime<chrono::Utc>>,
+    }
 
     // bitwarden_sm::secrets::SecretCreateRequest has deny_unknown_fields
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Deserialize, Serialize)]
     pub struct CreateSecretRequest {
         pub key: String,
         pub value: String,
@@ -80,7 +97,7 @@ pub mod secrets {
         data: Vec<SecretResponse>,
     }
 
-    #[derive(Serialize, Deserialize)]
+    #[derive(Debug, Deserialize, Serialize)]
     pub struct SecretListResponse {
         secrets: Vec<SecretResponse>,
     }
@@ -185,13 +202,52 @@ pub mod secrets {
             "deleted_ids": ids
         }))
     }
+
+    pub async fn sync_secrets(
+        Path(org_id): Path<Uuid>,
+        Query(params): Query<SyncQueryParams>,
+    ) -> Json<SecretsSyncResponse> {
+        info!("Syncing secrets for organization: {}", org_id);
+
+        if let Some(date) = params.last_synced_date {
+            if date < chrono::Utc::now() {
+                return Json(SecretsSyncResponse {
+                    has_changes: false,
+                    secrets: None,
+                });
+            }
+        }
+
+        let secrets = vec![
+            SecretResponse {
+                id: uuid::Uuid::new_v4(),
+                organization_id: org_id,
+                project_id: Some(uuid::Uuid::new_v4()),
+                key: "2.4MPPDSh3oQPfK0Sxny925g==|Rj4P0P6M3l/WD99KiwtRiQ==|6wcq4L8ZJ45h549RbiVd1sI26Q6QxaUPmQB2dAXVO1c=".to_string(),
+                value: "2.78LSmLCl2XW8za0HyZUV2Q==|rwLKE0FGfyAZT9CUR9yUVg==|xZIthCfi1fzJOZ/riBQ3FXfuICBUv8jeE3Qrbg1f5D8=".to_string(),
+                note: "2.M/Sa8H76DNUT1RFT082VFg==|ILTxxg3P4w4aqkY1q18I4w==|mdHLGBghl+apZirhuBfbAWkTENKBJV4GnM03fhbHxy0=".to_string(),
+                creation_date: chrono::Utc::now(),
+                revision_date: chrono::Utc::now(),
+            },
+        ];
+
+        let secrets_response = serde_json::json!({
+            "data": secrets
+        });
+
+        Json(SecretsSyncResponse {
+            has_changes: true,
+            secrets: Some(secrets_response),
+        })
+    }
 }
 
 pub mod projects {
     use bitwarden_sm::projects::{ProjectResponse, ProjectsResponse};
 
     use super::*;
-    #[derive(Debug, Serialize, Deserialize)]
+
+    #[derive(Debug, Deserialize, Serialize)]
     pub struct CreateProjectRequest {
         pub name: String,
     }
@@ -269,8 +325,9 @@ pub mod projects {
 }
 
 pub mod misc {
-    use super::*;
     use axum::response::Json;
+
+    use super::*;
 
     pub async fn health_check() -> Json<Value> {
         Json(json!({
@@ -320,6 +377,11 @@ pub mod misc {
                     "method": "PUT",
                     "path": "/api/secrets/:id",
                     "description": "Update a secret by ID."
+                },
+                {
+                    "method": "GET",
+                    "path": "/api/organizations/:org_id/secrets/sync",
+                    "description": "Sync secrets for an organization."
                 },
                 {
                     "method": "POST",

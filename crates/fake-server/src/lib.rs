@@ -21,6 +21,10 @@ pub fn create_app() -> Router {
             post(routes::secrets::get_secrets_by_ids),
         )
         .route("/api/secrets/{id}", put(routes::secrets::create_secret)) // we don't really have data to edit, so just treat it as create
+        .route(
+            "/api/organizations/{org_id}/secrets/sync",
+            get(routes::secrets::sync_secrets),
+        )
         .route("/api/secrets/delete", post(routes::secrets::delete_secrets))
         // projects
         .route("/api/projects/{id}", get(routes::projects::get_project))

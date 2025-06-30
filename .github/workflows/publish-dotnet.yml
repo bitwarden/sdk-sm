@@ -85,7 +85,6 @@ jobs:
           wget https://github.com/bitwarden/sdk-sm/releases/download/dotnet-v${{ needs.validate.outputs.version }}/Bitwarden.Secrets.Sdk.${{ needs.validate.outputs.version }}.nupkg
 
       - name: Log in to Azure
-        id: azure-login
         uses: bitwarden/gh-actions/azure-login@main
         with:
           subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}

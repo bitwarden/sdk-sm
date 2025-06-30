@@ -7,6 +7,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Updated MSRV to `1.82.0` (TODO: PR number here)
+
+### Fixed
+
+- No longer panic if access token has access to no secrets (#1255) 
+
 ## [1.0.0] - 2024-09-26
 
 ### Added

@@ -11,9 +11,15 @@ permissions:
   contents: read
 
 jobs:
+  generate_schemas:
+    name: Generate schemas
+    uses: ./.github/workflows/generate_schemas.yml
+
   build:
     name: Build Ruby
     runs-on: ubuntu-22.04
+    needs:
+      - generate_schemas
     steps:
       - name: Checkout Repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2

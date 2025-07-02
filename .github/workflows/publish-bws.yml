@@ -25,6 +25,9 @@ jobs:
   setup:
     name: Setup
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      deployments: write
     outputs:
       release_version: ${{ steps.version-output.outputs.version }}
       release_tag: ${{ steps.version-output.outputs.tag_name }}
@@ -74,6 +77,9 @@ jobs:
     name: Publish bws to crates.io
     runs-on: ubuntu-24.04
     needs: setup
+    permissions:
+      contents: read
+      id-token: write
     env:
       _VERSION: ${{ needs.setup.outputs.release_version }}
       _TAG_NAME: ${{ needs.setup.outputs.release_tag }}
@@ -81,10 +87,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Login to Azure
-        uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0
+      - name: Log in to Azure
+        uses: bitwarden/gh-actions/azure-login@main
         with:
-          creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Retrieve secrets
         id: retrieve-secrets
@@ -92,6 +100,9 @@ jobs:
         with:
           keyvault: "bitwarden-ci"
           secrets: "cratesio-api-token"
+
+      - name: Log out from Azure
+        uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Install rust
         uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b # stable
@@ -154,19 +165,15 @@ jobs:
         uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
 
       ########## Login to Docker registries ##########
-      - name: Login to Azure - Prod Subscription
-        uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0
+      - name: Log in to Azure
+        uses: bitwarden/gh-actions/azure-login@main
         with:
-          creds: ${{ secrets.AZURE_PROD_KV_CREDENTIALS }}
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Login to Azure ACR
         run: az acr login -n ${_AZ_REGISTRY%.azurecr.io}
-
-      - name: Login to Azure - CI Subscription
-        uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0
-        with:
-          creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
-
       - name: Build and push Docker image
         id: build-docker
         uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # v6.9.0
@@ -212,10 +219,15 @@ jobs:
         run: |
           docker logout ghcr.io
 
+      - name: Log out from Azure
+        uses: bitwarden/gh-actions/azure-logout@main
+
   update_release_status:
     name: Update GitHub deployment status
     runs-on: ubuntu-24.04
     needs: setup
+    permissions:
+      deployments: write
     if: ${{ inputs.release_type != 'Dry Run' }}
     env:
       _DEPLOYMENT_ID: ${{ needs.setup.outputs.deployment_id }}

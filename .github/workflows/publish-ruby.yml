@@ -82,10 +82,12 @@ jobs:
           description: "Deployment ${{ env._VERSION }} from branch ${{ github.ref_name }}"
           task: release
 
-      - name: Login to Azure
-        uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0
+      - name: Log in to Azure
+        uses: bitwarden/gh-actions/azure-login@main
         with:
-          creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Retrieve secrets
         id: retrieve-secrets
@@ -93,6 +95,9 @@ jobs:
         with:
           keyvault: "bitwarden-ci"
           secrets: "rubygem-api-key"
+
+      - name: Log out from Azure
+        uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Download ruby artifact
         run: wget https://github.com/bitwarden/sdk-sm/releases/download/ruby-v${{ env._VERSION }}/bitwarden-sdk-secrets-${{ env._VERSION }}.gem

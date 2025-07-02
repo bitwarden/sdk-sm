@@ -13,7 +13,7 @@ bitwarden = { "*", features = ["secrets"] }
 
 ## Minimum Supported Rust Version
 
-Rust **1.75** or higher.
+Rust **1.82** or higher.
 
 ## Example
 

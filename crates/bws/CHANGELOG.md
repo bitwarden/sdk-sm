@@ -13,7 +13,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
-- No longer panic if access token has access to no secrets (#1255) 
+- No longer panic if access token has access to no secrets (#1255)
 
 ## [1.0.0] - 2024-09-26
 

@@ -1,0 +1,19 @@
+name: Test Python Wheels
+
+on:
+  workflow_call:
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: This is just a stub workflow to get this into main
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Run tests
+        run: echo "This is a stub workflow for testing Python wheels."

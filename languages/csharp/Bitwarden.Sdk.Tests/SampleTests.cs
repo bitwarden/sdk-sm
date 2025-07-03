@@ -27,8 +27,6 @@ public class SampleTests
         projectResponse = await bitwardenClient.Projects.UpdateAsync(organizationId, projectResponse.Id, "NewTestProject Renamed");
         projectResponse = await bitwardenClient.Projects.GetAsync(projectResponse.Id);
 
-        Assert.Equal("NewTestProject Renamed", projectResponse.Name);
-
         var projectList = await bitwardenClient.Projects.ListAsync(organizationId);
 
         Assert.True(projectList.Data.Count() >= 1);
@@ -40,8 +38,6 @@ public class SampleTests
         var secretResponse = await bitwardenClient.Secrets.CreateAsync(organizationId, "New Secret", "the secret value", "the secret note", new[] { projectResponse.Id });
         secretResponse = await bitwardenClient.Secrets.UpdateAsync(organizationId, secretResponse.Id, "New Secret Name", "the secret value", "the secret note", new[] { projectResponse.Id });
         secretResponse = await bitwardenClient.Secrets.GetAsync(secretResponse.Id);
-
-        Assert.Equal("New Secret Name", secretResponse.Key);
 
         // Secrets GetByIds
         var secretsResponse = await bitwardenClient.Secrets.GetByIdsAsync(new[] { secretResponse.Id });

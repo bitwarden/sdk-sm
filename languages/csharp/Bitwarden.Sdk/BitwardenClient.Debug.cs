@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
 namespace Bitwarden.Sdk;
@@ -52,7 +51,7 @@ public sealed partial class BitwardenClient
             return result.GetProperty("data");
         }
 
-        throw new BitwardenException(result.GetProperty("errorMessage").GetString());
+        throw new BitwardenException(result.GetProperty("errorMessage").GetString()!);
     }
 }
 #endif

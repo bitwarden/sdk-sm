@@ -17,7 +17,3 @@ fi
 # Optimize size
 wasm-opt -Os ./languages/js/wasm/bitwarden_wasm_bg.wasm -o ./languages/js/wasm/bitwarden_wasm_bg.wasm
 wasm-opt -Os ./languages/js/wasm/node/bitwarden_wasm_bg.wasm -o ./languages/js/wasm/node/bitwarden_wasm_bg.wasm
-
-# Transpile to JS
-wasm2js ./languages/js/wasm/bitwarden_wasm_bg.wasm -o ./languages/js/wasm/bitwarden_wasm_bg.wasm.js
-npx terser ./languages/js/wasm/bitwarden_wasm_bg.wasm.js -o ./languages/js/wasm/bitwarden_wasm_bg.wasm.js

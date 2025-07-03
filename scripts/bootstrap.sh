@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC3043,SC3044
+# shellcheck disable=SC3043,SC3044,SC2155,SC3020
 set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
@@ -32,6 +32,17 @@ common_setup() {
   cargo build --quiet >/dev/null
 }
 
+start_fake_server() {
+  # Start the fake server in background for testing
+  cargo run --bin fake-server &> /dev/null &
+  echo $! > "${TMP_DIR}"/fake_server.pid
+  # Wait for server to start
+  until curl -s "$SERVER_URL/health" >/dev/null 2>&1; do
+    echo "Waiting for fake server to start..."
+    sleep 1
+  done
+}
+
 main() {
   local action="$1"
   local language="$2"
@@ -41,6 +52,7 @@ main() {
   case "$action" in
     all)
       common_setup
+      start_fake_server
       pushd "$dir" >/dev/null || {
         echo "Failed to change directory to $dir"
         exit 1
@@ -71,10 +83,13 @@ main() {
       # Find setup.sh in $dir, if it doesn't exist fail
       # Start running fake_server, set common environment for tests
       # Run it
+      start_fake_server
+
       pushd "$dir" >/dev/null || {
         echo "Failed to change directory to $dir"
         exit 1
       }
+
       . "$dir/test.sh"
       popd >/dev/null || {
         echo "Failed to return to previous directory"
@@ -88,4 +103,19 @@ main() {
   esac
 }
 
+cleanup() {
+  # Stop the fake server if it was started
+  if [ -f "${TMP_DIR}/fake_server.pid" ]; then
+    local pid="$(cat "${TMP_DIR}/fake_server.pid")"
+      echo "Stopping fake server..."
+      kill "$pid"
+      wait "$pid" || true
+    rm -f "${TMP_DIR}/fake_server.pid"
+  fi
+
+  # Remove temporary directory
+  rm -rf "${TMP_DIR}"
+}
+
+trap 'cleanup' EXIT
 main "$@"

@@ -1,9 +1,6 @@
-use bitwarden::ClientSettings;
 #[cfg(feature = "secrets")]
-use bitwarden::{
-    generators::ClientGeneratorExt,
-    secrets_manager::{ClientProjectsExt, ClientSecretsExt},
-};
+use bitwarden::secrets_manager::{ClientProjectsExt, ClientSecretsExt};
+use bitwarden::ClientSettings;
 
 #[cfg(feature = "secrets")]
 use crate::command::{GeneratorsCommand, ProjectsCommand, SecretsCommand};
@@ -82,17 +79,18 @@ impl Client {
             #[cfg(feature = "secrets")]
             Command::Generators(cmd) => match cmd {
                 GeneratorsCommand::GeneratePassword(req) => {
+                    use bitwarden::generators::GeneratorClientsExt;
+
                     client.generator().password(req).into_string()
                 }
             },
             #[cfg(debug_assertions)]
             Command::Debug(cmd) => {
-                use bitwarden::Error;
-
                 use crate::command::DebugCommand;
 
                 match cmd {
                     DebugCommand::CancellationTest { duration_millis } => {
+                        use bitwarden::error::Error;
                         use tokio::time::sleep;
                         let duration = std::time::Duration::from_millis(duration_millis);
                         sleep(duration).await;
@@ -104,12 +102,9 @@ impl Client {
                         Ok::<i32, Error>(42).into_string()
                     }
                     DebugCommand::ErrorTest {} => {
-                        use bitwarden::Error;
+                        use bitwarden::error::Error;
 
-                        Err::<i32, Error>(Error::Internal(std::borrow::Cow::Borrowed(
-                            "This is an error.",
-                        )))
-                        .into_string()
+                        Err::<i32, Error>(Error::Internal("This is an error".into())).into_string()
                     }
                 }
             }

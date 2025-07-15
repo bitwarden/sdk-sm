@@ -14,14 +14,26 @@ classifiers = [
 ]
 dependencies = ["dateutils >= 0.6.6"]
 description = "A Bitwarden Client for python"
+license = { file = "LICENSE" }
 name = "bitwarden_sdk"
 readme = "README.md"
-requires-python = ">=3.0"
+requires-python = ">=3.9"
 version = "1.0.0"
+
+[project.optional-dependencies]
+dev = [
+  "maturin >= 1.0,<2.0",
+  "uv >= 0.6,<1.0",
+]
+
+dev-linux = [
+  "maturin >= 1.0,<2.0",
+  "patchelf >= 0.17.0", # only needed for Linux
+  "uv >= 0.6,<1.0",
+]
 
 [tool.maturin]
 bindings = "pyo3"
-compatibility = "2_28"
 include = [
   { path = "bitwarden_sdk/*.py", format = ["sdist", "wheel"] }
 ]

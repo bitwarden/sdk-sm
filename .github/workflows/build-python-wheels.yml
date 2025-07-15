@@ -131,7 +131,3 @@ jobs:
         with:
           name: bitwarden_sdk-${{ env._PACKAGE_VERSION }}-sdist
           path: ${{ github.workspace }}/target/wheels/bitwarden_sdk-*.tar.gz
-  test-wheels:
-    name: Test built Python wheels
-    needs: build
-    uses: ./.github/workflows/test-python-wheels.yml

@@ -33,6 +33,7 @@ defaults:
 
 jobs:
   test:
+    name: Test Python SDK
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

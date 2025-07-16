@@ -19,6 +19,18 @@ readme = "README.md"
 requires-python = ">=3.0"
 version = "1.0.0"
 
+[project.optional-dependencies]
+dev = [
+  "maturin >= 1.0,<2.0",
+  "uv >= 0.6,<1.0",
+]
+
+dev-linux = [
+  "maturin >= 1.0,<2.0",
+  "patchelf >= 0.17.0", # only needed for Linux
+  "uv >= 0.6,<1.0",
+]
+
 [tool.maturin]
 bindings = "pyo3"
 compatibility = "2_28"

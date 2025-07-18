@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace Bitwarden.Sdk;
 
@@ -46,6 +47,7 @@ internal static partial class BitwardenLibrary
             abortPointer = run_command_async(json, handle, (resultPointer) =>
             {
                 var stringResult = Marshal.PtrToStringUTF8(resultPointer);
+                Debug.Assert(stringResult is not null);
                 tcs.SetResult(stringResult);
 
                 if (abortPointer != IntPtr.Zero)
@@ -61,6 +63,7 @@ internal static partial class BitwardenLibrary
 
         cancellationToken.Register((state) =>
         {
+            Debug.Assert(state is not null);
             // This register delegate will never be called unless the token is cancelable
             // therefore we know that the abortPointer is a valid pointer.
             abort_and_free_handle((IntPtr)state);

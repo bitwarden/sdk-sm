@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Bitwarden.Sdk.Tests;
 
 public class SecretsManagerFactAttribute : FactAttribute
@@ -40,7 +42,7 @@ public class SecretsManagerFactAttribute : FactAttribute
         }
     }
 
-    private static bool TryGetEnvironment(string variable, out string value)
+    private static bool TryGetEnvironment(string variable, [NotNullWhen(true)]out string? value)
     {
         value = Environment.GetEnvironmentVariable(variable);
 

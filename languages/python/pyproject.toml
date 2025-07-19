@@ -33,7 +33,6 @@ dev-linux = [
 
 [tool.maturin]
 bindings = "pyo3"
-compatibility = "2_28"
 include = [
   { path = "bitwarden_sdk/*.py", format = ["sdist", "wheel"] }
 ]

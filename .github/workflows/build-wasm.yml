@@ -40,7 +40,7 @@ jobs:
       - name: Install rust
         uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b # stable
         with:
-          toolchain: 1.81.0
+          toolchain: 1.82.0
           targets: wasm32-unknown-unknown
 
       - name: Cache cargo registry

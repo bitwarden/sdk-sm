@@ -23,6 +23,8 @@ jobs:
   setup:
     name: Setup
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
     outputs:
       release_version: ${{ steps.version-output.outputs.version }}
       release_tag: ${{ steps.version-output.outputs.tag_name }}
@@ -60,16 +62,22 @@ jobs:
     name: Publish
     runs-on: ubuntu-22.04
     needs: setup
+    permissions:
+      contents: read
+      id-token: write
+      deployments: write
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ needs.setup.outputs.release_tag }}
 
-      - name: Login to Azure
-        uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0
+      - name: Log in to Azure
+        uses: bitwarden/gh-actions/azure-login@main
         with:
-          creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Retrieve secrets
         id: retrieve-secrets
@@ -77,6 +85,9 @@ jobs:
         with:
           keyvault: "bitwarden-ci"
           secrets: "cratesio-api-token"
+
+      - name: Log out from Azure
+        uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Install rust
         uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b # stable

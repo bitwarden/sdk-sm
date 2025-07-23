@@ -42,7 +42,7 @@ serde_yaml = "0.9"
 supports-color = "3.0.0"
 thiserror = "1.0.57"
 tokio = { workspace = true, features = ["rt-multi-thread"] }
-toml = "0.8.10"
+toml = "0.9.0"
 uuid = { version = "1.7.0", features = ["serde"] }
 which = "8.0.0"
 

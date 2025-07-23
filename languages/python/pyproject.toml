@@ -34,7 +34,8 @@ dev-linux = [
 [tool.maturin]
 bindings = "pyo3"
 include = [
-  { path = "bitwarden_sdk/*.py", format = ["sdist", "wheel"] }
+  { path = "bitwarden_sdk/*.py", format = ["sdist", "wheel"] },
+  { path = "LICENSE", format = ["sdist", "wheel"] }
 ]
 manifest-path = "../../crates/bitwarden-py/Cargo.toml"
 python-packages = ["bitwarden_sdk"]

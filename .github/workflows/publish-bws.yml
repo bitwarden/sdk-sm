@@ -24,7 +24,10 @@ env:
 jobs:
   setup:
     name: Setup
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      deployments: write
     outputs:
       release_version: ${{ steps.version-output.outputs.version }}
       release_tag: ${{ steps.version-output.outputs.tag_name }}
@@ -72,8 +75,11 @@ jobs:
 
   publish:
     name: Publish bws to crates.io
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: setup
+    permissions:
+      contents: read
+      id-token: write
     env:
       _VERSION: ${{ needs.setup.outputs.release_version }}
       _TAG_NAME: ${{ needs.setup.outputs.release_tag }}
@@ -81,11 +87,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Login to Azure
-        uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0
+      - name: Log in to Azure
+        uses: bitwarden/gh-actions/azure-login@main
         with:
-          creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
-          ref: ${{ env._TAG_NAME }}
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Retrieve secrets
         id: retrieve-secrets
@@ -94,8 +101,11 @@ jobs:
           keyvault: "bitwarden-ci"
           secrets: "cratesio-api-token"
 
+      - name: Log out from Azure
+        uses: bitwarden/gh-actions/azure-logout@main
+
       - name: Install rust
-        uses: dtolnay/rust-toolchain@315e265cd78dad1e1dcf3a5074f6d6c47029d5aa # stable
+        uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b # stable
         with:
           toolchain: stable
 
@@ -114,7 +124,7 @@ jobs:
 
   publish-docker:
     name: Publish docker versioned and latest image
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       security-events: write
       id-token: write
@@ -126,6 +136,13 @@ jobs:
         with:
           ref: ${{ env._TAG_NAME }}
 
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Generate tag list
         id: tag-list
         env:
@@ -135,9 +152,9 @@ jobs:
           if [[ "${DRY_RUN}" == "true" ]]; then
             REF=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
             IMAGE_TAG=$(echo "${REF}" | sed "s#/#-#g")  # slash safe branch name
-            echo "tags=$_AZ_REGISTRY/bws:${IMAGE_TAG},bitwarden/bws:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+            echo "tags=$_AZ_REGISTRY/bws:${IMAGE_TAG},ghcr.io/bitwarden/bws:${IMAGE_TAG}" >> $GITHUB_OUTPUT
           else
-            echo "tags=$_AZ_REGISTRY/bws:${VERSION},bitwarden/bws:${VERSION},$_AZ_REGISTRY/bws:latest,bitwarden/bws:latest" >> $GITHUB_OUTPUT
+            echo "tags=$_AZ_REGISTRY/bws:${VERSION},ghcr.io/bitwarden/bws:${VERSION},$_AZ_REGISTRY/bws:latest,ghcr.io/bitwarden/bws:latest" >> $GITHUB_OUTPUT
           fi
 
       ########## Set up Docker ##########
@@ -148,32 +165,15 @@ jobs:
         uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
 
       ########## Login to Docker registries ##########
-      - name: Login to Azure - Prod Subscription
-        uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0
+      - name: Log in to Azure
+        uses: bitwarden/gh-actions/azure-login@main
         with:
-          creds: ${{ secrets.AZURE_PROD_KV_CREDENTIALS }}
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Login to Azure ACR
         run: az acr login -n ${_AZ_REGISTRY%.azurecr.io}
-
-      - name: Login to Azure - CI Subscription
-        uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0
-        with:
-          creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
-
-      - name: Retrieve github PAT secrets
-        id: retrieve-secret-pat
-        uses: bitwarden/gh-actions/get-keyvault-secrets@main
-        with:
-          keyvault: "bitwarden-ci"
-          secrets: "github-pat-bitwarden-devops-bot-repo-scope"
-
-      - name: Setup Docker Trust
-        uses: bitwarden/gh-actions/setup-docker-trust@main
-        with:
-          azure-creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
-          azure-keyvault-name: "bitwarden-ci"
-
       - name: Build and push Docker image
         id: build-docker
         uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # v6.9.0
@@ -185,8 +185,6 @@ jobs:
             linux/arm64/v8
           push: ${{ inputs.release_type != 'Dry Run' }}
           tags: ${{ steps.tag-list.outputs.tags }}
-          secrets: |
-            "GH_PAT=${{ steps.retrieve-secret-pat.outputs.github-pat-bitwarden-devops-bot-repo-scope }}"
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v3.7.0
@@ -205,7 +203,7 @@ jobs:
 
       - name: Scan Docker image
         id: container-scan
-        uses: anchore/scan-action@5ed195cc06065322983cae4bb31e2a751feb86fd # v5.2.0
+        uses: anchore/scan-action@2c901ab7378897c01b8efaa2d0c9bf519cc64b9e # v6.2.0
         with:
           image: ${{ steps.tag-list.outputs.primary_tag }}
           fail-build: false
@@ -216,16 +214,20 @@ jobs:
         with:
           sarif_file: ${{ steps.container-scan.outputs.sarif }}
 
-      - name: Log out of Docker and disable Docker Notary
+      - name: Log out of Docker
         if: ${{ inputs.release_type != 'Dry Run' }}
         run: |
-          docker logout
-          echo "DOCKER_CONTENT_TRUST=0" >> $GITHUB_ENV
+          docker logout ghcr.io
+
+      - name: Log out from Azure
+        uses: bitwarden/gh-actions/azure-logout@main
 
   update_release_status:
     name: Update GitHub deployment status
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: setup
+    permissions:
+      deployments: write
     if: ${{ inputs.release_type != 'Dry Run' }}
     env:
       _DEPLOYMENT_ID: ${{ needs.setup.outputs.deployment_id }}

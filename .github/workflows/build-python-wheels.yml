@@ -14,6 +14,9 @@ defaults:
     shell: bash
     working-directory: languages/python
 
+permissions:
+  contents: read
+
 jobs:
   generate_schemas:
     name: Generate schemas
@@ -48,22 +51,32 @@ jobs:
         settings:
           - os: macos-13
             target: x86_64-apple-darwin
+            python-version: "3.9"
 
           - os: macos-13
             target: aarch64-apple-darwin
+            python-version: "3.9"
 
           - os: windows-2022
             target: x86_64-pc-windows-msvc
+            python-version: "3.9"
 
           - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
+            python-version: "3.9"
 
           - os: ubuntu-22.04
             target: aarch64-unknown-linux-gnu
+            python-version: "3.9"
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Python
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.3.0
+        with:
+          python-version: ${{ matrix.settings.python-version }}
 
       - name: Setup Node
         uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
@@ -71,7 +84,7 @@ jobs:
           node-version: 18
 
       - name: Install rust
-        uses: dtolnay/rust-toolchain@315e265cd78dad1e1dcf3a5074f6d6c47029d5aa # stable
+        uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b # stable
         with:
           toolchain: stable
           targets: ${{ matrix.settings.target }}
@@ -92,8 +105,8 @@ jobs:
         uses: PyO3/maturin-action@ea5bac0f1ccd0ab11c805e2b804bfcb65dac2eab # v1.45.0
         with:
           target: ${{ matrix.settings.target }}
-          args: --release --find-interpreter --sdist
-          sccache: "true"
+          args: --release --interpreter python${{ matrix.settings.python-version }}
+          sccache: true
           manylinux: "2_28" # https://github.com/pola-rs/polars/pull/12211
           working-directory: ${{ github.workspace }}/languages/python
 
@@ -102,9 +115,7 @@ jobs:
         uses: PyO3/maturin-action@ea5bac0f1ccd0ab11c805e2b804bfcb65dac2eab # v1.45.0
         with:
           target: ${{ matrix.settings.target }}
-          args: --release --find-interpreter --sdist
-          container: quay.io/pypa/manylinux_2_28_x86_64:2023-11-20-745eb52
-          sccache: "true"
+          args: --release --sdist --interpreter python${{ matrix.settings.python-version }}
           manylinux: "2_28" # https://github.com/pola-rs/polars/pull/12211
           working-directory: ${{ github.workspace }}/languages/python
 

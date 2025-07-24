@@ -25,6 +25,8 @@ jobs:
   setup:
     name: Setup
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
     outputs:
       release_version: ${{ steps.version-output.outputs.version }}
       tag_name: ${{ steps.version-output.outputs.tag_name }}
@@ -62,6 +64,10 @@ jobs:
     name: Publish NPM
     runs-on: ubuntu-22.04
     needs: setup
+    permissions:
+      contents: read
+      id-token: write
+      deployments: write
     env:
       _VERSION: ${{ needs.setup.outputs.release_version }}
     steps:
@@ -76,10 +82,12 @@ jobs:
           node-version: 18
           cache: "npm"
 
-      - name: Login to Azure
-        uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0
+      - name: Log in to Azure
+        uses: bitwarden/gh-actions/azure-login@main
         with:
-          creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Retrieve secrets
         id: retrieve-secrets
@@ -87,6 +95,9 @@ jobs:
         with:
           keyvault: "bitwarden-ci"
           secrets: "npm-api-key"
+
+      - name: Log out from Azure
+        uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Download artifact
         run: |

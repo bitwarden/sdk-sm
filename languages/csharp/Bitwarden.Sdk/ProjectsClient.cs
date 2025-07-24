@@ -9,10 +9,10 @@ public class ProjectsClient
         _commandRunner = commandRunner;
     }
 
-    public ProjectResponse Get(Guid id)
+    public async Task<ProjectResponse> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var command = new Command { Projects = new ProjectsCommand { Get = new ProjectGetRequest { Id = id } } };
-        var result = _commandRunner.RunCommand<ResponseForProjectResponse>(command);
+        var result = await _commandRunner.RunCommandAsync<ResponseForProjectResponse>(command, cancellationToken);
 
         if (result is { Success: true })
         {
@@ -22,7 +22,7 @@ public class ProjectsClient
         throw new BitwardenException(result != null ? result.ErrorMessage : "Project not found");
     }
 
-    public ProjectResponse Create(Guid organizationId, string name)
+    public async Task<ProjectResponse> CreateAsync(Guid organizationId, string name, CancellationToken cancellationToken = default)
     {
         var command = new Command
         {
@@ -31,7 +31,7 @@ public class ProjectsClient
                 Create = new ProjectCreateRequest { OrganizationId = organizationId, Name = name }
             }
         };
-        var result = _commandRunner.RunCommand<ResponseForProjectResponse>(command);
+        var result = await _commandRunner.RunCommandAsync<ResponseForProjectResponse>(command, cancellationToken);
 
         if (result is { Success: true })
         {
@@ -41,7 +41,7 @@ public class ProjectsClient
         throw new BitwardenException(result != null ? result.ErrorMessage : "Project create failed");
     }
 
-    public ProjectResponse Update(Guid organizationId, Guid id, string name)
+    public async Task<ProjectResponse> UpdateAsync(Guid organizationId, Guid id, string name, CancellationToken cancellationToken = default)
     {
         var command = new Command
         {
@@ -50,7 +50,7 @@ public class ProjectsClient
                 Update = new ProjectPutRequest { Id = id, OrganizationId = organizationId, Name = name }
             }
         };
-        var result = _commandRunner.RunCommand<ResponseForProjectResponse>(command);
+        var result = await _commandRunner.RunCommandAsync<ResponseForProjectResponse>(command, cancellationToken);
 
         if (result is { Success: true })
         {
@@ -60,13 +60,13 @@ public class ProjectsClient
         throw new BitwardenException(result != null ? result.ErrorMessage : "Project update failed");
     }
 
-    public ProjectsDeleteResponse Delete(Guid[] ids)
+    public async Task<ProjectsDeleteResponse> DeleteAsync(Guid[] ids, CancellationToken cancellationToken = default)
     {
         var command = new Command
         {
             Projects = new ProjectsCommand { Delete = new ProjectsDeleteRequest { Ids = ids } }
         };
-        var result = _commandRunner.RunCommand<ResponseForProjectsDeleteResponse>(command);
+        var result = await _commandRunner.RunCommandAsync<ResponseForProjectsDeleteResponse>(command, cancellationToken);
 
         if (result is { Success: true })
         {
@@ -76,13 +76,13 @@ public class ProjectsClient
         throw new BitwardenException(result != null ? result.ErrorMessage : "Project delete failed");
     }
 
-    public ProjectsResponse List(Guid organizationId)
+    public async Task<ProjectsResponse> ListAsync(Guid organizationId, CancellationToken cancellationToken = default)
     {
         var command = new Command
         {
             Projects = new ProjectsCommand { List = new ProjectsListRequest { OrganizationId = organizationId } }
         };
-        var result = _commandRunner.RunCommand<ResponseForProjectsResponse>(command);
+        var result = await _commandRunner.RunCommandAsync<ResponseForProjectsResponse>(command, cancellationToken);
 
         if (result is { Success: true })
         {

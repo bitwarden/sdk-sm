@@ -13,6 +13,9 @@ defaults:
   run:
     shell: bash
 
+permissions:
+  contents: read
+
 jobs:
   msrv:
     name: Check MSRV for - ${{ matrix.settings.os }} - ${{ matrix.settings.target }}
@@ -29,11 +32,11 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install rust
-        uses: dtolnay/rust-toolchain@315e265cd78dad1e1dcf3a5074f6d6c47029d5aa # stable
+        uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b # stable
         with:
           # Important: When updating this, make sure to update the Readme file
           # and also the `rust-version` field in all the `Cargo.toml`.
-          toolchain: 1.75.0
+          toolchain: 1.82.0
           targets: ${{ matrix.settings.target }}
 
       - name: Cache cargo registry

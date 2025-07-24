@@ -259,7 +259,7 @@ dependencies = [
  "serde",
  "serde_yaml",
  "syntect",
- "thiserror",
+ "thiserror 1.0.64",
  "unicode-width",
 ]
 
@@ -306,7 +306,7 @@ dependencies = [
  "bitwarden-core",
  "bitwarden-generators",
  "bitwarden-sm",
- "thiserror",
+ "thiserror 1.0.64",
  "uuid",
 ]
 
@@ -385,7 +385,7 @@ dependencies = [
  "serde_repr",
  "sha1",
  "sha2",
- "thiserror",
+ "thiserror 1.0.64",
  "uuid",
  "validator",
  "zeroize",
@@ -416,7 +416,7 @@ dependencies = [
  "sha1",
  "sha2",
  "subtle",
- "thiserror",
+ "thiserror 1.0.64",
  "uuid",
  "zeroize",
 ]
@@ -434,7 +434,7 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
- "thiserror",
+ "thiserror 1.0.64",
 ]
 
 [[package]]
@@ -485,7 +485,7 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
- "thiserror",
+ "thiserror 1.0.64",
  "uuid",
  "validator",
 ]
@@ -573,7 +573,7 @@ dependencies = [
  "serde_yaml",
  "supports-color",
  "tempfile",
- "thiserror",
+ "thiserror 1.0.64",
  "tokio",
  "toml",
  "uuid",
@@ -1062,23 +1062,23 @@ dependencies = [
 
 [[package]]
 name = "directories"
-version = "5.0.1"
+version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a49173b84e034382284f27f1af4dcbbd231ffa358c0fe316541a7337f376a35"
+checksum = "16f5094c54661b38d03bd7e50df373292118db60b585c08a411c6d840017fe7d"
 dependencies = [
  "dirs-sys",
 ]
 
 [[package]]
 name = "dirs-sys"
-version = "0.4.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "520f05a5cbd335fae5a99ff7a6ab8627577660ee5cfd6a94a6a929b52ff0321c"
+checksum = "e01a3366d27ee9890022452ee61b2b63a67e6f13f58900b651ff5665f0bb1fab"
 dependencies = [
  "libc",
  "option-ext",
  "redox_users",
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -1651,7 +1651,7 @@ dependencies = [
  "combine",
  "jni-sys",
  "log",
- "thiserror",
+ "thiserror 1.0.64",
  "walkdir",
 ]
 
@@ -2316,7 +2316,7 @@ dependencies = [
  "rustc-hash",
  "rustls",
  "socket2",
- "thiserror",
+ "thiserror 1.0.64",
  "tokio",
  "tracing",
 ]
@@ -2333,7 +2333,7 @@ dependencies = [
  "rustc-hash",
  "rustls",
  "slab",
- "thiserror",
+ "thiserror 1.0.64",
  "tinyvec",
  "tracing",
 ]
@@ -2421,13 +2421,13 @@ dependencies = [
 
 [[package]]
 name = "redox_users"
-version = "0.4.6"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba009ff324d1fc1b900bd1fdb31564febe58a8ccc8a6fdbb93b543d33b13ca43"
+checksum = "dd6f9d3d47bdd2ad6945c5015a226ec6155d0bcdfd8f7cd29f86b71f8de99d2b"
 dependencies = [
  "getrandom",
  "libredox",
- "thiserror",
+ "thiserror 2.0.12",
 ]
 
 [[package]]
@@ -2857,7 +2857,7 @@ checksum = "cd34f36fe4c5ba9654417139a9b3a20d2e1de6012ee678ad14d240c22c78d8d6"
 dependencies = [
  "percent-encoding",
  "serde",
- "thiserror",
+ "thiserror 1.0.64",
 ]
 
 [[package]]
@@ -3145,7 +3145,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
- "thiserror",
+ "thiserror 1.0.64",
  "walkdir",
 ]
 
@@ -3174,7 +3174,16 @@ version = "1.0.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d50af8abc119fb8bb6dbabcfa89656f46f84aa0ac7688088608076ad2b459a84"
 dependencies = [
- "thiserror-impl",
+ "thiserror-impl 1.0.64",
+]
+
+[[package]]
+name = "thiserror"
+version = "2.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "567b8a2dae586314f7be2a752ec7474332959c6460e02bde30d702a66d488708"
+dependencies = [
+ "thiserror-impl 2.0.12",
 ]
 
 [[package]]
@@ -3182,6 +3191,17 @@ name = "thiserror-impl"
 version = "1.0.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08904e7672f5eb876eaaf87e0ce17857500934f4981c4a0ab2b4aa98baac7fc3"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.87",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "2.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f7cf42b4507d8ea322120659672cf1b9dbb93f8f2d4ecfd6e51350ff5b17a1d"
 dependencies = [
  "proc-macro2",
  "quote",

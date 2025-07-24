@@ -15,7 +15,7 @@ repository.workspace = true
 license-file.workspace = true
 
 [dependencies]
-bat = { version = "0.24.0", features = [
+bat = { version = "0.25.0", features = [
     "regex-onig",
 ], default-features = false }
 bitwarden = { workspace = true, features = ["secrets"] }

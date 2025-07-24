@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_ROOT="$(git rev-parse --show-toplevel)"
+# shellcheck disable=SC2155
+export REPO_ROOT="$(git rev-parse --show-toplevel)"
 TMP_DIR="$(mktemp -d)"
 
 # This access token is only used for testing purposes with the fake server

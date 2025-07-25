@@ -24,6 +24,8 @@ jobs:
   validate:
     name: Setup
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
     outputs:
       version: ${{ steps.version-output.outputs.version }}
     steps:
@@ -60,6 +62,10 @@ jobs:
     name: Deploy
     runs-on: ubuntu-22.04
     needs: validate
+    permissions:
+      contents: read
+      deployments: write
+      id-token: write
     steps:
       - name: Create GitHub deployment
         if: ${{ inputs.release_type != 'Dry Run' }}
@@ -78,10 +84,12 @@ jobs:
           cd nuget-output
           wget https://github.com/bitwarden/sdk-sm/releases/download/dotnet-v${{ needs.validate.outputs.version }}/Bitwarden.Secrets.Sdk.${{ needs.validate.outputs.version }}.nupkg
 
-      - name: Login to Azure - Prod Subscription
-        uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0
+      - name: Log in to Azure
+        uses: bitwarden/gh-actions/azure-login@main
         with:
-          creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Retrieve secrets
         id: retrieve-secrets
@@ -89,6 +97,9 @@ jobs:
         with:
           keyvault: ${{ env._KEY_VAULT }}
           secrets: "nuget-api-key"
+
+      - name: Log out from Azure
+        uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Publish NuGet Package
         if: ${{ inputs.release_type != 'Dry Run' }}

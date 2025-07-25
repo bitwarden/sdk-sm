@@ -9,7 +9,7 @@ version = "1.0.0"
 authors = ["Bitwarden Inc"]
 edition = "2021"
 # Note: Changing rust-version should be considered a breaking change
-rust-version = "1.75"
+rust-version = "1.82"
 homepage = "https://bitwarden.com"
 repository = "https://github.com/bitwarden/sdk-sm"
 license-file = "LICENSE"

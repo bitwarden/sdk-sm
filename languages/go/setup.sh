@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 GO_ARCH="$(uname -m | sed 's/x86_64/x64/' | sed 's/aarch64/arm64/')"

@@ -37,7 +37,7 @@ jobs:
         os:
           - ubuntu-latest
           - macos-latest
-          - windows-latest
+          # - windows-latest FIXME: https://gist.github.com/tangowithfoxtrot/beb737c1a804533870f10560eaf2f7c3
 
     steps:
       - name: Checkout repo

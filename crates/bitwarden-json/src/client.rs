@@ -1,3 +1,4 @@
+use bitwarden::ClientSettings;
 #[cfg(feature = "secrets")]
 use bitwarden::{
     generators::GeneratorClientsExt,
@@ -81,8 +82,6 @@ impl Client {
             #[cfg(feature = "secrets")]
             Command::Generators(cmd) => match cmd {
                 GeneratorsCommand::GeneratePassword(req) => {
-                    use bitwarden::generators::GeneratorClientsExt;
-
                     client.generator().password(req).into_string()
                 }
             },
@@ -94,7 +93,6 @@ impl Client {
 
                 match cmd {
                     DebugCommand::CancellationTest { duration_millis } => {
-                        use bitwarden::error::Error;
                         use tokio::time::sleep;
                         let duration = std::time::Duration::from_millis(duration_millis);
                         sleep(duration).await;
@@ -108,7 +106,10 @@ impl Client {
                     DebugCommand::ErrorTest {} => {
                         use bitwarden::error::Error;
 
-                        Err::<i32, Error>(Error::Internal("This is an error".into())).into_string()
+                        Err::<i32, Error>(Error::Internal(std::borrow::Cow::Borrowed(
+                            "This is an error.",
+                        )))
+                        .into_string()
                     }
                 }
             }

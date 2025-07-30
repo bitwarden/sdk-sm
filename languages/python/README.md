@@ -3,8 +3,9 @@
 
 - Python 3
 - Rust
-- `maturin` (install with `pip install maturin`)
+- `maturin` (install with `pip install maturin`, or `pip install maturin[patchelf]` on Linux)
 - `npm`
+- `uv` (recommended; used in test automation)
 
 ## Build
 

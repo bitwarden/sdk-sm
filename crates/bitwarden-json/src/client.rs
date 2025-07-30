@@ -1,6 +1,8 @@
 #[cfg(feature = "secrets")]
-use bitwarden::secrets_manager::{ClientProjectsExt, ClientSecretsExt};
-use bitwarden::ClientSettings;
+use bitwarden::{
+    generators::GeneratorClientsExt,
+    secrets_manager::{ProjectsClientExt, SecretsClientExt},
+};
 
 #[cfg(feature = "secrets")]
 use crate::command::{GeneratorsCommand, ProjectsCommand, SecretsCommand};
@@ -86,6 +88,8 @@ impl Client {
             },
             #[cfg(debug_assertions)]
             Command::Debug(cmd) => {
+                use bitwarden::error::Error;
+
                 use crate::command::DebugCommand;
 
                 match cmd {

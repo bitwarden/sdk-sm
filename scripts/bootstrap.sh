@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC1091,SC2155
 set -euo pipefail
 
-REPO_ROOT="$(git rev-parse --show-toplevel)"
+export REPO_ROOT="$(git rev-parse --show-toplevel)"
 TMP_DIR="$(mktemp -d)"
 
 # This access token is only used for testing purposes with the fake server
@@ -42,8 +43,8 @@ start_fake_server() {
   fi
 
   echo "Starting fake server on port $port..."
-  cargo build --bin fake-server >/dev/null
-  SM_FAKE_SERVER_PORT="$port" cargo run --bin fake-server >/dev/null 2>&1 &
+  cargo build -p fake-server >/dev/null
+  SM_FAKE_SERVER_PORT="$port" cargo run -p fake-server >/dev/null 2>&1 &
   FAKE_SERVER_PID=$!
 
   # Wait for server to be ready
@@ -94,7 +95,7 @@ main() {
       echo "Failed to change directory to $dir"
       exit 1
     }
-    ./setup.sh
+    source ./setup.sh
     start_fake_server
     ./test.sh
     popd >/dev/null || {
@@ -115,7 +116,7 @@ main() {
       echo "Failed to change directory to $dir"
       exit 1
     }
-    ./setup.sh
+    source ./setup.sh
     popd >/dev/null || {
       echo "Failed to return to previous directory"
       exit 1

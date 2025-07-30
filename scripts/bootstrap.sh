@@ -5,8 +5,8 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 TMP_DIR="$(mktemp -d)"
 
 # This access token is only used for testing purposes with the fake server
-export ORGANIZATION_ID="ec2c1d46-6a4b-4751-a310-af9601317f2d"
-export ACCESS_TOKEN="0.${ORGANIZATION_ID}.C2IgxjjLF7qSshsbwe8JGcbM075YXw:X8vbvA0bduihIDe/qrzIQQ=="
+export ORGANIZATION_ID="f4e44a7f-1190-432a-9d4a-af96013127cb" # this must match the JWT returned by fake-server::routes.rs
+export ACCESS_TOKEN="0.ec2c1d46-6a4b-4751-a310-af9601317f2d.C2IgxjjLF7qSshsbwe8JGcbM075YXw:X8vbvA0bduihIDe/qrzIQQ=="
 
 export SERVER_URL="http://localhost:${SM_FAKE_SERVER_PORT:-3000}"
 export API_URL="${SERVER_URL}/api"

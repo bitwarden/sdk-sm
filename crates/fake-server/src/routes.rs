@@ -10,6 +10,9 @@ use serde_json::{json, Value};
 use tracing::info;
 use uuid::Uuid;
 
+/// Organization ID that is expected in the response
+const ORGANIZATION_ID: &str = "f4e44a7f-1190-432a-9d4a-af96013127cb";
+
 pub mod auth {
     use super::*;
 
@@ -102,13 +105,14 @@ pub mod secrets {
         secrets: Vec<SecretResponse>,
     }
 
-    pub async fn list_secrets(Path(org_id): Path<String>) -> Json<SecretListResponse> {
+    pub async fn list_secrets() -> Json<SecretListResponse> {
+        let org_id = Uuid::parse_str(ORGANIZATION_ID).unwrap();
         info!("Listing secrets for organization: {}", org_id);
 
         let secrets = vec![
             SecretResponse {
                 id: uuid::Uuid::new_v4(),
-                organization_id: Uuid::parse_str(&org_id).unwrap_or_else(|_| Uuid::new_v4()),
+                organization_id: org_id,
                 project_id: Some(uuid::Uuid::new_v4()),
                 key: "2.pMS6/icTQABtulw52pq2lg==|XXbxKxDTh+mWiN1HjH2N1w==|Q6PkuT+KX/axrgN9ubD5Ajk2YNwxQkgs3WJM0S0wtG8=".to_string(),
                 value: "2.i189LsTzTnYi00heXfe5fw==|xRFAsQGm1qbpasRBw0i9cg==|oNaTecIpkIFITxcI/pNHF8FOyuBMGgHIyS4PoLiJ34Y=".to_string(),
@@ -121,15 +125,16 @@ pub mod secrets {
         Json(SecretListResponse { secrets })
     }
 
-    pub async fn create_secret(
-        Path(org_id): Path<String>,
-        Json(payload): Json<CreateSecretRequest>,
-    ) -> Json<SecretResponse> {
-        info!("Creating secret for organization {}: {:?}", org_id, payload);
+    pub async fn create_secret(Json(payload): Json<CreateSecretRequest>) -> Json<SecretResponse> {
+        let org_id = Uuid::parse_str(ORGANIZATION_ID).unwrap();
+        info!(
+            "Creating (or editing) secret for organization {}: {:?}",
+            org_id, payload
+        );
 
         let secret = SecretResponse {
             id: Uuid::new_v4(),
-            organization_id: Uuid::parse_str(&org_id).unwrap_or_else(|_| Uuid::new_v4()),
+            organization_id: org_id,
             project_id: payload.project_ids.and_then(|ids| ids.first().cloned()),
             key: payload.key,
             value: payload.value,
@@ -145,8 +150,8 @@ pub mod secrets {
         info!("Getting secret with id: {}", id);
 
         let secret = SecretResponse {
-            id: id.clone(),
-            organization_id: Uuid::new_v4(),
+            id: id,
+            organization_id: Uuid::parse_str(ORGANIZATION_ID).unwrap(),
             project_id: Some(uuid::Uuid::new_v4()),
             key: "2.WYqmVCB2wZc08tkzNOCmTw==|FAsVol/nJnnDk3/mp7z6QQ==|uPJOCC8iAbMzz4t60c35iZm8KzWKMn0ueCVJZlfmTdY=".to_string(),
             value: "2.IYOGfBMSOI5qOxfYGHd6Rg==|0PBFivy/Qtp4lg4vv1+yPn/sDeRsNWmRnUYgwmAgPzUqZA9ZojvuggVSp/isPPc2mYO5UQfb/co/81fDhQqopHrwat0l8SRB+sv/uEuomDdMkjaYl+jqblXebIDN42ZCy1wbERZgFmCMm3k1OIj1z5WHdRFGTWDLFlP316SgkAKOwaZF0eNmcQ90Py5Mrq9rKeVozsPWIL3aAXNchID6kJnqxbx717BxKQ9Vj/dMAaBlQoGrl/cYA6hoUBq7wOSMWkZ8PAorLhc3OSDwGT/iamlAfePbkbjVqlTK2WrQ5ZHIo5Qzwpd/cvn6a0rSW5cPQ6DLrrOBdgDU3ELJ3eB+vZ/IWl9jXsCQ3re6Pv4pOToAMYDYEkC7DlwbSiCWLegqbexwPNLRLa2hM9n+V8nVPgNic+LyakfsLqx1ReDFY0A7qRs7pE/EabYyj1O44HwZT3sSFKGYPlTBmQh6S21T7eGJ4+OV+dhnFSpjiJ7IjOhfAzwq8cUiAeIEvKECBD++C+TsGwNAYK57F8Dd2gEwSaDhkiEPssa/c9ZBQnarNWzmZN1gj4udXRmsXqAY6GcrZiLhBIpW2Yap8VVdgbQ9vwN77NzLfFW/FsdlAPB22dvjR1SzszgweG2QstGi9PcKY0Mp1zSvswWdGjdBpbfuExXBD62Fp+DWOmFzWPo2MyqSQLaegvO4G+v8DRlf7VHA34Yvcbzv9Jtq4+H+Z7SkglRcQvKrn9uv7qOlZPvGJs1Ri86BAopXIGsj/5XfQTdtQdhs4c0vviMSrNWtNvIgfg==|Z6BNqVlCknATGieykii0vF9xKu+JT3u2WqtbDhSYvkY=".to_string(),
@@ -159,6 +164,8 @@ pub mod secrets {
     }
 
     pub async fn get_secrets_by_ids(Json(payload): Json<GetByIdsBody>) -> Json<GetByIdsResponse> {
+        let org_id = Uuid::parse_str(ORGANIZATION_ID).unwrap();
+
         let id1 = payload.ids.get(0).cloned().unwrap_or(Uuid::new_v4());
         let id2 = payload.ids.get(1).cloned().unwrap_or(Uuid::new_v4());
 
@@ -167,7 +174,7 @@ pub mod secrets {
         let mut secrets: Vec<SecretResponse> = payload.ids.iter().map(|_| SecretResponse {
             // FERRIS, the crab
             id: id1,
-            organization_id: Uuid::parse_str("ec2c1d46-6a4b-4751-a310-af9601317f2d").unwrap_or_else(|_| Uuid::new_v4()),
+            organization_id: org_id,
             project_id: Some(uuid::Uuid::new_v4()),
             key: "2.N2aCz0PU6Ga9YfJlvisnwQ==|3M8dF2PFub9FP/SbgdenSQ==|KbaUQSb5IjVwhSbXDbCJbKXGBaCHEKDArrhvQDr9/QM=".to_string(), //
             value: "2./mtIg5EsCJbesKfmbWAx+A==|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".to_string(),
@@ -179,7 +186,7 @@ pub mod secrets {
         secrets.push(SecretResponse {
             // TUX, the penguin
             id: id2,
-            organization_id: Uuid::parse_str("ec2c1d46-6a4b-4751-a310-af9601317f2d").unwrap_or_else(|_| Uuid::new_v4()),
+            organization_id: org_id,
             project_id: Some(uuid::Uuid::new_v4()),
             key: "2.OldQj0RJKww0WN7RSxI1wQ==|TpxAbmdx6zIVo37YJ5n1aQ==|06Imyx7jqaZ5J5amrBboCVPwvPoDKB8REJdToQwp3dA=".to_string(),
             value: "2.oEDp566lC9VYHn6XmusxfA==|Gj23w5q2NZ4z9PNne1d0ug==|y7K5TgMJFI0T0yFwLXzAMf9OBANNT567hLQ+z7G2rac=".to_string(),
@@ -203,10 +210,8 @@ pub mod secrets {
         }))
     }
 
-    pub async fn sync_secrets(
-        Path(org_id): Path<Uuid>,
-        Query(params): Query<SyncQueryParams>,
-    ) -> Json<SecretsSyncResponse> {
+    pub async fn sync_secrets(Query(params): Query<SyncQueryParams>) -> Json<SecretsSyncResponse> {
+        let org_id = Uuid::parse_str(ORGANIZATION_ID).unwrap();
         info!("Syncing secrets for organization: {}", org_id);
 
         if let Some(date) = params.last_synced_date {
@@ -252,14 +257,15 @@ pub mod projects {
         pub name: String,
     }
 
-    pub async fn list_projects(Path(org_id): Path<Uuid>) -> Json<ProjectsResponse> {
+    pub async fn list_projects() -> Json<ProjectsResponse> {
+        let org_id = Uuid::parse_str(ORGANIZATION_ID).unwrap();
         info!("Listing projects for organization: {}", org_id);
 
         let projects =
         vec![
             ProjectResponse {
                 id: uuid::Uuid::new_v4(),
-                organization_id: org_id.clone(),
+                organization_id: org_id,
                 name: "2.DmcNJqtzi+nPWY9gJR4nMw==|IEkn2x+C0YLmnQ/qm0EfOcMGcRZDkexFkDW9BPw3wRQ=|TxxTeBKqL0QYLT+89F0KfI81BbBryXnNNAjU9DGKuuY=".to_string(),
                 creation_date: chrono::Utc::now(),
                 revision_date: chrono::Utc::now(),
@@ -277,11 +283,11 @@ pub mod projects {
     }
 
     pub async fn create_project(
-        Path(org_id): Path<Uuid>,
         Json(payload): Json<CreateProjectRequest>,
     ) -> Json<ProjectResponse> {
+        let org_id = Uuid::parse_str(ORGANIZATION_ID).unwrap();
         info!(
-            "Creating project for organization {}: {:?}",
+            "Creating (or editing) project for organization {}: {:?}",
             org_id, payload
         );
 
@@ -301,7 +307,7 @@ pub mod projects {
 
         let project = ProjectResponse {
             id: Uuid::new_v4(),
-            organization_id: Uuid::parse_str("ec2c1d46-6a4b-4751-a310-af9601317f2d").unwrap_or_else(|_| Uuid::new_v4()),
+            organization_id: Uuid::parse_str(ORGANIZATION_ID).unwrap(),
             name: "2.DmcNJqtzi+nPWY9gJR4nMw==|IEkn2x+C0YLmnQ/qm0EfOcMGcRZDkexFkDW9BPw3wRQ=|TxxTeBKqL0QYLT+89F0KfI81BbBryXnNNAjU9DGKuuY=".to_string(),
             creation_date: chrono::Utc::now(),
             revision_date: chrono::Utc::now(),

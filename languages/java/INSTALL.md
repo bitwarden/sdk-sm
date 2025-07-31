@@ -40,6 +40,12 @@ jenv shell 17
 ./gradlew build
 ```
 
+### Windows
+
+Download JDK17
+
+Go to System Environment Variables and point JAVA_HOME to where the JDK software is located, for example: JAVA_HOME=C:\Program Files\Java\jdk1.6.0_02.
+
 ## Example SDK Usage Project
 
 ```shell

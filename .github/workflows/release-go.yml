@@ -147,6 +147,8 @@ jobs:
           cp --verbose -rf sdk/languages/go/. sdk-go
           # Remove the old cinterface lib files
           rm -rf sdk-go/internal/cinterface/lib/*
+          # Don't publish test files or scripts
+          rm -f sdk-go/*_test.go sdk-go/*.sh
           mkdir -p sdk-go/internal/cinterface/lib/{darwin-{x64,arm64},linux-{x64,arm64},windows-x64}
 
       - name: Extract static libs to their respective directories

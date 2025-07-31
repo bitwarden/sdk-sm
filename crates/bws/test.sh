@@ -2,19 +2,6 @@
 # shellcheck disable=SC3040,SC3044
 set -euo pipefail
 
-REPO_ROOT="$(git rev-parse --show-toplevel)"
-
-# This access token is only used for testing purposes with the fake server
-export BWS_ACCESS_TOKEN="0.ec2c1d46-6a4b-4751-a310-af9601317f2d.C2IgxjjLF7qSshsbwe8JGcbM075YXw:X8vbvA0bduihIDe/qrzIQQ=="
-export BWS_SERVER_URL="http://localhost:${SM_FAKE_SERVER_PORT:-3000}"
-
-if ! command -v bws >/dev/null; then
-  echo "bws is not installed. Building from source..."
-  BUILD_FROM_SOURCE=1
-else
-  BUILD_FROM_SOURCE=0
-fi
-
 TEST_FAILURES=0
 
 run_test() {

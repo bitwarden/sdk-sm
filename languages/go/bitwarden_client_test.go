@@ -9,12 +9,11 @@ import (
 )
 
 func TestBitwardenClient(t *testing.T) {
-	apiURL := getEnv("API_URL", "http://localhost:3000/api")
-	identityURL := getEnv("IDENTITY_URL", "http://localhost:3000/identity")
-	// the following access token is only valid for the fake-server, so it is safe to share
-	accessToken := getEnv("ACCESS_TOKEN", "0.ec2c1d46-6a4b-4751-a310-af9601317f2d.C2IgxjjLF7qSshsbwe8JGcbM075YXw:X8vbvA0bduihIDe/qrzIQQ==")
-	organizationIDStr := getEnv("ORGANIZATION_ID", "ec2c1d46-6a4b-4751-a310-af9601317f2d")
-	stateFile := getEnv("STATE_FILE", "")
+	apiURL := os.Getenv("API_URL")
+	identityURL := os.Getenv("IDENTITY_URL")
+	accessToken := os.Getenv("ACCESS_TOKEN")
+	organizationIDStr := os.Getenv("ORGANIZATION_ID")
+	stateFile := os.Getenv("STATE_FILE")
 
 	bitwardenClient, err := NewBitwardenClient(&apiURL, &identityURL)
 	if err != nil {
@@ -152,11 +151,4 @@ func TestBitwardenClient(t *testing.T) {
 // Helper functions
 func ptr(i int64) *int64 {
 	return &i
-}
-
-func getEnv(key, fallback string) string {
-	if value, ok := os.LookupEnv(key); ok {
-		return value
-	}
-	return fallback
 }

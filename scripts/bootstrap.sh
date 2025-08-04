@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC1091,SC2155
 set -euo pipefail
 
-REPO_ROOT="$(git rev-parse --show-toplevel)"
+export REPO_ROOT="$(git rev-parse --show-toplevel)"
 TMP_DIR="$(mktemp -d)"
 
 # This access token is only used for testing purposes with the fake server
-export ORGANIZATION_ID="ec2c1d46-6a4b-4751-a310-af9601317f2d"
-export ACCESS_TOKEN="0.${ORGANIZATION_ID}.C2IgxjjLF7qSshsbwe8JGcbM075YXw:X8vbvA0bduihIDe/qrzIQQ=="
+export ORGANIZATION_ID="f4e44a7f-1190-432a-9d4a-af96013127cb" # this must match the JWT returned by fake-server::routes.rs
+export ACCESS_TOKEN="0.ec2c1d46-6a4b-4751-a310-af9601317f2d.C2IgxjjLF7qSshsbwe8JGcbM075YXw:X8vbvA0bduihIDe/qrzIQQ=="
 
 export SERVER_URL="http://localhost:${SM_FAKE_SERVER_PORT:-3000}"
 export API_URL="${SERVER_URL}/api"
@@ -42,8 +43,8 @@ start_fake_server() {
   fi
 
   echo "Starting fake server on port $port..."
-  cargo build --bin fake-server >/dev/null
-  SM_FAKE_SERVER_PORT="$port" cargo run --bin fake-server >/dev/null 2>&1 &
+  cargo build -p fake-server >/dev/null
+  SM_FAKE_SERVER_PORT="$port" cargo run -p fake-server >/dev/null 2>&1 &
   FAKE_SERVER_PID=$!
 
   # Wait for server to be ready
@@ -94,7 +95,7 @@ main() {
       echo "Failed to change directory to $dir"
       exit 1
     }
-    ./setup.sh
+    source ./setup.sh
     start_fake_server
     ./test.sh
     popd >/dev/null || {
@@ -115,7 +116,7 @@ main() {
       echo "Failed to change directory to $dir"
       exit 1
     }
-    ./setup.sh
+    source ./setup.sh
     popd >/dev/null || {
       echo "Failed to return to previous directory"
       exit 1

@@ -1,8 +1,8 @@
 use bitwarden::ClientSettings;
 #[cfg(feature = "secrets")]
 use bitwarden::{
-    generators::ClientGeneratorExt,
-    secrets_manager::{ClientProjectsExt, ClientSecretsExt},
+    generators::GeneratorClientsExt,
+    secrets_manager::{ProjectsClientExt, SecretsClientExt},
 };
 
 #[cfg(feature = "secrets")]
@@ -87,7 +87,7 @@ impl Client {
             },
             #[cfg(debug_assertions)]
             Command::Debug(cmd) => {
-                use bitwarden::Error;
+                use bitwarden::error::Error;
 
                 use crate::command::DebugCommand;
 
@@ -104,7 +104,7 @@ impl Client {
                         Ok::<i32, Error>(42).into_string()
                     }
                     DebugCommand::ErrorTest {} => {
-                        use bitwarden::Error;
+                        use bitwarden::error::Error;
 
                         Err::<i32, Error>(Error::Internal(std::borrow::Cow::Borrowed(
                             "This is an error.",

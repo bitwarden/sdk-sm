@@ -61,7 +61,7 @@ jobs:
           if [[ "${{ inputs.version }}" == "latest" || "${{ inputs.version }}" == "" ]]; then
             TAG_NAME=$(curl  "https://api.github.com/repos/bitwarden/sdk-sm/releases" | jq -c '.[] | select(.tag_name | contains("bws")) | .tag_name' | head -1)
             echo "TAG_NAME: $TAG_NAME"
-            VERSION=$(echo $TAG_NAME | grep -ohE '20[0-9][0-9]\.(0[1-9]|1[0-2])\.[0-9]+')
+            VERSION=$(echo $TAG_NAME | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | tr -d 'v')
             echo "Latest Released Version: $VERSION"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
 

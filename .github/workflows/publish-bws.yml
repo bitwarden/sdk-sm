@@ -222,6 +222,29 @@ jobs:
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
 
+      
+  publish-powershell:
+    name: Publish docker versioned and latest image
+    runs-on: ubuntu-24.04
+    permissions:
+      security-events: write
+      id-token: write
+    needs: setup
+    steps:
+      - name: Log in to Azure
+        uses: bitwarden/gh-actions/azure-login@main
+        with:
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
+      
+      - name: Print Version
+        run: |
+          echo "Version: ${{ needs.setup.outputs.release_version }}"
+
+      - name: Log out from Azure
+        uses: bitwarden/gh-actions/azure-logout@main
+
   update_release_status:
     name: Update GitHub deployment status
     runs-on: ubuntu-24.04

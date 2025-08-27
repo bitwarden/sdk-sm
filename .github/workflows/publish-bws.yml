@@ -265,18 +265,33 @@ jobs:
           subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           tenant_id: ${{ secrets.AZURE_TENANT_ID }}
           client_id: ${{ secrets.AZURE_CLIENT_ID }}
+
+      #   - name: Install azcopy
+      #   run: |
+      #     wget https://aka.ms/downloadazcopy-v10-linux && \
+      #     tar -xvf downloadazcopy-v10-linux && \
+      #     sudo cp ./azcopy_linux_amd64_*/azcopy /usr/bin/ && \
+      #     rm -rf downloadazcopy-v10-linux ./azcopy_linux_amd64_* && \
+      #     echo "Installed azcopy version:" && \
+      #     azcopy --version
+
+      # - name: Upload to Azure Blob Storage
+      #   run: |
+      #     azcopy sync "public/" "https://bwmarketingtestsite.blob.core.windows.net/\$web?${{ secrets.AZURE_SAS_TOKEN }}" \
+      #       --delete-destination=true \
+      #       --from-to=LocalBlob \
+      #.      --recursive=true
       
       - name: Print Version
         env:
           ACCOUNT_NAME: bwsecretsmanager7g3o
           CONTAINER_NAME: $web
         run: |
-          echo "Version: ${{ needs.setup.outputs.release_version }}" \
+          echo "Version: ${{ needs.setup.outputs.release_version }}" && \
           az storage blob list \
           --account-name $ACCOUNT_NAME \
           --container-name $CONTAINER_NAME \
-          --query "[].name" \
-          --output tsv
+          --query "[].name"
 
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main

@@ -304,7 +304,8 @@ jobs:
           az storage blob list \
           --account-name $ACCOUNT_NAME \
           --container-name $CONTAINER_NAME \
-          --query "[].name"
+          --query "[].name" && \
+          pwd && ls 
 
       # - name: Test upload PowerShell install script
       #   env:

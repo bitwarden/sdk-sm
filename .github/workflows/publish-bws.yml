@@ -303,8 +303,9 @@ jobs:
         env:
           ACCOUNT_NAME: bwsecretsmanager7g3o
           CONTAINER_NAME: $web
+          EXPECTED_VERSION: ${{ needs.setup.outputs.release_version }}
         run: |
-          echo "Version: ${{ needs.setup.outputs.release_version }}" && \
+          echo "Version: $EXPECTED_VERSION" && \
           az storage blob list \
           --account-name $ACCOUNT_NAME \
           --container-name $CONTAINER_NAME \

@@ -301,7 +301,7 @@ jobs:
           CONTAINER_NAME: $web
         run: |
           echo "Version: ${{ needs.setup.outputs.release_version }}" && \
-          az storage blob upload \
+          az storage blob list \
           --account-name $ACCOUNT_NAME \
           --container-name $CONTAINER_NAME \
           --query "[].name"

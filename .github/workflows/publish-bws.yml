@@ -345,7 +345,7 @@ jobs:
           echo "Installed bws version: $INSTALLED_VERSION"
           echo "Expected bws version: $EXPECTED_VERSION"
 
-          if [ "$INSTALLED_VERSION" != "$EXPECTED_VERSION" ]; then
+          if [ "$INSTALLED_VERSION" != "bws $EXPECTED_VERSION" ]; then
             echo "❌ Version mismatch! Expected $EXPECTED_VERSION but got $INSTALLED_VERSION"
             exit 1
           fi

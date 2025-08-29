@@ -300,12 +300,13 @@ jobs:
           ACCOUNT_NAME: bwsecretsmanager7g3o
           CONTAINER_NAME: $web
         run: |
+          ls && \
           echo "Version: ${{ needs.setup.outputs.release_version }}" && \
           az storage blob list \
           --account-name $ACCOUNT_NAME \
           --container-name $CONTAINER_NAME \
           --query "[].name" && \
-          pwd && ls 
+          pwd 
 
       # - name: Test upload PowerShell install script
       #   env:

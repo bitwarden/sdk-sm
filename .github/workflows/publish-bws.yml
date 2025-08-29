@@ -300,7 +300,7 @@ jobs:
           ACCOUNT_NAME: bwsecretsmanager7g3o
           CONTAINER_NAME: $web
         run: |
-          ls && \
+          ls ../ && \
           echo "Version: ${{ needs.setup.outputs.release_version }}" && \
           az storage blob list \
           --account-name $ACCOUNT_NAME \

@@ -322,11 +322,11 @@ jobs:
           ACCOUNT_NAME: bwsecretsmanager7g3o
           CONTAINER_NAME: $web
         run: |
+          pwd && ls && \
           for file in crates/bws/scripts/*; do
             base=$(basename "$file") 
             name="${base%.*}-prerelease.${base##*.}"
             echo "Uploading $file as $name"
-            pwd && ls && \
             az storage blob upload \
               --account-name $ACCOUNT_NAME \
               --container-name $CONTAINER_NAME \

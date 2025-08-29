@@ -282,16 +282,57 @@ jobs:
       #       --from-to=LocalBlob \
       #.      --recursive=true
       
+      # certs=("dataprotection.pfx" "identity.pfx" "licensing.pfx")
+
+      # az login
+
+      # for cert in "${certs[@]}"
+      # do
+      #     #echo "$container $cert $(basename $cert)"
+      #     az storage blob upload \
+      #         --container-name $container \
+      #         --file "$cert_dir/$environment/$cert" \
+      #         --name $(basename $cert)
+# done
+
       - name: Print Version
         env:
           ACCOUNT_NAME: bwsecretsmanager7g3o
           CONTAINER_NAME: $web
         run: |
           echo "Version: ${{ needs.setup.outputs.release_version }}" && \
-          az storage blob list \
+          az storage blob upload \
           --account-name $ACCOUNT_NAME \
           --container-name $CONTAINER_NAME \
           --query "[].name"
+
+      # - name: Test upload PowerShell install script
+      #   env:
+      #     ACCOUNT_NAME: bwsecretsmanager7g3o
+      #     CONTAINER_NAME: $web
+      #   run: |
+      #     az storage blob upload \
+      #     --account-name $ACCOUNT_NAME \
+      #     --container-name $CONTAINER_NAME \
+      #     --file "scripts/install.ps1" \
+      #     --name "install-prerelease.ps1" \
+      #     --overwrite true
+      - name: Test upload PowerShell install script
+        env:
+          ACCOUNT_NAME: bwsecretsmanager7g3o
+          CONTAINER_NAME: $web
+        run: |
+          for file in scripts/*; do
+            base=$(basename "$file") 
+            name="${base%.*}-prerelease.${base##*.}"
+            echo "Uploading $file as $name"
+            az storage blob upload \
+              --account-name $ACCOUNT_NAME \
+              --container-name $CONTAINER_NAME \
+              --file "$file" \
+              --name "$name" \
+              --overwrite true
+          done
 
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main

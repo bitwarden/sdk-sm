@@ -262,7 +262,7 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        
+
       - name: Log in to Azure
         uses: bitwarden/gh-actions/azure-login@main
         with:
@@ -304,31 +304,17 @@ jobs:
           ACCOUNT_NAME: bwsecretsmanager7g3o
           CONTAINER_NAME: $web
         run: |
-          ls ../../ && \
           echo "Version: ${{ needs.setup.outputs.release_version }}" && \
           az storage blob list \
           --account-name $ACCOUNT_NAME \
           --container-name $CONTAINER_NAME \
-          --query "[].name" && \
-          pwd 
+          --query "[].name"
 
-      # - name: Test upload PowerShell install script
-      #   env:
-      #     ACCOUNT_NAME: bwsecretsmanager7g3o
-      #     CONTAINER_NAME: $web
-      #   run: |
-      #     az storage blob upload \
-      #     --account-name $ACCOUNT_NAME \
-      #     --container-name $CONTAINER_NAME \
-      #     --file "scripts/install.ps1" \
-      #     --name "install-prerelease.ps1" \
-      #     --overwrite true
       - name: Test upload PowerShell install script
         env:
           ACCOUNT_NAME: bwsecretsmanager7g3o
           CONTAINER_NAME: $web
         run: |
-          pwd && ls && \
           for file in crates/bws/scripts/*; do
             base=$(basename "$file") 
             name="${base%.*}-prerelease.${base##*.}"
@@ -340,6 +326,27 @@ jobs:
               --name "$name" \
               --overwrite true
           done
+      
+
+      - name: Test install of prerelease script
+        run: |
+          # Download install script to home dir
+          curl -sSL https://bws.bitwarden.com/install-prerelease.sh -o ~/install-prerelease.sh
+
+          # Make it executable
+          chmod +x ~/install-prerelease.sh
+
+          # Run it with sudo
+          sudo ~/install-prerelease.sh
+
+          INSTALLED_VERSION=$(bws --version)
+          echo "Installed bws version: $INSTALLED_VERSION"
+          echo "Expected bws version: $EXPECTED_VERSION"
+
+          if [ "$INSTALLED_VERSION" != "$EXPECTED_VERSION" ]; then
+            echo "❌ Version mismatch! Expected $EXPECTED_VERSION but got $INSTALLED_VERSION"
+            exit 1
+          fi
 
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main

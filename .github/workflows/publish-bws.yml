@@ -326,6 +326,7 @@ jobs:
             base=$(basename "$file") 
             name="${base%.*}-prerelease.${base##*.}"
             echo "Uploading $file as $name"
+            pwd && ls && \
             az storage blob upload \
               --account-name $ACCOUNT_NAME \
               --container-name $CONTAINER_NAME \

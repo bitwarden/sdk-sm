@@ -17,6 +17,21 @@ on:
         required: true
         type: string
         default: latest
+      publish_cratesio:
+        description: "Publish to crates.io"
+        required: true
+        type: boolean
+        default: true
+      publish_docker:
+        description: "Publish Docker image"
+        required: true
+        type: boolean
+        default: true
+      publish_powershell:
+        description: "Publish PowerShell install script"
+        required: true
+        type: boolean
+        default: true
 
 env:
   _AZ_REGISTRY: bitwardenprod.azurecr.io
@@ -45,15 +60,15 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      # - name: Branch check
-      #   if: ${{ inputs.release_type != 'Dry Run' }}
-      #   run: |
-      #     if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
-      #       echo "==================================="
-      #       echo "[!] Can only release from the 'main' branch"
-      #       echo "==================================="
-      #       exit 1
-      #     fi
+      - name: Branch check
+        if: ${{ inputs.release_type != 'Dry Run' }}
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "==================================="
+            echo "[!] Can only release from the 'main' branch"
+            echo "==================================="
+            exit 1
+          fi
 
       - name: Version output
         id: version-output
@@ -93,6 +108,7 @@ jobs:
     env:
       _VERSION: ${{ needs.setup.outputs.release_version }}
       _TAG_NAME: ${{ needs.setup.outputs.release_tag }}
+    if: ${{ inputs.publish_cratesio }}
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -139,6 +155,7 @@ jobs:
       security-events: write
       id-token: write
     needs: setup
+    if: ${{ inputs.publish_docker }}
 
     steps:
       - name: Checkout
@@ -234,23 +251,88 @@ jobs:
 
       
   publish-powershell:
-    name: Publish docker versioned and latest image
+    name: Publish to bitwarden.com/install
     runs-on: ubuntu-24.04
     permissions:
       security-events: write
       id-token: write
     needs: setup
+    if: ${{ inputs.publish_powershell}}
+    env: 
+      _EXPECTED_VERSION: ${{ needs.setup.outputs.release_version }}
+      _ACCOUNT_NAME: bwsecretsmanager7g3o
+      _CONTAINER_NAME: $web
     steps:
+
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
       - name: Log in to Azure
         uses: bitwarden/gh-actions/azure-login@main
         with:
           subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           tenant_id: ${{ secrets.AZURE_TENANT_ID }}
           client_id: ${{ secrets.AZURE_CLIENT_ID }}
-      
+
       - name: Print Version
+        env:
+          ACCOUNT_NAME: bwsecretsmanager7g3o
+          CONTAINER_NAME: $web
         run: |
-          echo "Version: ${{ needs.setup.outputs.release_version }}"
+          echo "Version: $EXPECTED_VERSION" && \
+          az storage blob list \
+          --account-name $ACCOUNT_NAME \
+          --container-name $CONTAINER_NAME \
+          --query "[].name"
+
+      - name: Test upload PowerShell install script
+        run: |
+          for file in crates/bws/scripts/*; do
+            base=$(basename "$file") 
+            name="${base%.*}-prerelease.${base##*.}"
+            echo "Uploading $file as $name"
+            az storage blob upload \
+              --account-name $ACCOUNT_NAME \
+              --container-name $CONTAINER_NAME \
+              --file "$file" \
+              --name "$name" \
+              --overwrite true
+          done
+
+      - name: Test install of prerelease script
+        run: |
+          # Download install script to home dir
+          curl -sSL https://bws.bitwarden.com/install-prerelease.sh -o ~/install-prerelease.sh
+
+          # Make it executable
+          chmod +x ~/install-prerelease.sh
+
+          # Run it with sudo
+          sudo ~/install-prerelease.sh
+
+          INSTALLED_VERSION=$(bws --version)
+          echo "Installed bws version: $INSTALLED_VERSION"
+          echo "Expected bws version: $EXPECTED_VERSION"
+
+            if [ "$INSTALLED_VERSION" != "bws $EXPECTED_VERSION" ]; then
+              echo "❌ Version mismatch! Expected $EXPECTED_VERSION but got $INSTALLED_VERSION"
+              exit 1
+            fi
+  
+      - name: Publish PowerShell install script
+        if: ${{ inputs.release_type != 'Dry Run' && success() }}
+        run: |
+            for file in crates/bws/scripts/*; do
+            base=$(basename "$file")
+            prerelease_name="${base%.*}-prerelease.${base##*.}"
+            release_name="${base%.*}.${base##*.}"
+            echo "Copying $prerelease_name to $release_name in Azure Blob Storage"
+            az storage blob copy start \
+              --account-name $ACCOUNT_NAME \
+              --destination-container $CONTAINER_NAME \
+              --destination-blob "$release_name" \
+              --source-uri "https://${ACCOUNT_NAME}.blob.core.windows.net/${CONTAINER_NAME}/${prerelease_name}"
+            done
 
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main

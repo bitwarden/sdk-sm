@@ -328,7 +328,7 @@ jobs:
               --account-name $_ACCOUNT_NAME \
               --destination-container $_CONTAINER_NAME \
               --destination-blob "$release_name" \
-              --source-uri "https://${ACCOUNT_NAME}.blob.core.windows.net/${CONTAINER_NAME}/${prerelease_name}"
+              --source-uri "https://${_ACCOUNT_NAME}.blob.core.windows.net/${_CONTAINER_NAME}/${prerelease_name}"
             done
 
       - name: Log out from Azure

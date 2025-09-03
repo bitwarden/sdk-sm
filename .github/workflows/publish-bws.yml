@@ -316,7 +316,7 @@ jobs:
               exit 1
             fi
   
-      - name: Publish PowerShell install script
+      - name: Publish install scripts
         if: ${{ inputs.release_type != 'Dry Run' }}
         run: |
             for file in crates/bws/scripts/*; do

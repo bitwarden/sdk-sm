@@ -94,7 +94,7 @@ jobs:
           # Download schema
           wget https://github.com/bitwarden/sdk-sm/releases/download/napi-v${{ env._PKG_VERSION }}/schemas.ts
           mv schemas.ts ${{ github.workspace }}/crates/bitwarden-napi/src-ts/bitwarden_client/schemas.ts
-          
+
           # Download native binaries
           wget https://github.com/bitwarden/sdk-sm/releases/download/napi-v${{ env._PKG_VERSION }}/sdk-napi.darwin-arm64.node
           wget https://github.com/bitwarden/sdk-sm/releases/download/napi-v${{ env._PKG_VERSION }}/sdk-napi.darwin-x64.node
@@ -118,7 +118,7 @@ jobs:
 
       - name: Move artifacts
         run: npm run artifacts
-      
+
       - name: Install NPM
         run: |
           npm --version

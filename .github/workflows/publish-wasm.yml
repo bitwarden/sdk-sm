@@ -101,7 +101,7 @@ jobs:
           node-version: 24
           registry-url: "https://registry.npmjs.org/"
           cache: "npm"
-      
+
       - name: Install NPM
         run: |
           npm --version

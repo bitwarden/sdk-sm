@@ -289,8 +289,8 @@ jobs:
             name="${base%.*}-prerelease.${base##*.}"
             echo "Uploading $file as $name"
             az storage blob upload \
-              --account-name $ACCOUNT_NAME \
-              --container-name $CONTAINER_NAME \
+              --account-name $_ACCOUNT_NAME \
+              --container-name $_CONTAINER_NAME \
               --file "$file" \
               --name "$name" \
               --overwrite true

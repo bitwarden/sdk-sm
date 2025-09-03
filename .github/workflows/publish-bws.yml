@@ -254,7 +254,6 @@ jobs:
     name: Publish to bitwarden.com/install
     runs-on: ubuntu-24.04
     permissions:
-      security-events: write
       id-token: write
     needs: setup
     if: ${{ inputs.publish_powershell}}

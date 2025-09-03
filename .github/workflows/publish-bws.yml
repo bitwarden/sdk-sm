@@ -317,7 +317,7 @@ jobs:
             fi
   
       - name: Publish PowerShell install script
-        if: ${{ inputs.release_type != 'Dry Run' && success() }}
+        if: ${{ inputs.release_type != 'Dry Run' }}
         run: |
             for file in crates/bws/scripts/*; do
             base=$(basename "$file")

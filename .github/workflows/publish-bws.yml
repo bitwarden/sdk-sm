@@ -275,13 +275,11 @@ jobs:
 
       - name: Print Version
         env:
-          ACCOUNT_NAME: bwsecretsmanager7g3o
-          CONTAINER_NAME: $web
         run: |
           echo "Version: $EXPECTED_VERSION" && \
           az storage blob list \
-          --account-name $ACCOUNT_NAME \
-          --container-name $CONTAINER_NAME \
+          --account-name $_ACCOUNT_NAME \
+          --container-name $_CONTAINER_NAME \
           --query "[].name"
 
       - name: Test upload PowerShell install script

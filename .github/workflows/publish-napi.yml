@@ -119,7 +119,7 @@ jobs:
       - name: Move artifacts
         run: npm run artifacts
 
-      - name: Install NPM
+      - name: Update NPM
         run: |
           npm --version
           npm install -g npm@latest # npm 11.5.1 or later is required to publish w/ OIDC

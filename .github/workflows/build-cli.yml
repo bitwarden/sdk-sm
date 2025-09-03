@@ -296,7 +296,7 @@ jobs:
       - name: Set up Zig
         uses: mlugg/setup-zig@8d6198c65fb0feaa111df26e6b467fea8345e46f # v2.0.5
         with:
-          version: 0.12.0
+          version: 0.15.1
 
       - name: Cache cargo registry
         uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5

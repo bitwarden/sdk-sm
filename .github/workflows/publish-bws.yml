@@ -250,7 +250,7 @@ jobs:
         uses: bitwarden/gh-actions/azure-logout@main
 
       
-  publish-powershell:
+  publish-install-script:
     name: Publish to bitwarden.com/install
     runs-on: ubuntu-24.04
     permissions:

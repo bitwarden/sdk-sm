@@ -282,7 +282,7 @@ jobs:
           --container-name $_CONTAINER_NAME \
           --query "[].name"
 
-      - name: Test upload PowerShell install script
+      - name: Test upload install scripts
         run: |
           for file in crates/bws/scripts/*; do
             base=$(basename "$file") 

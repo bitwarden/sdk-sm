@@ -274,7 +274,6 @@ jobs:
           client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Print Version
-        env:
         run: |
           echo "Version: $EXPECTED_VERSION" && \
           az storage blob list \

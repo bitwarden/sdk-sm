@@ -27,7 +27,8 @@ on:
         required: true
         type: boolean
         default: true
-      publish_powershell:
+      publish_install_scripts:
+        description: "Publish install scripts"
         description: "Publish PowerShell install script"
         required: true
         type: boolean

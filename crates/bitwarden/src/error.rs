@@ -12,6 +12,7 @@ pub enum Error {
 
 // Ensure that the error messages implement Send and Sync
 #[cfg(test)]
+#[allow(dead_code)]
 const _: () = {
     fn assert_send<T: Send>() {}
     fn assert_sync<T: Sync>() {}

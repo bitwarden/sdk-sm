@@ -103,13 +103,13 @@ pub extern "C" fn free_mem(client_ptr: *mut CClient) {
 }
 
 #[no_mangle]
-pub extern "C" fn abort_and_free_handle(join_handle_ptr: *mut tokio::task::JoinHandle<()>) -> () {
+pub extern "C" fn abort_and_free_handle(join_handle_ptr: *mut tokio::task::JoinHandle<()>) {
     let join_handle = unsafe { Box::from_raw(join_handle_ptr) };
     join_handle.abort();
     std::mem::drop(join_handle);
 }
 
 #[no_mangle]
-pub extern "C" fn free_handle(join_handle_ptr: *mut tokio::task::JoinHandle<()>) -> () {
+pub extern "C" fn free_handle(join_handle_ptr: *mut tokio::task::JoinHandle<()>) {
     std::mem::drop(unsafe { Box::from_raw(join_handle_ptr) });
 }

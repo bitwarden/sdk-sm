@@ -257,7 +257,7 @@ jobs:
     permissions:
       id-token: write
     needs: setup
-    if: ${{ inputs.publish_powershell}}
+    if: ${{ inputs.publish_install_scripts }}
     env: 
       _EXPECTED_VERSION: ${{ needs.setup.outputs.release_version }}
       _ACCOUNT_NAME: bwsecretsmanager7g3o

@@ -150,7 +150,7 @@ pub mod secrets {
         info!("Getting secret with id: {}", id);
 
         let secret = SecretResponse {
-            id: id,
+            id,
             organization_id: Uuid::parse_str(ORGANIZATION_ID).unwrap(),
             project_id: Some(uuid::Uuid::new_v4()),
             key: "2.WYqmVCB2wZc08tkzNOCmTw==|FAsVol/nJnnDk3/mp7z6QQ==|uPJOCC8iAbMzz4t60c35iZm8KzWKMn0ueCVJZlfmTdY=".to_string(),
@@ -166,7 +166,7 @@ pub mod secrets {
     pub async fn get_secrets_by_ids(Json(payload): Json<GetByIdsBody>) -> Json<GetByIdsResponse> {
         let org_id = Uuid::parse_str(ORGANIZATION_ID).unwrap();
 
-        let id1 = payload.ids.get(0).cloned().unwrap_or(Uuid::new_v4());
+        let id1 = payload.ids.first().cloned().unwrap_or(Uuid::new_v4());
         let id2 = payload.ids.get(1).cloned().unwrap_or(Uuid::new_v4());
 
         info!("Getting secrets with ids: {}, {}", id1, id2);

@@ -9,10 +9,10 @@ public class AuthClient
         _commandRunner = commandRunner;
     }
 
-    public void LoginAccessToken(string accessToken, string stateFile = "")
+    public async Task LoginAccessTokenAsync(string accessToken, string stateFile = "", CancellationToken cancellationToken = default)
     {
         var command = new Command { LoginAccessToken = new AccessTokenLoginRequest { AccessToken = accessToken, StateFile = stateFile } };
-        var response = _commandRunner.RunCommand<ResponseForApiKeyLoginResponse>(command);
+        var response = await _commandRunner.RunCommandAsync<ResponseForApiKeyLoginResponse>(command, cancellationToken);
         if (response is not { Success: true })
         {
             throw new BitwardenAuthException(response != null ? response.ErrorMessage : "Login failed");

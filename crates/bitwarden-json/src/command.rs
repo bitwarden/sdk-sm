@@ -33,6 +33,8 @@ pub enum Command {
     Projects(ProjectsCommand),
     #[cfg(feature = "secrets")]
     Generators(GeneratorsCommand),
+    #[cfg(debug_assertions)]
+    Debug(DebugCommand),
 }
 
 #[cfg(feature = "secrets")]
@@ -141,4 +143,12 @@ pub enum GeneratorsCommand {
     ///
     /// Returns: [String]
     GeneratePassword(PasswordGeneratorRequest),
+}
+
+#[cfg(debug_assertions)]
+#[derive(Serialize, Deserialize, JsonSchema, Debug)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub enum DebugCommand {
+    CancellationTest { duration_millis: u64 },
+    ErrorTest {},
 }

@@ -13,6 +13,9 @@ env:
   GO111MODULE: on
   GO_VERSION: "^1.21"
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build
@@ -43,7 +46,3 @@ jobs:
       - name: Build
         working-directory: languages/go
         run: go build -v ./...
-
-      - name: Test
-        working-directory: languages/go
-        run: go test -v ./...

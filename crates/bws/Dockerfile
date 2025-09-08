@@ -1,7 +1,7 @@
 ###############################################
 #                 Build stage                 #
 ###############################################
-FROM --platform=$BUILDPLATFORM ghcr.io/rust-cross/cargo-zigbuild:latest@sha256:b3b422171a9e2eacc5e4d5c6eb0d95c2c7e65cad2a62ea6938ae9805ce78df3e AS build
+FROM --platform=$BUILDPLATFORM rust:1.82 AS build
 
 # Docker buildx supplies the value for this arg
 ARG TARGETPLATFORM

@@ -1,0 +1,97 @@
+name: Test Python SDK
+
+on:
+  push:
+    branches:
+      - "main"
+      - "rc"
+      - "hotfix-rc"
+    paths:
+      - "languages/python/**"
+      - "crates/bitwarden/**"
+      - "crates/bitwarden-py/**"
+      - "crates/fake-server/**"
+      - ".github/workflows/test-python.yml"
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - "languages/python/**"
+      - "crates/bitwarden/**"
+      - "crates/bitwarden-py/**"
+      - "crates/fake-server/**"
+      - ".github/workflows/test-python.yml"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test:
+    name: Test Python SDK
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          # FIXME: https://gist.github.com/tangowithfoxtrot/9303dac6001b753403e396ddc2acb1c4#file-windows-python-error-log-L1282
+          # - windows-latest
+
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        exclude:
+          # Skip some combinations to reduce CI time
+          - os: macos-latest
+            python-version: "3.10"
+          - os: macos-latest
+            python-version: "3.11"
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.3.0
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install uv
+        uses: astral-sh/setup-uv@bd01e18f51369d5a26f1651c3cb451d3417e3bba # v6.3.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b # stable
+        with:
+          toolchain: stable
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install system dependencies (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
+
+      - name: Setup Python SDK
+        run: ./scripts/bootstrap.sh setup python
+
+      - name: Run Python SDK tests
+        run: ./scripts/bootstrap.sh test python

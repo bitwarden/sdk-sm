@@ -249,7 +249,6 @@ jobs:
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
 
-      
   publish-install-script:
     name: Publish to bitwarden.com/install
     runs-on: ubuntu-24.04
@@ -257,12 +256,11 @@ jobs:
       id-token: write
     needs: setup
     if: ${{ inputs.publish_install_scripts }}
-    env: 
+    env:
       _EXPECTED_VERSION: ${{ needs.setup.outputs.release_version }}
       _ACCOUNT_NAME: bwsecretsmanager7g3o
       _CONTAINER_NAME: $web
     steps:
-
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
@@ -314,21 +312,21 @@ jobs:
               echo "❌ Version mismatch! Expected $EXPECTED_VERSION but got $INSTALLED_VERSION"
               exit 1
             fi
-  
+
       - name: Publish install scripts
         if: ${{ inputs.release_type != 'Dry Run' }}
         run: |
-            for file in crates/bws/scripts/*; do
-            base=$(basename "$file")
-            prerelease_name="${base%.*}-prerelease.${base##*.}"
-            release_name="${base%.*}.${base##*.}"
-            echo "Copying $prerelease_name to $release_name in Azure Blob Storage"
-            az storage blob copy start \
-              --account-name $_ACCOUNT_NAME \
-              --destination-container $_CONTAINER_NAME \
-              --destination-blob "$release_name" \
-              --source-uri "https://${_ACCOUNT_NAME}.blob.core.windows.net/${_CONTAINER_NAME}/${prerelease_name}"
-            done
+          for file in crates/bws/scripts/*; do
+          base=$(basename "$file")
+          prerelease_name="${base%.*}-prerelease.${base##*.}"
+          release_name="${base%.*}.${base##*.}"
+          echo "Copying $prerelease_name to $release_name in Azure Blob Storage"
+          az storage blob copy start \
+            --account-name $_ACCOUNT_NAME \
+            --destination-container $_CONTAINER_NAME \
+            --destination-blob "$release_name" \
+            --source-uri "https://${_ACCOUNT_NAME}.blob.core.windows.net/${_CONTAINER_NAME}/${prerelease_name}"
+          done
 
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main

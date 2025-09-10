@@ -13,12 +13,8 @@ pub enum Error {
 // Ensure that the error messages implement Send and Sync
 #[cfg(test)]
 const _: () = {
-    fn assert_send<T: Send>() {}
-    fn assert_sync<T: Sync>() {}
-    fn assert_all() {
-        assert_send::<Error>();
-        assert_sync::<Error>();
-    }
+    const fn assert_send_sync<T: Send + Sync>() {}
+    assert_send_sync::<Error>();
 };
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

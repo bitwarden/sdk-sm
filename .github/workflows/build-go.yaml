@@ -6,8 +6,8 @@ on:
       - main
       - rc
       - hotfix-rc
-
   pull_request:
+  workflow_dispatch:
 
 env:
   GO111MODULE: on

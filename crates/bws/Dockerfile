@@ -7,7 +7,7 @@ FROM rust:1.85-alpine AS build
 ARG TARGETPLATFORM
 
 # Install build dependencies
-RUN apk add --no-cache musl-dev gcc
+RUN apk add --no-cache ca-certificates gcc musl-dev
 
 # Copy required project files
 COPY . /source
@@ -39,8 +39,8 @@ RUN <<EOF
   mv "./target/$TARGET/release/bws" "./target/release/bws"
 EOF
 
-# Create the config directory to avoid permission issues
-RUN mkdir -p /home/app/.config/bws
+# Create app user
+RUN adduser -D -u 1000 app
 
 ###############################################
 #                  App stage                  #
@@ -49,21 +49,20 @@ FROM scratch
 
 LABEL com.bitwarden.product="bitwarden"
 
-# Create minimal /etc/passwd file and user
-COPY --chmod=644 --chown=0:0 <<EOF /etc/passwd
-app:x:1000:1000::/home/app:/bin/false
-EOF
-COPY --chmod=700 --chown=1000:1000 --from=build /home/app /home/app
+# Copy user data from the build stage
+COPY --from=build /etc/passwd /etc/passwd
+COPY --from=build /etc/group /etc/group
+COPY --from=build --chown=app:app /home/app /home/app
 ENV HOME=/home/app
 WORKDIR /home/app
-
-# Switch to app user
-USER app
 
 # Copy bws from the build stage
 COPY --from=build /source/crates/bws/target/release/bws /bin/bws
 
-# Copy certs from Alpine
-COPY --from=build /etc/ssl/certs /etc/ssl/certs
+# Copy CA certificates
+COPY --from=build /etc/ssl /etc/ssl
+
+# Switch to the app user
+USER app
 
 ENTRYPOINT ["bws"]

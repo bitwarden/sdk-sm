@@ -38,6 +38,8 @@ jobs:
             target: x86_64-unknown-linux-musl
           - os: ubuntu-22.04
             target: aarch64-unknown-linux-musl
+          - os: ubuntu-22.04
+            target: arm-unknown-linux-musleabihf
 
     steps:
       - name: Checkout

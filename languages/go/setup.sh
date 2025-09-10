@@ -2,9 +2,10 @@
 set -euo pipefail
 
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
-GO_ARCH="$(uname -m | sed 's/x86_64/x64/' | sed 's/aarch64/arm64/')"
+GO_ARCH="$(uname -m | sed 's/x86_64/x64/' | sed 's/aarch64/arm64/' | sed 's/armv6l/armv6/')"
 
 mkdir -p "$REPO_ROOT"/languages/go/internal/cinterface/lib/{darwin,linux,windows}-{arm64,x64}
+mkdir -p "$REPO_ROOT"/languages/go/internal/cinterface/lib/linux-armv6
 
 if [ ! -f ./target/debug/libbitwarden_c.a ]; then
   echo "Building bitwarden_c..."

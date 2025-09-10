@@ -141,13 +141,22 @@ jobs:
           artifacts: libbitwarden_c_files-x86_64-pc-windows-gnu
           skip_unpack: true
 
+      - name: Download arm-unknown-linux-musleabihf artifact
+        uses: bitwarden/gh-actions/download-artifacts@main
+        with:
+          workflow: build-rust-cross-platform.yml
+          workflow_conclusion: success
+          branch: ${{ inputs.release_type == 'Dry Run' && 'main' ||  github.ref_name }}
+          artifacts: libbitwarden_c_files-arm-unknown-linux-musleabihf
+          skip_unpack: true
+
       - name: Update files
         run: |
           # Copy files to local sdk-go repo path
           cp --verbose -rf sdk/languages/go/. sdk-go
           # Remove the old cinterface lib files
           rm -rf sdk-go/internal/cinterface/lib/*
-          mkdir -p sdk-go/internal/cinterface/lib/{darwin-{x64,arm64},linux-{x64,arm64},windows-x64}
+          mkdir -p sdk-go/internal/cinterface/lib/{darwin-{x64,arm64},linux-{x64,arm64,armv6},windows-x64}
 
       - name: Extract static libs to their respective directories
         run: |
@@ -155,6 +164,7 @@ jobs:
           unzip 'libbitwarden_c_files-aarch64-apple-darwin.zip' '*.a' -d sdk-go/internal/cinterface/lib/darwin-arm64
           unzip 'libbitwarden_c_files-x86_64-unknown-linux-musl.zip' '*.a' -d sdk-go/internal/cinterface/lib/linux-x64
           unzip 'libbitwarden_c_files-aarch64-unknown-linux-musl.zip' '*.a' -d sdk-go/internal/cinterface/lib/linux-arm64
+          unzip 'libbitwarden_c_files-arm-unknown-linux-musleabihf.zip' '*.a' -d sdk-go/internal/cinterface/lib/linux-armv6
           unzip 'libbitwarden_c_files-x86_64-pc-windows-gnu.zip' '*.a' -d sdk-go/internal/cinterface/lib/windows-x64
 
       - name: Download artifacts
@@ -272,9 +282,18 @@ jobs:
           artifacts: libbitwarden_c_files-x86_64-pc-windows-gnu
           skip_unpack: true
 
+      - name: Download arm-unknown-linux-musleabihf artifact
+        uses: bitwarden/gh-actions/download-artifacts@main
+        with:
+          workflow: build-rust-cross-platform.yml
+          workflow_conclusion: success
+          branch: ${{ inputs.release_type == 'Dry Run' && 'main' ||  github.ref_name }}
+          artifacts: libbitwarden_c_files-arm-unknown-linux-musleabihf
+          skip_unpack: true
+
       - name: Rename build artifacts
         run: |
-          artifacts=("x86_64-apple-darwin" "aarch64-apple-darwin" "x86_64-unknown-linux-musl" "aarch64-unknown-linux-musl" "x86_64-pc-windows-gnu")
+          artifacts=("x86_64-apple-darwin" "aarch64-apple-darwin" "x86_64-unknown-linux-musl" "aarch64-unknown-linux-musl" "arm-unknown-linux-musleabihf" "x86_64-pc-windows-gnu")
           for value in "${artifacts[@]}"
           do
             unzip libbitwarden_c_files-$value.zip -d libbitwarden_c_files-$value
@@ -300,4 +319,5 @@ jobs:
             libbitwarden_c_files-aarch64-apple-darwin-${{ env._PKG_VERSION }}.zip,
             libbitwarden_c_files-x86_64-unknown-linux-musl-${{ env._PKG_VERSION }}.zip,
             libbitwarden_c_files-aarch64-unknown-linux-musl-${{ env._PKG_VERSION }}.zip,
+            libbitwarden_c_files-arm-unknown-linux-musleabihf-${{ env._PKG_VERSION }}.zip,
             libbitwarden_c_files-x86_64-pc-windows-gnu-${{ env._PKG_VERSION }}.zip"

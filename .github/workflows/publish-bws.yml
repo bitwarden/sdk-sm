@@ -17,6 +17,21 @@ on:
         required: true
         type: string
         default: latest
+      publish_cratesio:
+        description: "Publish to crates.io"
+        required: true
+        type: boolean
+        default: true
+      publish_docker:
+        description: "Publish Docker image"
+        required: true
+        type: boolean
+        default: true
+      publish_install_scripts:
+        description: "Publish install scripts"
+        required: true
+        type: boolean
+        default: true
 
 env:
   _AZ_REGISTRY: bitwardenprod.azurecr.io
@@ -33,6 +48,15 @@ jobs:
       release_tag: ${{ steps.version-output.outputs.tag_name }}
       deployment_id: ${{ steps.deployment.outputs.deployment_id }}
     steps:
+      - name: Log inputs to job summary
+        run: |
+          echo "<details><summary>Job Inputs</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          echo '${{ toJson(inputs) }}' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+
       - name: Checkout repo
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
@@ -51,7 +75,8 @@ jobs:
         run: |
           if [[ "${{ inputs.version }}" == "latest" || "${{ inputs.version }}" == "" ]]; then
             TAG_NAME=$(curl  "https://api.github.com/repos/bitwarden/sdk-sm/releases" | jq -c '.[] | select(.tag_name | contains("bws")) | .tag_name' | head -1)
-            VERSION=$(echo $TAG_NAME | grep -ohE '20[0-9]{2}\.([1-9]|1[0-2])\.[0-9]+')
+            echo "TAG_NAME: $TAG_NAME"
+            VERSION=$(echo $TAG_NAME | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | tr -d 'v')
             echo "Latest Released Version: $VERSION"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -83,6 +108,7 @@ jobs:
     env:
       _VERSION: ${{ needs.setup.outputs.release_version }}
       _TAG_NAME: ${{ needs.setup.outputs.release_tag }}
+    if: ${{ inputs.publish_cratesio }}
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -129,6 +155,7 @@ jobs:
       security-events: write
       id-token: write
     needs: setup
+    if: ${{ inputs.publish_docker }}
 
     steps:
       - name: Checkout
@@ -218,6 +245,90 @@ jobs:
         if: ${{ inputs.release_type != 'Dry Run' }}
         run: |
           docker logout ghcr.io
+
+      - name: Log out from Azure
+        uses: bitwarden/gh-actions/azure-logout@main
+
+      
+  publish-install-script:
+    name: Publish to bitwarden.com/install
+    runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
+    needs: setup
+    if: ${{ inputs.publish_install_scripts }}
+    env: 
+      _EXPECTED_VERSION: ${{ needs.setup.outputs.release_version }}
+      _ACCOUNT_NAME: bwsecretsmanager7g3o
+      _CONTAINER_NAME: $web
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Log in to Azure
+        uses: bitwarden/gh-actions/azure-login@main
+        with:
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
+
+      - name: Print Version
+        run: |
+          echo "Version: $EXPECTED_VERSION" && \
+          az storage blob list \
+          --account-name $_ACCOUNT_NAME \
+          --container-name $_CONTAINER_NAME \
+          --query "[].name"
+
+      - name: Test upload install scripts
+        run: |
+          for file in crates/bws/scripts/*; do
+            base=$(basename "$file") 
+            name="${base%.*}-prerelease.${base##*.}"
+            echo "Uploading $file as $name"
+            az storage blob upload \
+              --account-name $_ACCOUNT_NAME \
+              --container-name $_CONTAINER_NAME \
+              --file "$file" \
+              --name "$name" \
+              --overwrite true
+          done
+
+      - name: Test install of prerelease script
+        run: |
+          # Download install script to home dir
+          curl -sSL https://bws.bitwarden.com/install-prerelease.sh -o ~/install-prerelease.sh
+
+          # Make it executable
+          chmod +x ~/install-prerelease.sh
+
+          # Run it with sudo
+          sudo ~/install-prerelease.sh
+
+          INSTALLED_VERSION=$(bws --version)
+          echo "Installed bws version: $INSTALLED_VERSION"
+          echo "Expected bws version: $EXPECTED_VERSION"
+
+            if [ "$INSTALLED_VERSION" != "bws $EXPECTED_VERSION" ]; then
+              echo "❌ Version mismatch! Expected $EXPECTED_VERSION but got $INSTALLED_VERSION"
+              exit 1
+            fi
+  
+      - name: Publish install scripts
+        if: ${{ inputs.release_type != 'Dry Run' }}
+        run: |
+            for file in crates/bws/scripts/*; do
+            base=$(basename "$file")
+            prerelease_name="${base%.*}-prerelease.${base##*.}"
+            release_name="${base%.*}.${base##*.}"
+            echo "Copying $prerelease_name to $release_name in Azure Blob Storage"
+            az storage blob copy start \
+              --account-name $_ACCOUNT_NAME \
+              --destination-container $_CONTAINER_NAME \
+              --destination-blob "$release_name" \
+              --source-uri "https://${_ACCOUNT_NAME}.blob.core.windows.net/${_CONTAINER_NAME}/${prerelease_name}"
+            done
 
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main

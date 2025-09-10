@@ -17,27 +17,7 @@ ENV CARGO_TARGET_DIR='./target'
 
 # Build project
 WORKDIR /source/crates/bws
-RUN <<EOF
-  # Add Rust toolchains based on $TARGETPLATFORM
-  case "$TARGETPLATFORM" in
-    *"linux/amd64"*)
-      rustup target add x86_64-unknown-linux-musl
-      TARGET="x86_64-unknown-linux-musl"
-      ;;
-    *"linux/arm64"*)
-      rustup target add aarch64-unknown-linux-musl
-      TARGET="aarch64-unknown-linux-musl"
-      ;;
-    *)
-      echo "Unsupported target platform: $TARGETPLATFORM"
-      exit 1
-      ;;
-  esac
-
-  # Build
-  cargo build --release --bin bws --target $TARGET
-  mv "./target/$TARGET/release/bws" "./target/release/bws"
-EOF
+RUN cargo build --release --bin bws
 
 # Create app user
 RUN adduser -D -u 1000 app

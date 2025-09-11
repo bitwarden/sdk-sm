@@ -4,7 +4,7 @@ Requirements:
 
 - `wasm32-unknown-unknown` rust target.
 - `wasm-bindgen-cli` installed.
-- `binaryen` installed for `wasm-opt` and `wasm2js`.
+- `binaryen` installed for `wasm-opt`.
 
 ```bash
 rustup target add wasm32-unknown-unknown

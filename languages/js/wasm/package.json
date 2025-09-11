@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bitwarden/sdk-internal.git"
+    "url": "git+https://github.com/bitwarden/sdk-sm.git"
   },
   "files": [
     "bitwarden_wasm_bg.js",

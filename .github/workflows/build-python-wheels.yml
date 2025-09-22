@@ -52,22 +52,27 @@ jobs:
           - os: macos-13
             target: x86_64-apple-darwin
             python-version: "3.9"
+            build-args: ""
 
           - os: macos-13
             target: aarch64-apple-darwin
             python-version: "3.9"
+            build-args: ""
 
           - os: windows-2022
             target: x86_64-pc-windows-msvc
             python-version: "3.9"
+            build-args: ""
 
           - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             python-version: "3.9"
+            build-args: "--zig"
 
           - os: ubuntu-22.04
             target: aarch64-unknown-linux-gnu
             python-version: "3.9"
+            build-args: "--zig"
 
     steps:
       - name: Checkout repo
@@ -110,7 +115,7 @@ jobs:
         uses: PyO3/maturin-action@ea5bac0f1ccd0ab11c805e2b804bfcb65dac2eab # v1.45.0
         with:
           target: ${{ matrix.settings.target }}
-          args: --release --interpreter python${{ matrix.settings.python-version }} --zig
+          args: --release --interpreter python${{ matrix.settings.python-version }} ${{ matrix.settings.build-args }}
           sccache: true
           working-directory: ${{ github.workspace }}/languages/python
 
@@ -119,7 +124,7 @@ jobs:
         uses: PyO3/maturin-action@ea5bac0f1ccd0ab11c805e2b804bfcb65dac2eab # v1.45.0
         with:
           target: ${{ matrix.settings.target }}
-          args: --release --sdist --interpreter python${{ matrix.settings.python-version }} --zig
+          args: --release --sdist --interpreter python${{ matrix.settings.python-version }} ${{ matrix.settings.build-args }}
           working-directory: ${{ github.workspace }}/languages/python
 
       - name: Upload wheels

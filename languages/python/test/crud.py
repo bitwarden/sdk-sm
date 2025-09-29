@@ -157,22 +157,18 @@ def generators():
 
         # should contain lowercase chars
         if not any(c in LOWERCASE_CHARACTERS for c in generated_secret):
-            print(f"lowercase characters were NOT found in '{generated_secret}'")
             return False
 
         # should contain uppercase chars
         if not any(c in UPPERCASE_CHARACTERS for c in generated_secret):
-            print(f"uppercase characters were NOT found in '{generated_secret}'")
             return False
 
         # should contain numeric chars
         if not any(c in NUMERIC_CHARACTERS for c in generated_secret):
-            print(f"numeric characters were NOT found in '{generated_secret}'")
             return False
 
         # should contain special chars:
         if not any(c in SPECIAL_CHARACTERS for c in generated_secret):
-            print(f"special characters were NOT found in '{generated_secret}'")
             return False
 
         return True
@@ -198,22 +194,18 @@ def generators():
 
         # should contain ambiguous chars:
         if not any(c in AMBIGUOUS_CHARACTERS for c in very_strong_secret):
-            print(f"ambiguous characters were NOT found in '{very_strong_secret}'")
             return False
 
         # should contain lowercase chars:
         if not any(c in LOWERCASE_CHARACTERS for c in very_strong_secret):
-            print(f"lowercase characters were NOT found in '{very_strong_secret}'")
             return False
 
         # should contain uppercase chars:
         if not any(c in UPPERCASE_CHARACTERS for c in very_strong_secret):
-            print(f"uppercase characters were NOT found in '{very_strong_secret}'")
             return False
 
         # should contain special chars:
         if not any(c in SPECIAL_CHARACTERS for c in very_strong_secret):
-            print(f"special characters were NOT found in '{very_strong_secret}'")
             return False
 
         # should contain at least 2 lowercase chars:
@@ -221,9 +213,6 @@ def generators():
             1 for c in very_strong_secret if c in LOWERCASE_CHARACTERS
         )
         if lowercase_count < 2:
-            print(
-                f"found only {lowercase_count} lowercase characters in '{very_strong_secret}', expected at least 2"
-            )
             return False
 
         # should contain at least 2 uppercase chars:
@@ -231,25 +220,16 @@ def generators():
             1 for c in very_strong_secret if c in UPPERCASE_CHARACTERS
         )
         if uppercase_count < 2:
-            print(
-                f"found only {uppercase_count} uppercase characters in '{very_strong_secret}', expected at least 2"
-            )
             return False
 
         # should contain at least 4 numeric chars:
         numeric_count = sum(1 for c in very_strong_secret if c in NUMERIC_CHARACTERS)
         if numeric_count < 4:
-            print(
-                f"found only {numeric_count} numeric characters in '{very_strong_secret}', expected at least 4"
-            )
             return False
 
         # should contain at least 4 special chars:
         special_count = sum(1 for c in very_strong_secret if c in SPECIAL_CHARACTERS)
         if special_count < 4:
-            print(
-                f"found only {special_count} special characters in '{very_strong_secret}', expected at least 4"
-            )
             return False
 
         return True

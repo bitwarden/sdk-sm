@@ -83,16 +83,60 @@ class AuthClient:
 
 
 class SecretsClient:
+    """
+    A client for managing secrets in Bitwarden Secrets Manager.
+
+    This client provides methods to create, read, update, delete, and synchronize secrets.
+    All operations require authentication with an access token.
+    """
+
     def __init__(self, client: BitwardenClient):
         self.client = client
 
     def get(self, id: str) -> ResponseForSecretResponse:
+        """
+        Retrieve a single secret by its UUID. If you need to retrieve multiple secrets,
+        consider using the get_by_ids() method to minimize network requests.
+
+        Args:
+            id (str): The UUID of the secret to retrieve
+
+        Returns:
+            ResponseForSecretResponse: A response containing the secret data if successful,
+                                     or error information if the operation failed
+
+        Raises:
+            Exception: If the request fails due to network issues, authentication problems,
+                      if the secret doesn't exist, or read access is denied
+
+        Note:
+            Requires authentication with an access token that has read access to the
+            project containing the secret.
+        """
         result = self.client._run_command(
             Command(secrets=SecretsCommand(get=SecretGetRequest(id)))
         )
         return ResponseForSecretResponse.from_dict(result)
 
     def get_by_ids(self, ids: List[UUID]) -> ResponseForSecretsResponse:
+        """
+        Retrieve multiple secrets by their UUIDs.
+
+        Args:
+            ids (List[UUID]): A list of UUIDs of the secrets to retrieve
+
+        Returns:
+            ResponseForSecretsResponse: A response containing a list of secret data if successful,
+                                      or error information if the operation failed
+
+        Raises:
+            Exception: If the request fails due to network issues, authentication problems,
+                      if the secrets don't exist, or read access is denied
+
+        Note:
+            Requires authentication with an access token that has read access to the
+            project containing the secrets.
+        """
         result = self.client._run_command(
             Command(secrets=SecretsCommand(get_by_ids=SecretsGetRequest(ids)))
         )
@@ -106,6 +150,28 @@ class SecretsClient:
         note: Optional[str],
         project_ids: Optional[List[UUID]] = None,
     ) -> ResponseForSecretResponse:
+        """
+        Create a new secret in the specified organization.
+
+        Args:
+            organization_id (UUID): The UUID of the organization where the secret will be created
+            key (str): The name of the secret
+            value (str): The secret value to store (e.g., password, API key, certificate)
+            note (Optional[str]): Optional note or description of the secret. If None, an empty string is used
+            project_ids (Optional[List[UUID]]): Optional list of project IDs that this secret should be associated with
+
+        Returns:
+            ResponseForSecretResponse: A response containing the newly created secret data if successful,
+                                     or error information if the operation failed
+
+        Raises:
+            Exception: If the request fails due to network issues, authentication problems,
+                      invalid input data, or write access is denied
+
+        Note:
+            Requires authentication with an access token that has write permissions
+            for the specified organization.
+        """
         if note is None:
             # secrets api does not accept empty notes
             note = ""
@@ -121,6 +187,29 @@ class SecretsClient:
         return ResponseForSecretResponse.from_dict(result)
 
     def list(self, organization_id: str) -> ResponseForSecretIdentifiersResponse:
+        """
+        List all secret identifiers for the specified organization.
+
+        This method returns basic information (ID, key, organization ID) for all secrets
+        that the authenticated user has access to within the organization. It does not include
+        secret values. To retrieve the actual secret values, use the get() or get_by_ids() methods
+        with the IDs returned by this method.
+
+        Args:
+            organization_id (str): The UUID of the organization to list secrets from
+
+        Returns:
+            ResponseForSecretIdentifiersResponse: A response containing a list of secret identifiers
+                                                if successful, or error information if the operation failed
+
+        Raises:
+            Exception: If the request fails due to network issues, authentication problems,
+                      if the organization doesn't exist, or access is denied
+
+        Note:
+            Requires authentication with an access token that has read permissions
+            for the specified organization.
+        """
         result = self.client._run_command(
             Command(
                 secrets=SecretsCommand(list=SecretIdentifiersRequest(organization_id))
@@ -137,6 +226,30 @@ class SecretsClient:
         note: Optional[str],
         project_ids: Optional[List[UUID]] = None,
     ) -> ResponseForSecretResponse:
+        """
+        Update an existing secret with new data.
+
+        Args:
+            organization_id (str): The UUID of the organization containing the secret
+            id (str): The UUID of the secret to update
+            key (str): The updated name of the secret
+            value (str): The updated secret value
+            note (Optional[str]): Updated note or description for the secret. If None, an empty string is used
+            project_ids (Optional[List[UUID]]): Updated list of project IDs that this secret should be associated with
+
+        Returns:
+            ResponseForSecretResponse: A response containing the updated secret data if successful,
+                                     or error information if the operation failed
+
+        Raises:
+            Exception: If the request fails due to network issues, authentication problems,
+                      insufficient permissions, or if the secret doesn't exist
+
+        Note:
+            Requires authentication with an access token that has write permissions
+            for the secret. All fields are updated with the provided values, so ensure
+            all parameters contain the desired final state of the secret.
+        """
         if note is None:
             # secrets api does not accept empty notes
             note = ""
@@ -152,6 +265,25 @@ class SecretsClient:
         return ResponseForSecretResponse.from_dict(result)
 
     def delete(self, ids: List[str]) -> ResponseForSecretsDeleteResponse:
+        """
+        Delete one or more secrets by their UUID(s).
+
+        Args:
+            ids (List[str]): A list of UUIDs for the secrets to delete
+
+        Returns:
+            ResponseForSecretsDeleteResponse: A response containing the results of the deletion
+                                            operation, including any errors for individual secrets
+
+        Raises:
+            Exception: If the request fails due to network issues or authentication problems
+
+        Note:
+            Requires authentication with an access token that has write permissions
+            for the secret(s). The response will contain individual success/failure status
+            for each secret ID provided. Some secrets may be successfully deleted while
+            others fail due to permissions or other issues.
+        """
         result = self.client._run_command(
             Command(secrets=SecretsCommand(delete=SecretsDeleteRequest(ids)))
         )
@@ -160,6 +292,34 @@ class SecretsClient:
     def sync(
         self, organization_id: str, last_synced_date: Optional[str]
     ) -> ResponseForSecretsSyncResponse:
+        """
+        Synchronize secrets for the specified organization since a given date. If no
+        last_synced_date is provided, all secrets will be returned.
+
+        This method retrieves all secrets accessible by the authenticated machine account.
+        If a last_synced_date is provided, it will only return secrets if there have been
+        changes since that date. This is useful for efficient incremental synchronization.
+
+        Args:
+            organization_id (str): The UUID of the organization to sync secrets from
+            last_synced_date (Optional[str]): Optional datetime string representing
+                                             when secrets were last synchronized. If provided,
+                                             only changes since this date will be included
+
+        Returns:
+            ResponseForSecretsSyncResponse: A response containing sync results with a flag
+                                          indicating if changes occurred, and the secret data
+                                          if changes were detected
+
+        Raises:
+            Exception: If the request fails due to network issues, authentication problems,
+                      or if the organization doesn't exist or access is denied
+
+        Note:
+            Requires authentication with an access token that has read permissions
+            for the specified organization. Use this method for efficient bulk operations
+            and synchronization workflows.
+        """
         result = self.client._run_command(
             Command(
                 secrets=SecretsCommand(
@@ -171,10 +331,36 @@ class SecretsClient:
 
 
 class ProjectsClient:
+    """
+    A client for managing projects in Bitwarden Secrets Manager.
+
+    This client provides methods to create, read, update, delete, and list projects
+    within Bitwarden organizations. Projects are used to organize and control access
+    to secrets. All operations require authentication with an access token.
+    """
+
     def __init__(self, client: BitwardenClient):
         self.client = client
 
     def get(self, id: str) -> ResponseForProjectResponse:
+        """
+        Retrieve a project by its UUID.
+
+        Args:
+            id (str): The UUID of the project to retrieve
+
+        Returns:
+            ResponseForProjectResponse: A response containing the project data if successful,
+                                      or error information if the operation failed
+
+        Raises:
+            Exception: If the request fails due to network issues, authentication problems,
+                      or if the project doesn't exist or access is denied
+
+        Note:
+            Requires authentication with an access token that has read permissions
+            for the project's organization.
+        """
         result = self.client._run_command(
             Command(projects=ProjectsCommand(get=ProjectGetRequest(id)))
         )
@@ -185,6 +371,25 @@ class ProjectsClient:
         organization_id: str,
         name: str,
     ) -> ResponseForProjectResponse:
+        """
+        Create a new project in the specified organization.
+
+        Args:
+            organization_id (str): The UUID of the organization where the project will be created
+            name (str): The name of the project
+
+        Returns:
+            ResponseForProjectResponse: A response containing the newly created project data if successful,
+                                      or error information if the operation failed
+
+        Raises:
+            Exception: If the request fails due to network issues, authentication problems,
+                      insufficient permissions, or invalid input data
+
+        Note:
+            Requires authentication with an access token that has create permissions
+            for the specified organization.
+        """
         result = self.client._run_command(
             Command(
                 projects=ProjectsCommand(
@@ -195,6 +400,27 @@ class ProjectsClient:
         return ResponseForProjectResponse.from_dict(result)
 
     def list(self, organization_id: str) -> ResponseForProjectsResponse:
+        """
+        List all projects for the specified organization.
+
+        This method returns information about all projects that the authenticated account
+        has access to within the organization.
+
+        Args:
+            organization_id (str): The UUID of the organization to list projects from
+
+        Returns:
+            ResponseForProjectsResponse: A response containing a list of project data if successful,
+                                       or error information if the operation failed
+
+        Raises:
+            Exception: If the request fails due to network issues, authentication problems,
+                      if the organization doesn't exist, or access is denied
+
+        Note:
+            Requires authentication with an access token that has read permissions
+            for the specified organization.
+        """
         result = self.client._run_command(
             Command(projects=ProjectsCommand(list=ProjectsListRequest(organization_id)))
         )
@@ -206,6 +432,26 @@ class ProjectsClient:
         id: str,
         name: str,
     ) -> ResponseForProjectResponse:
+        """
+        Update an existing project with new data.
+
+        Args:
+            organization_id (str): The UUID of the organization containing the project
+            id (str): The UUID of the project to update
+            name (str): The updated name of the project
+
+        Returns:
+            ResponseForProjectResponse: A response containing the updated project data if successful,
+                                      or error information if the operation failed
+
+        Raises:
+            Exception: If the request fails due to network issues, authentication problems,
+                      insufficient permissions, invalid input data, or if the project doesn't exist
+
+        Note:
+            Requires authentication with an access token that has write permissions
+            for the project. The project name will be updated to the provided value.
+        """
         result = self.client._run_command(
             Command(
                 projects=ProjectsCommand(
@@ -216,6 +462,25 @@ class ProjectsClient:
         return ResponseForProjectResponse.from_dict(result)
 
     def delete(self, ids: List[str]) -> ResponseForProjectsDeleteResponse:
+        """
+        Delete one or more projects by their UUIDs.
+
+        Args:
+            ids (List[str]): A list of UUIDs of the projects to delete
+
+        Returns:
+            ResponseForProjectsDeleteResponse: A response containing the results of the deletion
+                                             operation, including any errors for individual projects
+
+        Raises:
+            Exception: If the request fails due to network issues or authentication problems
+
+        Note:
+            Requires authentication with an access token that has delete permissions
+            for the projects. The response will contain individual success/failure status
+            for each project ID provided. Some projects may be successfully deleted while
+            others fail due to permissions or other issues.
+        """
         result = self.client._run_command(
             Command(projects=ProjectsCommand(delete=ProjectsDeleteRequest(ids)))
         )

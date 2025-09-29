@@ -141,6 +141,197 @@ def projects():
     run_test("project delete", test_project_delete)
 
 
+def generators():
+    LOWERCASE_CHARACTERS = "abcdefghijklmnopqrstuvwxyz"
+    UPPERCASE_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    NUMERIC_CHARACTERS = "0123456789"
+    SPECIAL_CHARACTERS = "!@#$%^&*"  # https://github.com/bitwarden/sdk-internal/blob/d7ce769/crates/bitwarden-generators/src/password.rs#L80
+    AMBIGUOUS_CHARACTERS = "IOl01"  # https://github.com/bitwarden/sdk-internal/blob/d7ce769/crates/bitwarden-generators/src/password.rs#L77-L79
+
+    def test_generator_with_default_params():
+        generated_secret = client.generators().generate()
+
+        # should be exactly 24 chars
+        len = generated_secret.__len__()
+        if len != 24:
+            return False
+
+        # should contain lowercase chars
+        if not any(c in LOWERCASE_CHARACTERS for c in generated_secret):
+            print(f"lowercase characters were NOT found in '{generated_secret}'")
+            return False
+
+        # should contain uppercase chars
+        if not any(c in UPPERCASE_CHARACTERS for c in generated_secret):
+            print(f"uppercase characters were NOT found in '{generated_secret}'")
+            return False
+
+        # should contain numeric chars
+        if not any(c in NUMERIC_CHARACTERS for c in generated_secret):
+            print(f"numeric characters were NOT found in '{generated_secret}'")
+            return False
+
+        # should contain special chars:
+        if not any(c in SPECIAL_CHARACTERS for c in generated_secret):
+            print(f"special characters were NOT found in '{generated_secret}'")
+            return False
+
+        return True
+
+    def test_generator_with_all_params():
+        very_strong_secret = client.generators().generate(
+            length=128,
+            avoid_ambiguous=False,
+            lowercase=True,
+            uppercase=True,
+            numbers=True,
+            special=True,
+            min_lowercase=2,
+            min_uppercase=2,
+            min_number=4,
+            min_special=4,
+        )
+
+        # should be exactly 128 chars
+        len = very_strong_secret.__len__()
+        if len != 128:
+            return False
+
+        # should contain ambiguous chars:
+        if not any(c in AMBIGUOUS_CHARACTERS for c in very_strong_secret):
+            print(f"ambiguous characters were NOT found in '{very_strong_secret}'")
+            return False
+
+        # should contain lowercase chars:
+        if not any(c in LOWERCASE_CHARACTERS for c in very_strong_secret):
+            print(f"lowercase characters were NOT found in '{very_strong_secret}'")
+            return False
+
+        # should contain uppercase chars:
+        if not any(c in UPPERCASE_CHARACTERS for c in very_strong_secret):
+            print(f"uppercase characters were NOT found in '{very_strong_secret}'")
+            return False
+
+        # should contain special chars:
+        if not any(c in SPECIAL_CHARACTERS for c in very_strong_secret):
+            print(f"special characters were NOT found in '{very_strong_secret}'")
+            return False
+
+        # should contain at least 2 lowercase chars:
+        lowercase_count = sum(1 for c in very_strong_secret if c in LOWERCASE_CHARACTERS)
+        if lowercase_count < 2:
+            print(f"found only {lowercase_count} lowercase characters in '{very_strong_secret}', expected at least 2")
+            return False
+
+        # should contain at least 2 uppercase chars:
+        uppercase_count = sum(1 for c in very_strong_secret if c in UPPERCASE_CHARACTERS)
+        if uppercase_count < 2:
+            print(f"found only {uppercase_count} uppercase characters in '{very_strong_secret}', expected at least 2")
+            return False
+
+        # should contain at least 4 numeric chars:
+        numeric_count = sum(1 for c in very_strong_secret if c in NUMERIC_CHARACTERS)
+        if numeric_count < 4:
+            print(f"found only {numeric_count} numeric characters in '{very_strong_secret}', expected at least 4")
+            return False
+
+        # should contain at least 4 special chars:
+        special_count = sum(1 for c in very_strong_secret if c in SPECIAL_CHARACTERS)
+        if special_count < 4:
+            print(f"found only {special_count} special characters in '{very_strong_secret}', expected at least 4")
+            return False
+
+        return True
+
+    def test_generator_all_char_sets_disabled():
+        """Test that disabling all character sets raises ValueError"""
+        try:
+            client.generators().generate(
+                lowercase=False,
+                uppercase=False,
+                numbers=False,
+                special=False,
+            )
+            # if we get here, the test failed - no exception was raised
+            return False
+        except ValueError:
+            # expected behavior
+            return True
+        except Exception:
+            # unexpected exception type
+            return False
+
+    def test_generator_negative_min_values():
+        """Test that negative minimum values raise ValueError"""
+        test_cases = [
+            {"min_lowercase": -1},
+            {"min_uppercase": -1},
+            {"min_number": -1},
+            {"min_special": -1},
+        ]
+
+        for params in test_cases:
+            try:
+                client.generators().generate(**params)
+                # if we get here, the test failed - no exception was raised
+                return False
+            except ValueError:
+                # expected behavior
+                continue
+            except Exception:
+                # unexpected exception type
+                return False
+
+        return True
+
+    def test_generator_contradicting_minimum_char_sets():
+        """Test that setting min values for disabled character sets raises ValueError"""
+        test_cases = [
+            {"lowercase": False, "min_lowercase": 1},
+            {"uppercase": False, "min_uppercase": 1},
+            {"numbers": False, "min_number": 1},
+            {"special": False, "min_special": 1},
+        ]
+
+        for params in test_cases:
+            try:
+                client.generators().generate(**params)
+                # if we get here, the test failed - no exception was raised
+                return False
+            except ValueError:
+                # expected behavior
+                continue
+            except Exception:
+                # unexpected exception type
+                return False
+
+        return True
+    
+    def test_generator_with_min_char_sets_greater_than_length():
+        """Test that setting sum of min values greater than length raises ValueError"""
+        try:
+            client.generators().generate(
+                length=5,
+                min_lowercase=2,
+                min_uppercase=2,
+                min_number=2,
+            )
+            # if we get here, the test failed - no exception was raised
+            return False
+        except ValueError:
+            # expected behavior
+            return True
+        except Exception:
+            # unexpected exception type
+            return False
+
+    run_test("generate with default params", test_generator_with_default_params)
+    run_test("generate with all params", test_generator_with_all_params)
+    run_test("generate with all char sets disabled", test_generator_all_char_sets_disabled)
+    run_test("generate with negative min values", test_generator_negative_min_values)
+    run_test("generate with contradicting minimum char sets", test_generator_contradicting_minimum_char_sets)
+    run_test("generate with min char sets greater than length", test_generator_with_min_char_sets_greater_than_length)
+
 def main():
     print("Testing secrets...")
     secrets()
@@ -148,6 +339,10 @@ def main():
 
     print("Testing projects...")
     projects()
+    print()
+
+    print("Testing secrets generator...")
+    generators()
 
     if test_failures > 0:
         print(f"\n❌ {test_failures} test(s) failed")

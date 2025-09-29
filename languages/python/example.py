@@ -23,8 +23,19 @@ organization_id = os.getenv("ORGANIZATION_ID")
 
 # -- Example Generator Commands --
 # Note: using the generator does not require authentication with a server
-generated_secret = client.generators().generate() # using default params
-very_strong_secret = client.generators().generate(length=128, avoid_ambiguous=False, lowercase=True, uppercase=True, numbers=True, special=True, min_lowercase=2, min_uppercase=2, min_number=4, min_special=4)
+generated_secret = client.generators().generate()  # using default params
+very_strong_secret = client.generators().generate(
+    length=128,
+    avoid_ambiguous=False,
+    lowercase=True,
+    uppercase=True,
+    numbers=True,
+    special=True,
+    min_lowercase=2,
+    min_uppercase=2,
+    min_number=4,
+    min_special=4,
+)
 
 print(f"generated secret:   {generated_secret}")
 print(f"very strong secret: {very_strong_secret}")

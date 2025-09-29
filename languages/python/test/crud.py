@@ -1,4 +1,4 @@
-import logging
+import logging  # noqa: F401
 import uuid
 import os
 import sys
@@ -31,6 +31,7 @@ client.auth().login_access_token(os.getenv("ACCESS_TOKEN"), state_path)
 
 # Track test failures
 test_failures = 0
+
 
 def run_test(operation_name, test_func):
     global test_failures
@@ -76,7 +77,9 @@ def secrets():
         return "something-new" in secret.data.key
 
     def test_secret_get_by_ids():
-        secrets_retrieved = client.secrets().get_by_ids([uuid.uuid4(), uuid.uuid4(), uuid.uuid4()])
+        secrets_retrieved = client.secrets().get_by_ids(
+            [uuid.uuid4(), uuid.uuid4(), uuid.uuid4()]
+        )
         return secrets_retrieved.data.data[0].key == "FERRIS"
 
     def test_secret_sync():
@@ -93,8 +96,6 @@ def secrets():
             return False
 
         return True
-
-
 
     def test_secret_delete():
         result = client.secrets().delete([uuid.uuid4(), uuid.uuid4(), uuid.uuid4()])
@@ -124,9 +125,7 @@ def projects():
 
     def test_project_edit():
         updated = client.projects().update(
-            organization_id,
-            uuid.uuid4(),
-            "new-project-name"
+            organization_id, uuid.uuid4(), "new-project-name"
         )
         return "new-project-name" in updated.data.name
 
@@ -218,27 +217,39 @@ def generators():
             return False
 
         # should contain at least 2 lowercase chars:
-        lowercase_count = sum(1 for c in very_strong_secret if c in LOWERCASE_CHARACTERS)
+        lowercase_count = sum(
+            1 for c in very_strong_secret if c in LOWERCASE_CHARACTERS
+        )
         if lowercase_count < 2:
-            print(f"found only {lowercase_count} lowercase characters in '{very_strong_secret}', expected at least 2")
+            print(
+                f"found only {lowercase_count} lowercase characters in '{very_strong_secret}', expected at least 2"
+            )
             return False
 
         # should contain at least 2 uppercase chars:
-        uppercase_count = sum(1 for c in very_strong_secret if c in UPPERCASE_CHARACTERS)
+        uppercase_count = sum(
+            1 for c in very_strong_secret if c in UPPERCASE_CHARACTERS
+        )
         if uppercase_count < 2:
-            print(f"found only {uppercase_count} uppercase characters in '{very_strong_secret}', expected at least 2")
+            print(
+                f"found only {uppercase_count} uppercase characters in '{very_strong_secret}', expected at least 2"
+            )
             return False
 
         # should contain at least 4 numeric chars:
         numeric_count = sum(1 for c in very_strong_secret if c in NUMERIC_CHARACTERS)
         if numeric_count < 4:
-            print(f"found only {numeric_count} numeric characters in '{very_strong_secret}', expected at least 4")
+            print(
+                f"found only {numeric_count} numeric characters in '{very_strong_secret}', expected at least 4"
+            )
             return False
 
         # should contain at least 4 special chars:
         special_count = sum(1 for c in very_strong_secret if c in SPECIAL_CHARACTERS)
         if special_count < 4:
-            print(f"found only {special_count} special characters in '{very_strong_secret}', expected at least 4")
+            print(
+                f"found only {special_count} special characters in '{very_strong_secret}', expected at least 4"
+            )
             return False
 
         return True
@@ -306,7 +317,7 @@ def generators():
                 return False
 
         return True
-    
+
     def test_generator_with_min_char_sets_greater_than_length():
         """Test that setting sum of min values greater than length raises ValueError"""
         try:
@@ -327,10 +338,19 @@ def generators():
 
     run_test("generate with default params", test_generator_with_default_params)
     run_test("generate with all params", test_generator_with_all_params)
-    run_test("generate with all char sets disabled", test_generator_all_char_sets_disabled)
+    run_test(
+        "generate with all char sets disabled", test_generator_all_char_sets_disabled
+    )
     run_test("generate with negative min values", test_generator_negative_min_values)
-    run_test("generate with contradicting minimum char sets", test_generator_contradicting_minimum_char_sets)
-    run_test("generate with min char sets greater than length", test_generator_with_min_char_sets_greater_than_length)
+    run_test(
+        "generate with contradicting minimum char sets",
+        test_generator_contradicting_minimum_char_sets,
+    )
+    run_test(
+        "generate with min char sets greater than length",
+        test_generator_with_min_char_sets_greater_than_length,
+    )
+
 
 def main():
     print("Testing secrets...")
@@ -348,7 +368,7 @@ def main():
         print(f"\n❌ {test_failures} test(s) failed")
         sys.exit(1)
     else:
-        print(f"\n✅ All tests passed")
+        print("\n✅ All tests passed")
         sys.exit(0)
 
 

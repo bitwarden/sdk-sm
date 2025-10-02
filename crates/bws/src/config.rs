@@ -17,15 +17,35 @@ pub(crate) struct Config {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub(crate) struct Profile {
+    #[serde(deserialize_with = "deserialize_trimmed_url", default)]
     pub server_base: Option<String>,
+    #[serde(deserialize_with = "deserialize_trimmed_url", default)]
     pub server_api: Option<String>,
+    #[serde(deserialize_with = "deserialize_trimmed_url", default)]
     pub server_identity: Option<String>,
     pub state_dir: Option<String>,
     pub state_opt_out: Option<String>,
 }
 
+fn deserialize_trimmed_url<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let opt_string: Option<String> = Option::deserialize(deserializer)?;
+    Ok(opt_string.map(|s| s.trim_end_matches('/').to_string()))
+}
+
 impl ProfileKey {
     fn update_profile_value(&self, p: &mut Profile, value: String) {
+        let value = if matches!(
+            self,
+            ProfileKey::server_base | ProfileKey::server_api | ProfileKey::server_identity
+        ) {
+            value.trim_end_matches('/').to_string()
+        } else {
+            value
+        };
+
         match self {
             ProfileKey::server_base => p.server_base = Some(value),
             ProfileKey::server_api => p.server_api = Some(value),
@@ -128,6 +148,7 @@ impl Profile {
             state_opt_out: None,
         })
     }
+
     pub(crate) fn api_url(&self) -> Result<String> {
         if let Some(api) = &self.server_api {
             return Ok(api.clone());
@@ -177,7 +198,7 @@ impl Config {
 
 #[cfg(test)]
 mod tests {
-    use std::{io::Write, process::Command};
+    use std::io::Write;
 
     use tempfile::NamedTempFile;
 

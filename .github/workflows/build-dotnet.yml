@@ -29,6 +29,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Install xmllint
         run: sudo apt-get install -y libxml2-utils
@@ -37,7 +39,7 @@ jobs:
         id: version
         run: |
           VERSION=$(xmllint --xpath 'string(/Project/PropertyGroup/Version)' languages/csharp/Bitwarden.Sdk/Bitwarden.Sdk.csproj)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
   build_dotnet:
     name: Build .NET
@@ -50,6 +52,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Download C# schemas artifact
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0

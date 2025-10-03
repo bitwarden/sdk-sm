@@ -21,14 +21,16 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Check Branch to Publish
         id: publish-branch-check
         run: |
           if [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
-            echo "is_publish_branch=true" >> $GITHUB_ENV
+            echo "is_publish_branch=true" >> "$GITHUB_ENV"
           else
-            echo "is_publish_branch=false" >> $GITHUB_ENV
+            echo "is_publish_branch=false" >> "$GITHUB_ENV"
           fi
 
       ########## Set up Docker ##########
@@ -47,7 +49,7 @@ jobs:
           client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Login to Azure ACR
-        run: az acr login -n ${_AZ_REGISTRY%.azurecr.io}
+        run: az acr login -n "${_AZ_REGISTRY%.azurecr.io}"
 
       - name: Retrieve github PAT secrets
         id: retrieve-secret-pat
@@ -72,7 +74,7 @@ jobs:
             IMAGE_TAG=dev
           fi
 
-          echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "image_tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Generate tag list
         id: tag-list
@@ -80,9 +82,9 @@ jobs:
           IMAGE_TAG: ${{ steps.tag.outputs.image_tag }}
         run: |
           if [[ "${IMAGE_TAG}" == "dev" ]]; then
-            echo "tags=$_AZ_REGISTRY/bws:${IMAGE_TAG},bitwarden/bws:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+            echo "tags=$_AZ_REGISTRY/bws:${IMAGE_TAG},bitwarden/bws:${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
           else
-            echo "tags=$_AZ_REGISTRY/bws:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+            echo "tags=$_AZ_REGISTRY/bws:${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Build and push Docker image
@@ -114,7 +116,7 @@ jobs:
           for tag in "${tags[@]}"; do
             images+="${tag}@${DIGEST} "
           done
-          cosign sign --yes ${images}
+          cosign sign --yes "${images}"
 
       - name: Scan Docker image
         id: container-scan
@@ -135,7 +137,7 @@ jobs:
         if: ${{ env.is_publish_branch == 'true' }}
         run: |
           docker logout
-          echo "DOCKER_CONTENT_TRUST=0" >> $GITHUB_ENV
+          echo "DOCKER_CONTENT_TRUST=0" >> "$GITHUB_ENV"
 
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main

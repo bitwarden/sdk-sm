@@ -1,4 +1,4 @@
-name: Build Python Wheels (Dev)
+name: Build and Publish Python Wheels (Dev)
 
 on:
   push:
@@ -18,9 +18,10 @@ jobs:
     with:
       dev_version: true
 
-#   publish-dev:
-#     name: Publish Dev
-#     uses: ./.github/workflows/publish-python.yml
-#     needs: build-dev
-#     with:
-#       workflow_name: build-python-wheels-dev.yml
+  publish-dev:
+    name: Publish Dev
+    uses: ./.github/workflows/publish-python.yml
+    needs: build-dev
+    with:
+      workflow_run: ${{ github.run_id }}
+      release_type: "Dev Release"

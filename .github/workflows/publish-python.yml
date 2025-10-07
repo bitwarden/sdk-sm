@@ -13,9 +13,20 @@ on:
           - Release
           - Dry Run
       version:
-        description: "Release Version"
+        description: "Release Version (default: latest)"
         required: false
         default: "latest"
+  workflow_call:
+    inputs:
+      release_type:
+        description: "Release Options"
+        required: false
+        type: string
+        default: "Dev Release"
+      workflow_run:
+        description: "The workflow run that built the artifacts to publish"
+        required: true
+        type: string
 
 defaults:
   run:
@@ -53,23 +64,32 @@ jobs:
 
       - name: Version output
         id: version-output
+        if: ${{ inputs.release_type != 'Dev Release' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_PREFIX: python
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          if [[ "${{ inputs.version }}" == "latest" || "${{ inputs.version }}" == "" ]]; then
-            TAG_NAME=$(curl  "https://api.github.com/repos/bitwarden/sdk-sm/releases" | jq -c '.[] | select(.tag_name | contains("python")) | .tag_name' | head -1)
-            VERSION=$(echo $TAG_NAME | grep -ohE '20[0-9]{2}\.([1-9]|1[0-2])\.[0-9]+')
-            echo "Latest Released Version: $VERSION"
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-            echo "Latest Released Tag name: $TAG_NAME"
-            echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          if [[ "$INPUT_VERSION" == "latest" ]]; then
+            TAG_NAME=$(gh release list --json tagName --jq ".[].tagName | select(startswith(\"$TAG_PREFIX\"))" --limit 100 --order desc | head -n 1)
           else
-            echo "Release Version: ${{ inputs.version }}"
-            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+            TAG_NAME=$(gh release list --json tagName --jq ".[].tagName | select(. == \"$TAG_PREFIX-v$INPUT_VERSION\")" --limit 100 | head -n 1)
+            echo "version=$INPUT_VERSION" >> $GITHUB_OUTPUT
           fi
+
+          if [ -z "$TAG_NAME" ]; then
+            echo "Unable to find tag for version: $INPUT_VERSION"
+            exit 1
+          fi
+          VERSION=$(echo "$TAG_NAME" | grep -ohE '20[0-9]{2}\.([1-9]|1[0-2])\.[0-9]+')
+          echo "Latest Tag Name: $TAG_NAME"
+          echo "Latest Released Version: $VERSION"
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
   publish:
     name: Publish
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: setup
     permissions:
       contents: read
@@ -77,23 +97,39 @@ jobs:
     steps:
       - name: Get release assets
         working-directory: ${{ env._TARGET_DIR }}
+        if: ${{ inputs.release_type != 'Dev Release' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_NAME: ${{ needs.setup.outputs.tag_name }}
+          VERSION: ${{ needs.setup.outputs.version }}
         run: |
-          gh release download $TAG_NAME --repo bitwarden/sdk-sm --pattern "bitwarden_sdk-*.whl"
+          gh release download $TAG_NAME --repo bitwarden/sdk-sm --pattern "bitwarden_sdk-${VERSION}-*.whl"
+          ls -la ${{ env._TARGET_DIR }}
 
-      - name: Dry Run - Publish package to Test PyPI
+      - name: Get workflow run assets
+        working-directory: ${{ env._TARGET_DIR }}
+        if: ${{ inputs.release_type == 'Dev Release' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download --repo bitwarden/sdk-sm --pattern "bitwarden_sdk-*.dev*.whl"
+          ls -la ${{ env._TARGET_DIR }}
+
+      - name: Publish dev package to Test PyPI
         uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
-        if: ${{ inputs.release_type == 'Dry Run' }}
+        if: ${{ inputs.release_type == 'Dev Release'}}
         with:
           repository-url: https://test.pypi.org/legacy/
           packages-dir: ${{ env._TARGET_DIR }}
           verify-metadata: true # Runs twine check before upload
 
       - name: Publish package to PyPI
-        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
-        if: ${{ inputs.release_type != 'Dry Run' }}
-        with:
-          packages-dir: ${{ env._TARGET_DIR }}
-          verify-metadata: true # Runs twine check before upload
+        if: ${{ inputs.release_type == 'Release' }}
+        run: echo "Would publish release to PyPI"
+
+      # - name: Publish package to PyPI
+      #   uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
+      #   if: ${{ inputs.release_type == 'Release' }}
+      #   with:
+      #     packages-dir: ${{ env._TARGET_DIR }}
+      #     verify-metadata: true # Runs twine check before upload

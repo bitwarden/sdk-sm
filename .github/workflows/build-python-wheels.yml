@@ -171,6 +171,7 @@ jobs:
           target: ${{ matrix.settings.target }}
           args: --release --interpreter python${{ matrix.settings.python-version }} ${{ matrix.settings.maturin-build-args }}
           sccache: true
+          working-directory: languages/python
 
       - name: Build wheels (Linux - x86_64)
         if: ${{ matrix.settings.target == 'x86_64-unknown-linux-gnu' }}
@@ -178,6 +179,7 @@ jobs:
         with:
           target: ${{ matrix.settings.target }}
           args: --release --sdist --interpreter python${{ matrix.settings.python-version }} ${{ matrix.settings.maturin-build-args }}
+          working-directory: languages/python
 
       - name: Upload wheels
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3

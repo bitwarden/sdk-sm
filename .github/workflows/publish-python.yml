@@ -1,5 +1,5 @@
 name: Publish Python SDK
-run-name: Publish Python SDK ${{ inputs.release_type }}
+run-name: Publish Python SDK - ${{ inputs.release_type }}
 
 on:
   workflow_dispatch:
@@ -23,10 +23,6 @@ on:
         required: false
         type: string
         default: "Dev Release"
-      workflow_run:
-        description: "The workflow run that built the artifacts to publish"
-        required: true
-        type: string
 
 defaults:
   run:
@@ -49,6 +45,15 @@ jobs:
       version: ${{ steps.version-output.outputs.version }}
       tag_name: ${{ steps.version-output.outputs.tag_name }}
     steps:
+      - name: Log inputs to job summary
+        run: |
+          echo "<details><summary>Job Inputs</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          echo '${{ toJson(inputs) }}' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+
       - name: Checkout repo
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
@@ -66,7 +71,7 @@ jobs:
         id: version-output
         if: ${{ inputs.release_type != 'Dev Release' }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_PREFIX: python
           INPUT_VERSION: ${{ inputs.version }}
         run: |
@@ -103,17 +108,18 @@ jobs:
           TAG_NAME: ${{ needs.setup.outputs.tag_name }}
           VERSION: ${{ needs.setup.outputs.version }}
         run: |
-          gh release download $TAG_NAME --repo bitwarden/sdk-sm --pattern "bitwarden_sdk-${VERSION}-*.whl"
-          ls -la ${{ env._TARGET_DIR }}
+          gh release download $TAG_NAME --pattern "bitwarden_sdk-${VERSION}-*.whl"
+          ls -la
 
       - name: Get workflow run assets
         working-directory: ${{ env._TARGET_DIR }}
         if: ${{ inputs.release_type == 'Dev Release' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.run_id }}
         run: |
-          gh release download --repo bitwarden/sdk-sm --pattern "bitwarden_sdk-*.dev*.whl"
-          ls -la ${{ env._TARGET_DIR }}
+          gh run download "$RUN_ID" --pattern "bitwarden_sdk-*.dev*.whl"
+          ls -la
 
       - name: Publish dev package to Test PyPI
         uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
@@ -124,12 +130,8 @@ jobs:
           verify-metadata: true # Runs twine check before upload
 
       - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
         if: ${{ inputs.release_type == 'Release' }}
-        run: echo "Would publish release to PyPI"
-
-      # - name: Publish package to PyPI
-      #   uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
-      #   if: ${{ inputs.release_type == 'Release' }}
-      #   with:
-      #     packages-dir: ${{ env._TARGET_DIR }}
-      #     verify-metadata: true # Runs twine check before upload
+        with:
+          packages-dir: ${{ env._TARGET_DIR }}
+          verify-metadata: true # Runs twine check before upload

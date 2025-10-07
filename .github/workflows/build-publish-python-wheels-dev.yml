@@ -4,8 +4,9 @@ on:
   push:
     branches:
       - "main"
-
-  pull_request: # TESTING ONLY - to be deleted before merge
+  pull_request:
+    branches:
+      - "main"
 
 concurrency:
   group: build-python-dev
@@ -23,10 +24,10 @@ jobs:
   publish-dev:
     name: Publish Dev
     uses: ./.github/workflows/publish-python.yml
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     needs: build-dev
     permissions:
       contents: read
       id-token: write
     with:
-      workflow_run: ${{ github.run_id }}
       release_type: "Dev Release"

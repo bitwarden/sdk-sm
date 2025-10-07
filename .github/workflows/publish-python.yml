@@ -110,7 +110,7 @@ jobs:
           VERSION: ${{ needs.setup.outputs.version }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
-          gh release download --repo "$GITHUB_REPOSITORY" --pattern "bitwarden_sdk-${VERSION}-*.whl"
+          gh release download $TAG_NAME --repo "$GITHUB_REPOSITORY" --dir "$_TARGET_DIR" --pattern "bitwarden_sdk-${VERSION}-*.whl"
           ls -la
 
       - name: Get workflow run assets
@@ -119,7 +119,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_ID: ${{ github.run_id }}
         run: |
-          gh run download --repo "$GITHUB_REPOSITORY" "$RUN_ID" --pattern "bitwarden_sdk-*.dev*.whl"
+          gh run download --repo "$GITHUB_REPOSITORY" "$RUN_ID" --dir "$_TARGET_DIR" --pattern "bitwarden_sdk-*.dev*.whl"
           ls -la
 
       - name: Publish dev package to Test PyPI
@@ -127,7 +127,7 @@ jobs:
         if: ${{ inputs.release_type == 'Dev Release'}}
         with:
           repository-url: https://test.pypi.org/legacy/
-          packages-dir: ${{ env._TARGET_DIR }}
+          packages-dir: ${{ env._TARGET_DIR }}kk
           verify-metadata: true # Runs twine check before upload
 
       - name: Publish package to PyPI

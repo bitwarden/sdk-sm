@@ -88,7 +88,7 @@ jobs:
             echo "Unable to find tag for version: $INPUT_VERSION"
             exit 1
           fi
-          VERSION=$(echo "$TAG_NAME" | grep -ohE '20[0-9]{2}\.([1-9]|1[0-2])\.[0-9]+')
+          VERSION=$(echo "$TAG_NAME" | grep -ohE '[0-9]+\.[0-9]+\.[0-9]+')
           echo "Latest Tag Name: $TAG_NAME"
           echo "Latest Released Version: $VERSION"
           echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT

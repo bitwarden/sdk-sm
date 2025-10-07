@@ -82,6 +82,8 @@ jobs:
             echo "version=$INPUT_VERSION" >> $GITHUB_OUTPUT
           fi
 
+          echo "Found Tag Name: '$TAG_NAME' for version: '$INPUT_VERSION'"
+
           if [ -z "$TAG_NAME" ]; then
             echo "Unable to find tag for version: $INPUT_VERSION"
             exit 1

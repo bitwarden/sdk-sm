@@ -8,6 +8,12 @@ on:
       - "rc"
       - "hotfix-rc"
   workflow_dispatch:
+    inputs:
+      dev_version:
+        description: "Create a dev build (e.g., .dev1 suffix)"
+        required: false
+        default: false
+        type: boolean
   workflow_call:
     inputs:
       dev_version:

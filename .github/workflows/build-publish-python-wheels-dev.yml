@@ -69,20 +69,7 @@ jobs:
 
       - name: Install dev package from Test PyPI
         run: |
-          pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple bitwarden-sdk --pre
-
-      - name: Validate from pip
-        run: |
-          pip show bitwarden-sdk
-
-          installed_version=$(pip show bitwarden-sdk | grep Version | awk '{print $2}')
-          echo "Installed version: $installed_version"
-          if [ "$installed_version" != "$_EXPECTED_VERSION" ]; then
-            echo "==================================="
-            echo "[!] Installed version ($installed_version) does not match expected version ($_EXPECTED_VERSION)"
-            echo "==================================="
-            exit 1
-          fi
+          pip install --index-url https://test.pypi.org/simple/ "bitwarden-sdk==$EXPECTED_VERSION" --pre
 
       - name: Validate code version
         run: |

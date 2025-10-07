@@ -127,7 +127,7 @@ jobs:
         if: ${{ inputs.release_type == 'Dev Release'}}
         with:
           repository-url: https://test.pypi.org/legacy/
-          packages-dir: ${{ env._TARGET_DIR }}kk
+          packages-dir: ${{ env._TARGET_DIR }}
           verify-metadata: true # Runs twine check before upload
 
       - name: Publish package to PyPI

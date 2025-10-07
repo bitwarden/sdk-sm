@@ -103,7 +103,6 @@ jobs:
       id-token: write
     steps:
       - name: Get release assets
-        working-directory: ${{ env._TARGET_DIR }}
         if: ${{ inputs.release_type != 'Dev Release' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -114,7 +113,6 @@ jobs:
           ls -la
 
       - name: Get workflow run assets
-        working-directory: ${{ env._TARGET_DIR }}
         if: ${{ inputs.release_type == 'Dev Release' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -11,6 +11,9 @@ concurrency:
   group: build-python-dev
   cancel-in-progress: false
 
+env:
+  _TARGET_DIR: target/wheels/dist
+
 jobs:
   build-dev:
     name: Build Dev
@@ -22,10 +25,27 @@ jobs:
 
   publish-dev:
     name: Publish Dev
-    uses: ./.github/workflows/publish-python.yml
+    runs-on: ubuntu-24.04
     needs: build-dev
     permissions:
       contents: read
       id-token: write
-    with:
-      release_type: "Dev Release"
+    steps:
+      - name: Get workflow run assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --pattern "bitwarden_sdk-*.dev*"
+          mkdir -p "$_TARGET_DIR"
+          shopt -s globstar
+          mv **/*.whl "$_TARGET_DIR"
+          find "$_TARGET_DIR" -type f
+
+      - name: Publish dev package to Test PyPI
+        #if: github.event_name == 'push' && github.ref == 'refs/heads/main' # TODO put this back in before final merge
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          packages-dir: ${{ env._TARGET_DIR }}
+          verify-metadata: true # Runs twine check before upload

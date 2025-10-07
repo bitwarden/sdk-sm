@@ -16,13 +16,6 @@ on:
         description: "Release Version (default: latest)"
         required: false
         default: "latest"
-  workflow_call:
-    inputs:
-      release_type:
-        description: "Release Options"
-        required: false
-        type: string
-        default: "Dev Release"
 
 defaults:
   run:
@@ -57,20 +50,18 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
-      # TESTING - put back in before final merge
-      # - name: Branch check
-      #   if: ${{ inputs.release_type != 'Dry Run' }}
-      #   run: |
-      #     if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
-      #       echo "==================================="
-      #       echo "[!] Can only release from the 'main' branch"
-      #       echo "==================================="
-      #       exit 1
-      #     fi
+      - name: Branch check
+        if: ${{ inputs.release_type != 'Dry Run' }}
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "==================================="
+            echo "[!] Can only release from the 'main' branch"
+            echo "==================================="
+            exit 1
+          fi
 
       - name: Version output
         id: version-output
-        if: ${{ inputs.release_type != 'Dev Release' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_PREFIX: python
@@ -104,7 +95,6 @@ jobs:
       id-token: write
     steps:
       - name: Get release assets
-        if: ${{ inputs.release_type != 'Dev Release' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_NAME: ${{ needs.setup.outputs.tag_name }}
@@ -114,29 +104,9 @@ jobs:
           gh release download $TAG_NAME --repo "$GITHUB_REPOSITORY" --dir "$_TARGET_DIR" --pattern "bitwarden_sdk-${VERSION}-*.whl"
           find "$_TARGET_DIR" -type f
 
-      - name: Get workflow run assets
-        if: ${{ inputs.release_type == 'Dev Release' }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RUN_ID: ${{ github.run_id }}
-        run: |
-          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --pattern "bitwarden_sdk-*.dev*"
-          mkdir -p "$_TARGET_DIR"
-          shopt -s globstar
-          mv **/*.whl "$_TARGET_DIR"
-          find "$_TARGET_DIR" -type f
-
-      - name: Publish dev package to Test PyPI
-        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
-        if: ${{ inputs.release_type == 'Dev Release'}}
-        with:
-          repository-url: https://test.pypi.org/legacy/
-          packages-dir: ${{ env._TARGET_DIR }}
-          verify-metadata: true # Runs twine check before upload
-
       - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
-        if: ${{ inputs.release_type == 'Release' }}
+        if: ${{ inputs.release_type != 'Dry Run' }}
         with:
           packages-dir: ${{ env._TARGET_DIR }}
           verify-metadata: true # Runs twine check before upload

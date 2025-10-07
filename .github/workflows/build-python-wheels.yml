@@ -134,8 +134,11 @@ jobs:
           if [[ "$OSTYPE" == "darwin"* ]]; then
             inplace_arg="-i ''"
           fi
-          sed $inplace_arg "s/^version = \"[0-9]\.[0-9]\.[0-9]\"/version = \"$_PACKAGE_VERSION\"/" "$_VERSION_FILE"
+
+          cargo_compliant_version=$(echo "$_PACKAGE_VERSION" | sed 's/\.dev/-dev/')
+          sed $inplace_arg "s/^version = \"[0-9]\.[0-9]\.[0-9]\"/version = \"$cargo_compliant_version\"/" "$_VERSION_FILE"
           sed $inplace_arg "s/__version__ = \"[0-9]\.[0-9]\.[0-9]\"/__version__ = \"$_PACKAGE_VERSION\"/" bitwarden_sdk/__init__.py
+          git diff
 
       - name: Setup Python
         uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0

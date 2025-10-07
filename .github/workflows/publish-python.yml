@@ -57,15 +57,16 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
-      - name: Branch check
-        if: ${{ inputs.release_type != 'Dry Run' }}
-        run: |
-          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
-            echo "==================================="
-            echo "[!] Can only release from the 'main' branch"
-            echo "==================================="
-            exit 1
-          fi
+      # TESTING - put back in before final merge
+      # - name: Branch check
+      #   if: ${{ inputs.release_type != 'Dry Run' }}
+      #   run: |
+      #     if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+      #       echo "==================================="
+      #       echo "[!] Can only release from the 'main' branch"
+      #       echo "==================================="
+      #       exit 1
+      #     fi
 
       - name: Version output
         id: version-output

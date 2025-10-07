@@ -1,0 +1,26 @@
+name: Build Python Wheels (Dev)
+
+on:
+  push:
+    branches:
+      - "main"
+
+  pull_request: # TESTING ONLY - to be deleted before merge
+
+concurrency:
+  group: build-python-dev
+  cancel-in-progress: false
+
+jobs:
+  build-dev:
+    name: Build Dev
+    uses: ./.github/workflows/build-python-wheels.yml
+    with:
+      dev_version: true
+
+#   publish-dev:
+#     name: Publish Dev
+#     uses: ./.github/workflows/publish-python.yml
+#     needs: build-dev
+#     with:
+#       workflow_name: build-python-wheels-dev.yml

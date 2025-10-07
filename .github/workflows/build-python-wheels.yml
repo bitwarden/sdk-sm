@@ -20,6 +20,10 @@ on:
         description: "Create a dev build (e.g., .dev1 suffix)"
         required: true
         type: boolean
+    outputs:
+      package_version:
+        description: "The package version (with optional .devX suffix)"
+        value: ${{ jobs.setup.outputs.package_version }}
 
 defaults:
   run:

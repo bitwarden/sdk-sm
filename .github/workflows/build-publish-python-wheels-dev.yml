@@ -51,3 +51,49 @@ jobs:
           repository-url: https://test.pypi.org/legacy/
           packages-dir: ${{ env._TARGET_DIR }}
           verify-metadata: true # Runs twine check before upload
+
+  validate:
+    name: Validate Dev
+    runs-on: ubuntu-24.04
+    needs:
+      - build-dev
+      - publish-dev
+    permissions: {}
+    env:
+      _EXPECTED_VERSION: ${{ needs.build-dev.outputs.package_version }}
+    steps:
+      - name: Create and activate virtual environment
+        run: |
+          python3 -m venv venv
+          source venv/bin/activate
+
+      - name: Install dev package from Test PyPI
+        run: |
+          pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple bitwarden-sdk --pre
+
+      - name: Validate from pip
+        run: |
+          pip show bitwarden-sdk
+
+          installed_version=$(pip show bitwarden-sdk | grep Version | awk '{print $2}')
+          echo "Installed version: $installed_version"
+          if [ "$installed_version" != "$_EXPECTED_VERSION" ]; then
+            echo "==================================="
+            echo "[!] Installed version ($installed_version) does not match expected version ($_EXPECTED_VERSION)"
+            echo "==================================="
+            exit 1
+          fi
+
+      - name: Validate code version
+        run: |
+          echo "Python package version:"
+          python -c "import bitwarden_sdk; print(bitwarden_sdk.__version__)"
+
+          package_version=$(python -c "import bitwarden_sdk; print(bitwarden_sdk.__version__)")
+          if [ "$package_version" != "$_EXPECTED_VERSION" ]; then
+            echo "==================================="
+            echo "[!] Package version ($package_version) does not match expected version ($_EXPECTED_VERSION)"
+            echo "==================================="
+            exit 1
+          fi
+

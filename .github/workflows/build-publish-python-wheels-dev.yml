@@ -5,7 +5,7 @@ on:
     branches:
       - "main"
 
-  #pull_request: # TESTING ONLY - to be deleted before merge
+  pull_request: # TESTING ONLY - to be deleted before merge
 
 concurrency:
   group: build-python-dev

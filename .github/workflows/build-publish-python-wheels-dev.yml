@@ -69,7 +69,7 @@ jobs:
 
       - name: Install dev package from Test PyPI
         run: |
-          pip install --index-url https://test.pypi.org/simple/ "bitwarden-sdk==$EXPECTED_VERSION" --pre
+          pip install --index-url https://test.pypi.org/simple/ "bitwarden-sdk==$_EXPECTED_VERSION" --pre
 
       - name: Validate code version
         run: |

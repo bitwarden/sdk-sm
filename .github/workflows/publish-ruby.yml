@@ -30,7 +30,7 @@ jobs:
       tag_name: ${{ steps.version-output.outputs.tag_name }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Branch check
         if: ${{ inputs.release_type != 'Dry Run' }}
@@ -67,7 +67,7 @@ jobs:
       _TAG_NAME: ${{ needs.setup.outputs.tag_name }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ env._TAG_NAME }}
 
@@ -82,10 +82,12 @@ jobs:
           description: "Deployment ${{ env._VERSION }} from branch ${{ github.ref_name }}"
           task: release
 
-      - name: Login to Azure
-        uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0
+      - name: Log in to Azure
+        uses: bitwarden/gh-actions/azure-login@main
         with:
-          creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Retrieve secrets
         id: retrieve-secrets
@@ -93,6 +95,9 @@ jobs:
         with:
           keyvault: "bitwarden-ci"
           secrets: "rubygem-api-key"
+
+      - name: Log out from Azure
+        uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Download ruby artifact
         run: wget https://github.com/bitwarden/sdk-sm/releases/download/ruby-v${{ env._VERSION }}/bitwarden-sdk-secrets-${{ env._VERSION }}.gem

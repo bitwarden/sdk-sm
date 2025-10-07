@@ -63,7 +63,7 @@ pub mod error;
 
 #[cfg(feature = "secrets")]
 pub mod generators {
-    pub use bitwarden_generators::{ClientGeneratorExt, PasswordError, PasswordGeneratorRequest};
+    pub use bitwarden_generators::{GeneratorClientsExt, PasswordError, PasswordGeneratorRequest};
 }
 
 #[cfg(feature = "secrets")]

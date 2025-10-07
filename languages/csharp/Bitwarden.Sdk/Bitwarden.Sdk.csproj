@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Bitwarden.Sdk</RootNamespace>
-
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Title>Bitwarden Secrets Manager SDK</Title>
     <Authors>Bitwarden Inc.</Authors>
     <Description>.NET bindings for interacting with the Bitwarden Secrets Manager</Description>

@@ -14,6 +14,10 @@ defaults:
     shell: bash
     working-directory: crates/bitwarden-wasm
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build:
     name: Building @bitwarden/sdk-wasm
@@ -21,7 +25,7 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Setup Node
         uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
@@ -34,9 +38,9 @@ jobs:
         run: npm i -g binaryen
 
       - name: Install rust
-        uses: dtolnay/rust-toolchain@c5a29ddb4d9d194e7c84ec8c3fba61b1c31fee8c # stable
+        uses: dtolnay/rust-toolchain@6d653acede28d24f02e3cd41383119e8b1b35921 # stable
         with:
-          toolchain: 1.81.0
+          toolchain: 1.85.0
           targets: wasm32-unknown-unknown
 
       - name: Cache cargo registry

@@ -14,6 +14,9 @@ defaults:
     shell: bash
     working-directory: languages/python
 
+permissions:
+  contents: read
+
 jobs:
   generate_schemas:
     name: Generate schemas
@@ -26,7 +29,7 @@ jobs:
       package_version: ${{ steps.retrieve-version.outputs.package_version }}
     steps:
       - name: Checkout repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Get Package Version
         id: retrieve-version
@@ -48,33 +51,53 @@ jobs:
         settings:
           - os: macos-13
             target: x86_64-apple-darwin
+            python-version: "3.9"
+            maturin-build-args: ""
 
           - os: macos-13
             target: aarch64-apple-darwin
+            python-version: "3.9"
+            maturin-build-args: ""
 
           - os: windows-2022
             target: x86_64-pc-windows-msvc
+            python-version: "3.9"
+            maturin-build-args: ""
 
           - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
+            python-version: "3.9"
+            maturin-build-args: "--zig"
 
           - os: ubuntu-22.04
             target: aarch64-unknown-linux-gnu
+            python-version: "3.9"
+            maturin-build-args: "--zig"
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Setup Python
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: ${{ matrix.settings.python-version }}
 
       - name: Setup Node
         uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
-          node-version: 18
+          node-version: 22
 
       - name: Install rust
-        uses: dtolnay/rust-toolchain@c5a29ddb4d9d194e7c84ec8c3fba61b1c31fee8c # stable
+        uses: dtolnay/rust-toolchain@6d653acede28d24f02e3cd41383119e8b1b35921 # stable
         with:
           toolchain: stable
           targets: ${{ matrix.settings.target }}
+
+      - name: Set up Zig
+        uses: mlugg/setup-zig@8d6198c65fb0feaa111df26e6b467fea8345e46f # v2.0.5
+        with:
+          version: 0.15.1
 
       - name: Cache cargo registry
         uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
@@ -82,7 +105,7 @@ jobs:
           key: ${{ matrix.settings.target }}-cargo-${{ matrix.settings.os }}
 
       - name: Retrieve schemas
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           name: schemas.py
           path: ${{ github.workspace }}/languages/python/bitwarden_sdk
@@ -92,9 +115,8 @@ jobs:
         uses: PyO3/maturin-action@ea5bac0f1ccd0ab11c805e2b804bfcb65dac2eab # v1.45.0
         with:
           target: ${{ matrix.settings.target }}
-          args: --release --find-interpreter --sdist
-          sccache: "true"
-          manylinux: "2_28" # https://github.com/pola-rs/polars/pull/12211
+          args: --release --interpreter python${{ matrix.settings.python-version }} ${{ matrix.settings.maturin-build-args }}
+          sccache: true
           working-directory: ${{ github.workspace }}/languages/python
 
       - name: Build wheels (Linux - x86_64)
@@ -102,10 +124,7 @@ jobs:
         uses: PyO3/maturin-action@ea5bac0f1ccd0ab11c805e2b804bfcb65dac2eab # v1.45.0
         with:
           target: ${{ matrix.settings.target }}
-          args: --release --find-interpreter --sdist
-          container: quay.io/pypa/manylinux_2_28_x86_64:2023-11-20-745eb52
-          sccache: "true"
-          manylinux: "2_28" # https://github.com/pola-rs/polars/pull/12211
+          args: --release --sdist --interpreter python${{ matrix.settings.python-version }} ${{ matrix.settings.maturin-build-args }}
           working-directory: ${{ github.workspace }}/languages/python
 
       - name: Upload wheels

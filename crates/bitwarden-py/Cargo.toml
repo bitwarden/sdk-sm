@@ -8,7 +8,6 @@ edition.workspace = true
 rust-version.workspace = true
 homepage.workspace = true
 repository.workspace = true
-license-file.workspace = true
 keywords.workspace = true
 
 [lib]
@@ -17,11 +16,11 @@ crate-type = ["cdylib"]
 
 [dependencies]
 bitwarden-json = { path = "../bitwarden-json", features = ["secrets"] }
-pyo3 = { version = "0.22.1", features = ["extension-module"] }
-pyo3-log = "0.11.0"
+pyo3 = { version = "0.25.1", features = ["extension-module", "abi3"] }
+pyo3-log = "0.12.4"
 
 [build-dependencies]
-pyo3-build-config = { version = "0.22.1" }
+pyo3-build-config = { version = "0.26.0" }
 
 [target.'cfg(not(target_arch="wasm32"))'.dependencies]
 tokio = { workspace = true, features = ["rt-multi-thread"] }

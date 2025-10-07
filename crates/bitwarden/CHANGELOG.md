@@ -7,6 +7,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING:** Updated MSRV to `1.85.0` (#1308)
+
 ## [1.0.0] - 2024-09-26
 
 ### Added

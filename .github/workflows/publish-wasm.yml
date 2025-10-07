@@ -25,12 +25,14 @@ jobs:
   setup:
     name: Setup
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
     outputs:
       release_version: ${{ steps.version-output.outputs.version }}
       tag_name: ${{ steps.version-output.outputs.tag_name }}
     steps:
       - name: Checkout repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Branch check
         if: ${{ inputs.release_type != 'Dry Run' }}
@@ -60,33 +62,20 @@ jobs:
 
   npm:
     name: Publish NPM
+    environment: "Bitwarden SDK WASM - Production"
     runs-on: ubuntu-22.04
     needs: setup
+    permissions:
+      contents: read
+      id-token: write
+      deployments: write
     env:
       _VERSION: ${{ needs.setup.outputs.release_version }}
     steps:
       - name: Checkout repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ needs.setup.outputs.tag_name }}
-
-      - name: Setup Node
-        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
-        with:
-          node-version: 18
-          cache: "npm"
-
-      - name: Login to Azure
-        uses: Azure/login@e15b166166a8746d1a47596803bd8c1b595455cf # v1.6.0
-        with:
-          creds: ${{ secrets.AZURE_KV_CI_SERVICE_PRINCIPAL }}
-
-      - name: Retrieve secrets
-        id: retrieve-secrets
-        uses: bitwarden/gh-actions/get-keyvault-secrets@main
-        with:
-          keyvault: "bitwarden-ci"
-          secrets: "npm-api-key"
 
       - name: Download artifact
         run: |
@@ -106,19 +95,16 @@ jobs:
           description: "Deployment ${{ env._VERSION }} from branch ${{ github.ref_name }}"
           task: release
 
-      - name: Setup NPM
-        run: |
-          echo 'registry="https://registry.npmjs.org/"' > ./.npmrc
-          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ./.npmrc
-
-          echo 'registry="https://registry.npmjs.org/"' > ~/.npmrc
-          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
-        env:
-          NPM_TOKEN: ${{ steps.retrieve-secrets.outputs.npm-api-key }}
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          registry-url: "https://registry.npmjs.org/"
+          cache: "npm"
 
       - name: Publish NPM
         if: ${{ inputs.release_type != 'Dry Run' }}
-        run: npm publish --access public --registry=https://registry.npmjs.org/  --userconfig=./.npmrc
+        run: npm publish --access public
 
       - name: Update deployment status to Success
         if: ${{ inputs.release_type != 'Dry Run' && success() }}

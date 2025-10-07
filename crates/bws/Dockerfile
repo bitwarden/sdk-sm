@@ -1,57 +1,48 @@
 ###############################################
 #                 Build stage                 #
 ###############################################
-FROM --platform=$BUILDPLATFORM rust:1.81 AS build
+FROM rust:1.90-alpine AS build
 
 # Docker buildx supplies the value for this arg
 ARG TARGETPLATFORM
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-  ca-certificates \
-  && rm -rf /var/lib/apt/lists/*
+# Install build dependencies
+RUN apk add --no-cache ca-certificates gcc musl-dev
 
 # Copy required project files
-COPY . /app
+COPY . /source
+
+# Set required args for build
+ENV CARGO_TARGET_DIR='./target'
 
 # Build project
-WORKDIR /app/crates/bws
+WORKDIR /source/crates/bws
 RUN cargo build --release --bin bws
 
-# Bundle bws dependencies
-RUN mkdir /lib-bws
-RUN mkdir /lib64-bws
-
-RUN ldd /app/target/release/bws | tr -s '[:blank:]' '\n' | grep '^/lib' | xargs -I % cp % /lib-bws
-RUN ldd /app/target/release/bws | tr -s '[:blank:]' '\n' | grep '^/lib64' | xargs -I % cp % /lib64-bws
-
-# Make a user and HOME directory for the app stage
-RUN useradd -m app
+# Create app user
+RUN adduser -D -u 1000 app
 
 ###############################################
 #                  App stage                  #
 ###############################################
 FROM scratch
 
-ARG TARGETPLATFORM
 LABEL com.bitwarden.product="bitwarden"
 
-# Set a HOME directory and copy the user file
-COPY --from=build /home/app /home/app
+# Copy user data from the build stage
 COPY --from=build /etc/passwd /etc/passwd
+COPY --from=build /etc/group /etc/group
+COPY --from=build --chown=app:app /home/app /home/app
 ENV HOME=/home/app
 WORKDIR /home/app
 
+# Copy bws from the build stage
+COPY --from=build /source/crates/bws/target/release/bws /bin/bws
+
+# Copy CA certificates
+COPY --from=build /etc/ssl /etc/ssl
+
 # Switch to the app user
 USER app
-
-# Copy built project from the build stage
-COPY --from=build /app/target/release/bws /bin/bws
-
-# Copy certs
-COPY --from=build /etc/ssl/certs /etc/ssl/certs
-
-# Copy bws dependencies
-COPY --from=build /lib-bws /lib
-COPY --from=build /lib64-bws /lib64
 
 ENTRYPOINT ["bws"]

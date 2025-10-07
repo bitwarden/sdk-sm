@@ -120,10 +120,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_ID: ${{ github.run_id }}
         run: |
-          artifacts_dir="artifacts"
-          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --dir "$artifacts_dir" --pattern "bitwarden_sdk-*.dev*"
+          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --pattern "bitwarden_sdk-*.dev*"
           mkdir -p "$_TARGET_DIR"
-          mv $artifacts_dir/*.whl "$_TARGET_DIR"
+          shopt -s globstar
+          mv **/*.whl "$_TARGET_DIR"
           find "$_TARGET_DIR" -type f
 
       - name: Publish dev package to Test PyPI

@@ -108,8 +108,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_NAME: ${{ needs.setup.outputs.tag_name }}
           VERSION: ${{ needs.setup.outputs.version }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
-          gh release download $TAG_NAME --pattern "bitwarden_sdk-${VERSION}-*.whl"
+          gh release download --repo "$GITHUB_REPOSITORY" --pattern "bitwarden_sdk-${VERSION}-*.whl"
           ls -la
 
       - name: Get workflow run assets
@@ -118,7 +119,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_ID: ${{ github.run_id }}
         run: |
-          gh run download "$RUN_ID" --pattern "bitwarden_sdk-*.dev*.whl"
+          gh run download --repo "$GITHUB_REPOSITORY" "$RUN_ID" --pattern "bitwarden_sdk-*.dev*.whl"
           ls -la
 
       - name: Publish dev package to Test PyPI

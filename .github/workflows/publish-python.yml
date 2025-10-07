@@ -112,7 +112,7 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           gh release download $TAG_NAME --repo "$GITHUB_REPOSITORY" --dir "$_TARGET_DIR" --pattern "bitwarden_sdk-${VERSION}-*.whl"
-          find "$_TARGET_DIR"
+          find "$_TARGET_DIR" -type f
 
       - name: Get workflow run assets
         if: ${{ inputs.release_type == 'Dev Release' }}
@@ -123,8 +123,8 @@ jobs:
           artifacts_dir="artifacts"
           gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --dir "$artifacts_dir" --pattern "bitwarden_sdk-*.dev*"
           mkdir -p "$_TARGET_DIR"
-          mv "$artifacts_dir"/*.whl "$_TARGET_DIR"
-          find "$_TARGET_DIR"
+          mv $artifacts_dir/*.whl "$_TARGET_DIR"
+          find "$_TARGET_DIR" -type f
 
       - name: Publish dev package to Test PyPI
         uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0

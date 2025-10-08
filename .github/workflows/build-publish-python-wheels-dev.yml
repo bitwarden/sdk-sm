@@ -69,7 +69,23 @@ jobs:
 
       - name: Install dev package from Test PyPI
         run: |
-          pip install --index-url https://test.pypi.org/simple/ "bitwarden-sdk==$_EXPECTED_VERSION" --pre
+          timeout=60
+          end_time=$((SECONDS + timeout))
+
+          while [ $SECONDS -lt $end_time ]; do
+          if pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple "bitwarden-sdk==$_EXPECTED_VERSION" --pre; then
+            echo "Package installed successfully"
+            break
+          else
+            echo "Package installation failed, retrying in 5 seconds..."
+            sleep 5
+          fi
+          done
+
+          if [ $SECONDS -ge $end_time ]; then
+            echo "Package installation failed after $timeout seconds"
+            exit 1
+          fi
 
       - name: Validate code version
         run: |

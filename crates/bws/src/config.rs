@@ -4,11 +4,11 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use color_eyre::eyre::{bail, Result};
+use color_eyre::eyre::{Result, bail};
 use directories::BaseDirs;
 use serde::{Deserialize, Serialize};
 
-use crate::cli::{ProfileKey, DEFAULT_CONFIG_DIRECTORY, DEFAULT_CONFIG_FILENAME};
+use crate::cli::{DEFAULT_CONFIG_DIRECTORY, DEFAULT_CONFIG_FILENAME, ProfileKey};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub(crate) struct Config {

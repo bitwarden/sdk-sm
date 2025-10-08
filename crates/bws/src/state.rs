@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use color_eyre::eyre::{bail, Result};
+use color_eyre::eyre::{Result, bail};
 use directories::BaseDirs;
 
 use crate::DEFAULT_CONFIG_DIRECTORY;

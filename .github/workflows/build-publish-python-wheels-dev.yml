@@ -5,8 +5,7 @@ on:
     branches:
       - "main"
   workflow_dispatch:
-
-  pull_request: # TESTING ONLY - to be deleted before merge
+  pull_request:
 
 concurrency:
   group: build-python-dev
@@ -45,7 +44,7 @@ jobs:
           find "$_TARGET_DIR" -type f
 
       - name: Publish dev package to Test PyPI
-        # if: github.event_name == 'push' && github.ref == 'refs/heads/main' # TODO put this back in before final merge
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
         with:
           repository-url: https://test.pypi.org/legacy/
@@ -55,6 +54,7 @@ jobs:
   validate:
     name: Validate Dev
     runs-on: ubuntu-24.04
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs:
       - build-dev
       - publish-dev

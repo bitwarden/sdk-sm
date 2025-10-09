@@ -4,7 +4,7 @@ use anyhow::Result;
 use fake_server::create_app;
 use tokio::net::TcpListener;
 use tracing::{info, level_filters::LevelFilter};
-use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
 #[tokio::main]
 async fn main() -> Result<()> {

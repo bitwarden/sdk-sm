@@ -5,20 +5,20 @@ use std::{
 };
 
 use bitwarden::{
-    secrets_manager::{
-        secrets::{SecretIdentifiersByProjectRequest, SecretIdentifiersRequest, SecretsGetRequest},
-        ClientSecretsExt,
-    },
     Client,
+    secrets_manager::{
+        ClientSecretsExt,
+        secrets::{SecretIdentifiersByProjectRequest, SecretIdentifiersRequest, SecretsGetRequest},
+    },
 };
-use color_eyre::eyre::{bail, Result};
+use color_eyre::eyre::{Result, bail};
 use itertools::Itertools;
 use uuid::Uuid;
 use which::which;
 
 use crate::{
-    util::{is_valid_posix_name, uuid_to_posix},
     ACCESS_TOKEN_KEY_VAR_NAME,
+    util::{is_valid_posix_name, uuid_to_posix},
 };
 
 // Essential environment variables that should be preserved even when `--no-inherit-env` is used
@@ -80,7 +80,10 @@ pub(crate) async fn run(
 
     if !uuids_as_keynames {
         if let Some(duplicate) = secrets.iter().map(|s| &s.key).duplicates().next() {
-            bail!("Multiple secrets with name: '{}'. Use --uuids-as-keynames or use unique names for secrets", duplicate);
+            bail!(
+                "Multiple secrets with name: '{}'. Use --uuids-as-keynames or use unique names for secrets",
+                duplicate
+            );
         }
     }
 

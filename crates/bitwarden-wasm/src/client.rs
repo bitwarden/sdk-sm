@@ -4,7 +4,7 @@ use std::rc::Rc;
 use argon2::{Algorithm, Argon2, Params, Version};
 use bitwarden_json::client::Client as JsonClient;
 use js_sys::Promise;
-use log::{set_max_level, Level};
+use log::{Level, set_max_level};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::future_to_promise;
 

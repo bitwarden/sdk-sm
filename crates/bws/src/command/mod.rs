@@ -7,9 +7,9 @@ use std::{path::PathBuf, str::FromStr};
 use bitwarden::auth::AccessToken;
 use clap::CommandFactory;
 use clap_complete::Shell;
-use color_eyre::eyre::{bail, Result};
+use color_eyre::eyre::{Result, bail};
 
-use crate::{config, util, Cli, ProfileKey};
+use crate::{Cli, ProfileKey, config, util};
 
 pub(crate) fn completions(shell: Option<Shell>) -> Result<()> {
     let Some(shell) = shell.or_else(Shell::from_env) else {

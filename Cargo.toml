@@ -7,7 +7,7 @@ members = ["crates/*"]
 # Update using `cargo set-version -p bitwarden <new-version>`
 version = "1.0.0"
 authors = ["Bitwarden Inc"]
-edition = "2021"
+edition = "2024"
 # Note: Changing rust-version should be considered a breaking change
 rust-version = "1.85"
 homepage = "https://bitwarden.com"

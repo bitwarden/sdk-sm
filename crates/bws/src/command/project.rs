@@ -1,19 +1,19 @@
 use bitwarden::{
+    Client,
     secrets_manager::{
+        ClientProjectsExt,
         projects::{
             ProjectCreateRequest, ProjectGetRequest, ProjectPutRequest, ProjectsDeleteRequest,
             ProjectsListRequest,
         },
-        ClientProjectsExt,
     },
-    Client,
 };
-use color_eyre::eyre::{bail, Result};
+use color_eyre::eyre::{Result, bail};
 use uuid::Uuid;
 
 use crate::{
-    render::{serialize_response, OutputSettings},
     ProjectCommand,
+    render::{OutputSettings, serialize_response},
 };
 
 pub(crate) async fn process_command(

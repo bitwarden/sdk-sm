@@ -320,7 +320,7 @@ jobs:
         run: cargo zigbuild -p bws --release --target=${{ matrix.settings.target }}
 
       - name: Zip linux
-        run: zip -j "./bws-${{ matrix.settings.target }}-${_PACKAGE_VERSION }}.zip" ./target/${{ matrix.settings.target }}/release/bws
+        run: zip -j "./bws-${{ matrix.settings.target }}-${_PACKAGE_VERSION}.zip" ./target/${{ matrix.settings.target }}/release/bws
 
       - name: Upload artifact
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3

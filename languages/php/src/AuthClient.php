@@ -21,8 +21,8 @@ class AuthClient
     public function login_access_token(string $access_token, ?string $state_file): void
     {
         $access_token_request = new AccessTokenLoginRequest($access_token, $state_file);
-        $command = new Command(passwordLogin: null, apiKeyLogin: null, loginAccessToken: $access_token_request,
-            getUserApiKey: null, fingerprint: null, sync: null, secrets: null, projects: null, generators: null);
+        $command = new Command(loginAccessToken: $access_token_request,
+            secrets: null, projects: null, generators: null, debug: null);
         try {
             $result = $this->commandRunner->run($command);
             if (!isset($result->authenticated) || !$result->authenticated) {

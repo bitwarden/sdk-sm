@@ -87,8 +87,7 @@ class ProjectsClient
      */
     public function run_project_command($projectCommand): stdClass
     {
-        $command = new Command(passwordLogin: null, apiKeyLogin: null, loginAccessToken: null, getUserApiKey: null,
-            fingerprint: null, sync: null, secrets: null, projects: $projectCommand, generators: null);
+        $command = new Command(loginAccessToken: null, secrets: null, projects: $projectCommand, generators: null, debug: null);
         return $this->commandRunner->run($command);
     }
 }

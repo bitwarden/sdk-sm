@@ -17,7 +17,7 @@ description = "A Bitwarden Client for python"
 name = "bitwarden_sdk"
 readme = "README.md"
 requires-python = ">=3.0"
-version = "1.0.0"
+dynamic = ["version"] # Pull from crates/bitwarden-py/Cargo.toml
 
 [project.optional-dependencies]
 dev = [

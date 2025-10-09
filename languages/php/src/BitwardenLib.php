@@ -33,7 +33,7 @@ class BitwardenLib
                 $lib_file = __DIR__ . '/../../../target/debug/libbitwarden_c.so';
             }
         } elseif (PHP_OS === 'Darwin') {
-            $architecture = trim(exec('uname -m'));
+            $architecture = php_uname('m');
             if ($architecture === 'x86_64' || $architecture === 'amd64') {
                 $lib_file = __DIR__ . '/lib/macos-x64/libbitwarden_c.dylib';
             } elseif ($architecture === 'arm64') {

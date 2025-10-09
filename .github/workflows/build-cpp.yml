@@ -47,6 +47,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Install dependencies linux
         if: runner.os == 'Linux'
@@ -127,7 +129,7 @@ jobs:
 
           mkdir build
           cd build
-          cmake .. -DNLOHMANN=$DNLOHMANN_PATH -DBOOST=$DBOOST_PATH -DTARGET=$DTARGET
+          cmake .. -DNLOHMANN="$DNLOHMANN_PATH" -DBOOST="$DBOOST_PATH" -DTARGET="$DTARGET"
           cmake --build .
 
       - name: Build windows
@@ -153,7 +155,7 @@ jobs:
             cp libBitwardenClient.* artifacts
           fi
           if [[ '${{ runner.os }}' == 'Windows' ]]; then
-            cp */BitwardenClient.* artifacts
+            cp ./*/BitwardenClient.* artifacts
             cp ../include/bitwarden_c.{lib,dll.lib,dll} artifacts
           fi
 

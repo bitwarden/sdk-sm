@@ -31,6 +31,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Branch check
         if: ${{ inputs.release_type != 'Dry Run' }}
@@ -44,18 +46,20 @@ jobs:
 
       - name: Version output
         id: version-output
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          if [[ "${{ inputs.version }}" == "latest" || "${{ inputs.version }}" == "" ]]; then
+          if [[ "${VERSION}" == "latest" || "${VERSION}" == "" ]]; then
             TAG_NAME=$(curl  "https://api.github.com/repos/bitwarden/sdk-sm/releases" | jq -c '.[] | select(.tag_name | contains("ruby")) | .tag_name' | head -1)
-            VERSION=$(echo $TAG_NAME | grep -ohE '20[0-9]{2}\.([1-9]|1[0-2])\.[0-9]+')
+            VERSION=$(echo "$TAG_NAME" | grep -ohE '20[0-9]{2}\.([1-9]|1[0-2])\.[0-9]+')
             echo "Latest Released Version: $VERSION"
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
             echo "Latest Released Tag name: $TAG_NAME"
-            echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+            echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
           else
-            echo "Release Version: ${{ inputs.version }}"
-            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+            echo "Release Version: ${VERSION}"
+            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           fi
 
   publish:
@@ -70,6 +74,7 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ env._TAG_NAME }}
+          persist-credentials: false
 
       - name: Create GitHub deployment
         if: ${{ inputs.release_type != 'Dry Run' }}
@@ -100,16 +105,16 @@ jobs:
         uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Download ruby artifact
-        run: wget https://github.com/bitwarden/sdk-sm/releases/download/ruby-v${{ env._VERSION }}/bitwarden-sdk-secrets-${{ env._VERSION }}.gem
+        run: wget "https://github.com/bitwarden/sdk-sm/releases/download/ruby-v${_VERSION}/bitwarden-sdk-secrets-${_VERSION}.gem"
 
       - name: Push gem to Rubygems
         if: ${{ inputs.release_type != 'Dry Run' }}
         run: |
-          mkdir -p $HOME/.gem
-          touch $HOME/.gem/credentials
-          chmod 0600 $HOME/.gem/credentials
-          printf -- "---\n:rubygems_api_key: ${GEM_HOST_API_KEY}\n" > $HOME/.gem/credentials
-          gem push *.gem
+          mkdir -p "$HOME/.gem"
+          touch "$HOME/.gem/credentials"
+          chmod 0600 "$HOME/.gem/credentials"
+          printf -- "---\n:rubygems_api_key: %s\n" "$GEM_HOST_API_KEY" > "$HOME/.gem/credentials"
+          gem push ./*.gem
         env:
           GEM_HOST_API_KEY: ${{ steps.retrieve-secrets.outputs.rubygem-api-key }}
         working-directory: languages/ruby/bitwarden_sdk_secrets

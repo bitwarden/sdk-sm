@@ -32,6 +32,7 @@ defaults:
 
 env:
   _VERSION_FILE: ../../crates/bitwarden-py/Cargo.toml
+  _TEST_PYPI_REPOSITORY_URL: https://test.pypi.org/pypi/bitwarden-sdk/json
 
 permissions:
   contents: read
@@ -68,11 +69,8 @@ jobs:
           if [ "$USE_DEV_VERSION" = "true" ]; then
             latest_dev_num=0
 
-            #pypi_url="https://pypi.org/pypi/bitwarden-sdk/json"
-            pypi_url="https://test.pypi.org/pypi/bitwarden-sdk/json" # For publishing dev packages to Test PyPi
-
             # Get all versions from PyPI that match the current package version with dev suffix
-            dev_versions=$(curl -s "$pypi_url" | \
+            dev_versions=$(curl -s "$_TEST_PYPI_REPOSITORY_URL" | \
                 jq -r --arg version "$VERSION" \
                 '.releases | keys[] | select(test("^" + $version + "\\.dev[0-9]+$"))' || true)
 

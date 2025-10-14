@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use bitwarden_cli::Color;
-use clap::{builder::ValueParser, ArgGroup, Parser, Subcommand, ValueEnum};
+use clap::{ArgGroup, Parser, Subcommand, ValueEnum, builder::ValueParser};
 use clap_complete::Shell;
 use uuid::Uuid;
 

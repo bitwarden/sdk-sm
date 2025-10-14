@@ -43,7 +43,7 @@ jobs:
 
   setup:
     name: Setup
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       package_version: ${{ steps.retrieve-version.outputs.package_version }}
       package_version_cargo: ${{ steps.retrieve-version.outputs.package_version_cargo }}
@@ -123,12 +123,12 @@ jobs:
             python-version: "3.9"
             maturin-build-args: ""
 
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
             python-version: "3.9"
             maturin-build-args: "--zig"
 
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             target: aarch64-unknown-linux-gnu
             python-version: "3.9"
             maturin-build-args: "--zig"

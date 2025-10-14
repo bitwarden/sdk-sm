@@ -17,9 +17,6 @@ on:
         required: false
         default: "latest"
 
-defaults:
-  run:
-    shell: bash
 
 env:
   _TARGET_DIR: target/wheels/dist

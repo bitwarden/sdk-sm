@@ -70,15 +70,18 @@ jobs:
 
             # Get all versions from PyPI that match the current package version with dev suffix
             dev_versions=$(curl -s "$_TEST_PYPI_REPOSITORY_URL" | \
-                jq -r --arg version "$VERSION" \
-                '.releases | keys[] | select(test("^" + $version + "\\.dev[0-9]+$"))' || true)
+              jq -r --arg version "$VERSION" \
+              '.releases | keys[] | select(test("^" + $version + "\\.dev[0-9]+$"))' || true)
 
             if [ -n "$dev_versions" ]; then
-                # Extract dev numbers and find the latest
-                latest_dev_num=$(echo "$dev_versions" | \
-                    sed -n "s/^${VERSION}\.dev\([0-9]\+\)$/\1/p" | \
-                    sort -n | \
-                    tail -1)
+              # Extract dev numbers and find the latest
+              latest_dev_num=$(echo "$dev_versions" | \
+                sed -n "s/^${VERSION}\.dev\([0-9]\+\)$/\1/p" | \
+                sort -n | \
+                tail -1)
+            else
+              echo "Failed to retrieve current dev_versions from PyPi."
+              exit 1
             fi
 
             # Increment dev number

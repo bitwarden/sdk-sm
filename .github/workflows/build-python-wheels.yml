@@ -8,11 +8,30 @@ on:
       - "rc"
       - "hotfix-rc"
   workflow_dispatch:
+    inputs:
+      dev_version:
+        description: "Create a dev build (e.g., .dev1 suffix)"
+        default: false
+        type: boolean
+  workflow_call:
+    inputs:
+      dev_version:
+        description: "Create a dev build (e.g., .dev1 suffix)"
+        required: true
+        type: boolean
+    outputs:
+      package_version:
+        description: "The package version (with optional .devX suffix)"
+        value: ${{ jobs.setup.outputs.package_version }}
 
 defaults:
   run:
     shell: bash
     working-directory: languages/python
+
+env:
+  _VERSION_FILE: ../../crates/bitwarden-py/Cargo.toml
+  _TEST_PYPI_REPOSITORY_URL: https://test.pypi.org/pypi/bitwarden-sdk/json
 
 permissions:
   contents: read
@@ -24,17 +43,57 @@ jobs:
 
   setup:
     name: Setup
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       package_version: ${{ steps.retrieve-version.outputs.package_version }}
+      package_version_cargo: ${{ steps.retrieve-version.outputs.package_version_cargo }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Get Package Version
         id: retrieve-version
+        env:
+          USE_DEV_VERSION: ${{ inputs.dev_version }}
         run: |
-          VERSION="$(grep -o '^version = ".*"' ../../crates/bitwarden-py/Cargo.toml | grep -Eo "[0-9]+\.[0-9]+\.[0-9]+")"
+          VERSION="$(grep -o '^version = ".*"' "$_VERSION_FILE" | grep -Eo "[0-9]+\.[0-9]+\.[0-9]+")"
+
+          if [ -z "$VERSION" ]; then
+            echo "==================================="
+            echo "[!] Could not determine package version from $_VERSION_FILE"
+            echo "==================================="
+            exit 1
+          fi
+
+          if [ "$USE_DEV_VERSION" = "true" ]; then
+            latest_dev_num=0
+
+            # Get all versions from PyPI that match the current package version with dev suffix
+            dev_versions=$(curl -s "$_TEST_PYPI_REPOSITORY_URL" | \
+              jq -r --arg version "$VERSION" \
+              '.releases | keys[] | select(test("^" + $version + "\\.dev[0-9]+$"))' || true)
+
+            if [ -n "$dev_versions" ]; then
+              # Extract dev numbers and find the latest
+              latest_dev_num=$(echo "$dev_versions" | \
+                sed -n "s/^${VERSION}\.dev\([0-9]\+\)$/\1/p" | \
+                sort -n | \
+                tail -1)
+            else
+              echo "Failed to retrieve current dev_versions from PyPi."
+              exit 1
+            fi
+
+            # Increment dev number
+            new_dev_num=$((latest_dev_num + 1))
+            dev_version_suffix=".dev${new_dev_num}"
+
+            echo "package_version_cargo=${VERSION}-dev${new_dev_num}" >> $GITHUB_OUTPUT
+
+            VERSION="${VERSION}${dev_version_suffix}"
+          fi
+
+          echo "Package version: $VERSION"
           echo "package_version=$VERSION" >> $GITHUB_OUTPUT
 
   build:
@@ -64,12 +123,12 @@ jobs:
             python-version: "3.9"
             maturin-build-args: ""
 
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
             python-version: "3.9"
             maturin-build-args: "--zig"
 
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             target: aarch64-unknown-linux-gnu
             python-version: "3.9"
             maturin-build-args: "--zig"
@@ -77,6 +136,23 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Add dev version suffix
+        if: ${{ inputs.dev_version }}
+        env:
+          PACKAGE_VERSION_CARGO: ${{ needs.setup.outputs.package_version_cargo }}
+        run: |
+          echo "Updating version files with: $_PACKAGE_VERSION"
+
+          inplace_arg="-i"
+          # Use sed with cross-platform compatibility (macOS and Linux)
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            inplace_arg="-i ''"
+          fi
+
+          sed $inplace_arg "s/^version = \"[0-9]\.[0-9]\.[0-9]\"/version = \"$PACKAGE_VERSION_CARGO\"/" "$_VERSION_FILE"
+          sed $inplace_arg "s/__version__ = \"[0-9]\.[0-9]\.[0-9]\"/__version__ = \"$_PACKAGE_VERSION\"/" bitwarden_sdk/__init__.py
+          git diff
 
       - name: Setup Python
         uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
@@ -117,7 +193,7 @@ jobs:
           target: ${{ matrix.settings.target }}
           args: --release --interpreter python${{ matrix.settings.python-version }} ${{ matrix.settings.maturin-build-args }}
           sccache: true
-          working-directory: ${{ github.workspace }}/languages/python
+          working-directory: languages/python
 
       - name: Build wheels (Linux - x86_64)
         if: ${{ matrix.settings.target == 'x86_64-unknown-linux-gnu' }}
@@ -125,7 +201,7 @@ jobs:
         with:
           target: ${{ matrix.settings.target }}
           args: --release --sdist --interpreter python${{ matrix.settings.python-version }} ${{ matrix.settings.maturin-build-args }}
-          working-directory: ${{ github.workspace }}/languages/python
+          working-directory: languages/python
 
       - name: Upload wheels
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3

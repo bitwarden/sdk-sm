@@ -34,7 +34,7 @@ jobs:
       - name: Get Package Version
         id: retrieve-version
         run: |
-          VERSION="$(grep -o '^version = ".*"' ../../crates/bitwarden-py/Cargo.toml | grep -Eo "[0-9]+\.[0-9]+\.[0-9]+")"
+          VERSION="$(grep -o '^version = ".*"' ../../languages/python/pyproject.toml | grep -Eo "[0-9]+\.[0-9]+\.[0-9]+")"
           echo "package_version=$VERSION" >> $GITHUB_OUTPUT
 
   build:

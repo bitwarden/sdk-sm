@@ -1,5 +1,5 @@
 name: Publish Python SDK
-run-name: Publish Python SDK ${{ inputs.release_type }}
+run-name: Publish Python SDK - ${{ inputs.release_type }}
 
 on:
   workflow_dispatch:
@@ -13,24 +13,36 @@ on:
           - Release
           - Dry Run
       version:
-        description: "Release Version"
+        description: "Release Version (default: latest)"
         required: false
         default: "latest"
 
-defaults:
-  run:
-    shell: bash
+env:
+  _TARGET_DIR: target/wheels/dist
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   setup:
     name: Setup
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     outputs:
       version: ${{ steps.version-output.outputs.version }}
       tag_name: ${{ steps.version-output.outputs.tag_name }}
     steps:
+      - name: Log inputs to job summary
+        run: |
+          echo "<details><summary>Job Inputs</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          echo '${{ toJson(inputs) }}' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+
       - name: Checkout repo
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
@@ -49,100 +61,51 @@ jobs:
       - name: Version output
         id: version-output
         env:
-          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_PREFIX: python
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          if [[ "${VERSION}" == "latest" || "${VERSION}" == "" ]]; then
-            TAG_NAME=$(curl  "https://api.github.com/repos/bitwarden/sdk-sm/releases" | jq -c '.[] | select(.tag_name | contains("python")) | .tag_name' | head -1)
-            VERSION=$(echo "$TAG_NAME" | grep -ohE '20[0-9]{2}\.([1-9]|1[0-2])\.[0-9]+')
-            echo "Latest Released Version: $VERSION"
-            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
-            echo "Latest Released Tag name: $TAG_NAME"
-            echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          if [[ "$INPUT_VERSION" == "latest" ]]; then
+            TAG_NAME=$(gh release list --json tagName --jq ".[].tagName | select(startswith(\"$TAG_PREFIX\"))" --limit 100 --order desc | head -n 1)
           else
-            echo "Release Version: ${VERSION}"
-            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+            TAG_NAME=$(gh release list --json tagName --jq ".[].tagName | select(. == \"$TAG_PREFIX-v$INPUT_VERSION\")" --limit 100 | head -n 1)
+            echo "version=$INPUT_VERSION" >> "$GITHUB_OUTPUT"
           fi
+
+          echo "Found Tag Name: '$TAG_NAME' for version: '$INPUT_VERSION'"
+
+          if [ -z "$TAG_NAME" ]; then
+            echo "Unable to find tag for version: $INPUT_VERSION"
+            exit 1
+          fi
+          VERSION=$(echo "$TAG_NAME" | grep -ohE '[0-9]+\.[0-9]+\.[0-9]+')
+          echo "Latest Tag Name: $TAG_NAME"
+          echo "Latest Released Version: $VERSION"
+          echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
   publish:
     name: Publish
-    runs-on: ubuntu-22.04
+    environment: "Bitwarden SDK Python - Production"
+    runs-on: ubuntu-24.04
     needs: setup
     permissions:
       contents: read
       id-token: write
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-        with:
-          ref: ${{ needs.setup.outputs.tag_name }}
-          persist-credentials: false
-
-      - name: Install Python
-        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
-        with:
-          python-version: "3.9"
-
-      - name: Install twine
-        run: pip install twine
-
       - name: Get release assets
-        working-directory: ${{ github.workspace }}/target/wheels/dist
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_NAME: ${{ needs.setup.outputs.tag_name }}
+          VERSION: ${{ needs.setup.outputs.version }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
-          ARTIFACT_URLS=$(curl -sSL "https://api.github.com/repos/bitwarden/sdk-sm/releases/tags/${TAG_NAME}" | jq -r '.assets[].browser_download_url')
-          for url in $ARTIFACT_URLS; do
-            wget "$url"
-          done
+          gh release download "$TAG_NAME" --repo "$GITHUB_REPOSITORY" --dir "$_TARGET_DIR" --pattern "bitwarden_sdk-${VERSION}-*.whl"
+          find "$_TARGET_DIR" -type f
 
-      - name: Unpack release assets
-        working-directory: ${{ github.workspace }}/target/wheels/dist
-        run: |
-          for file in *.zip; do
-            unzip "$file"
-          done
-
-      - name: Move files
-        working-directory: ${{ github.workspace }}/target/wheels/dist
-        run: |
-          find . -maxdepth 2 -type f -print0 | xargs -0 mv -t .
-          rm -rf ./*/
-
-      - name: Log in to Azure
-        uses: bitwarden/gh-actions/azure-login@main
-        with:
-          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
-          client_id: ${{ secrets.AZURE_CLIENT_ID }}
-
-      - name: Retrieve pypi api token
-        id: retrieve-secret
-        uses: bitwarden/gh-actions/get-keyvault-secrets@main
-        with:
-          keyvault: "bitwarden-ci"
-          secrets: "pypi-api-token,
-            pypi-test-api-token"
-
-      - name: Log out from Azure
-        uses: bitwarden/gh-actions/azure-logout@main
-
-      - name: Check
-        working-directory: ${{ github.workspace }}/target/wheels
-        run: twine check dist/*
-
-      - name: Publish
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
         if: ${{ inputs.release_type != 'Dry Run' }}
-        working-directory: ${{ github.workspace }}/target/wheels
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ steps.retrieve-secret.outputs.pypi-api-token }}
-        run: twine upload --repository pypi dist/*
-
-      - name: Dry Run - Publish
-        if: ${{ inputs.release_type == 'Dry Run' }}
-        working-directory: ${{ github.workspace }}/target/wheels
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ steps.retrieve-secret.outputs.pypi-test-api-token }}
-        run: twine upload --repository testpypi dist/*
+        with:
+          packages-dir: ${{ env._TARGET_DIR }}
+          verify-metadata: true # Runs twine check before upload

@@ -265,7 +265,7 @@ class GeneratorsClient:
         Raises:
             ValueError:
                 If at least one of lowercase, uppercase, numbers, or special characters are
-                not between 1 and 255 (inclusive)
+                not between 4 and 255 (inclusive)
 
             ValueError:
                 If one of min_lowercase, min_uppercase, min_number, or min_special is a negative
@@ -284,12 +284,12 @@ class GeneratorsClient:
         """
 
         def _is_valid_length(length):
-            return isinstance(length, int) and 1 <= length <= 255
+            return isinstance(length, int) and 4 <= length <= 255
 
         # the SDK uses u8 for the generator values, so ensure we're within this range
         # and return a friendly error if not
         if not _is_valid_length(length):
-            raise ValueError("length must be between 1 and 255 (inclusive)")
+            raise ValueError("length must be between 4 and 255 (inclusive)")
 
         if not any([lowercase, uppercase, numbers, special]):
             raise ValueError(

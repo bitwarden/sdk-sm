@@ -265,7 +265,7 @@ class GeneratorsClient:
         Raises:
             ValueError:
                 If at least one of lowercase, uppercase, numbers, or special characters are
-                not greater than 0
+                not between 1 and 255 (inclusive)
 
             ValueError:
                 If one of min_lowercase, min_uppercase, min_number, or min_special is a negative
@@ -282,8 +282,14 @@ class GeneratorsClient:
                 If secret generation fails for any other reason. This would generally indicate a problem
                 with the FFI layer or system configuration.
         """
-        if length <= 0:
-            raise ValueError("length must be greater than 0")
+
+        def _is_valid_length(length):
+            return isinstance(length, int) and 1 <= length <= 255
+
+        # the SDK uses u8 for the generator values, so ensure we're within this range
+        # and return a friendly error if not
+        if not _is_valid_length(length):
+            raise ValueError("length must be between 1 and 255 (inclusive)")
 
         if not any([lowercase, uppercase, numbers, special]):
             raise ValueError(

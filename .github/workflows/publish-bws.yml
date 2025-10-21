@@ -237,7 +237,7 @@ jobs:
           for tag in "${tags_array[@]}"; do
             images+=("${tag}@${DIGEST}")
           done
-          cosign sign --yes "${images[@]}"
+          cosign sign --yes ${images[@]}
           echo "images=${images[*]}" >> "$GITHUB_OUTPUT"
 
       - name: Scan Docker image
@@ -296,7 +296,7 @@ jobs:
       - name: Test upload install scripts
         run: |
           for file in crates/bws/scripts/*; do
-            base=$(basename "$file") 
+            base=$(basename "$file")
             name="${base%.*}-prerelease.${base##*.}"
             echo "Uploading $file as $name"
             az storage blob upload \

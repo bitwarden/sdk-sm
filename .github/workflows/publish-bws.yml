@@ -49,16 +49,22 @@ jobs:
       deployment_id: ${{ steps.deployment.outputs.deployment_id }}
     steps:
       - name: Log inputs to job summary
+        env:
+          INPUTS: ${{ toJson(inputs) }}
         run: |
-          echo "<details><summary>Job Inputs</summary>" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo '```json' >> $GITHUB_STEP_SUMMARY
-          echo '${{ toJson(inputs) }}' >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "</details>" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "<details><summary>Job Inputs</summary>"
+            echo ""
+            echo '```json'
+            echo "${INPUTS}"
+            echo '```'
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Checkout repo
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Branch check
         if: ${{ inputs.release_type != 'Dry Run' }}
@@ -72,19 +78,21 @@ jobs:
 
       - name: Version output
         id: version-output
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          if [[ "${{ inputs.version }}" == "latest" || "${{ inputs.version }}" == "" ]]; then
+          if [[ "${VERSION}" == "latest" || "${VERSION}" == "" ]]; then
             TAG_NAME=$(curl  "https://api.github.com/repos/bitwarden/sdk-sm/releases" | jq -c '.[] | select(.tag_name | contains("bws")) | .tag_name' | head -1)
             echo "TAG_NAME: $TAG_NAME"
-            VERSION=$(echo $TAG_NAME | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | tr -d 'v')
+            VERSION=$(echo "$TAG_NAME" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | tr -d 'v')
             echo "Latest Released Version: $VERSION"
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
             echo "Latest Released Tag name: $TAG_NAME"
-            echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+            echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
           else
-            echo "Release Version: ${{ inputs.version }}"
-            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+            echo "Release Version: ${VERSION}"
+            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Create GitHub deployment
@@ -112,6 +120,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Log in to Azure
         uses: bitwarden/gh-actions/azure-login@main
@@ -162,6 +172,7 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ env._TAG_NAME }}
+          persist-credentials: false
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
@@ -179,9 +190,9 @@ jobs:
           if [[ "${DRY_RUN}" == "true" ]]; then
             REF=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
             IMAGE_TAG=$(echo "${REF}" | sed "s#/#-#g")  # slash safe branch name
-            echo "tags=$_AZ_REGISTRY/bws:${IMAGE_TAG},ghcr.io/bitwarden/bws:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+            echo "tags=$_AZ_REGISTRY/bws:${IMAGE_TAG},ghcr.io/bitwarden/bws:${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
           else
-            echo "tags=$_AZ_REGISTRY/bws:${VERSION},ghcr.io/bitwarden/bws:${VERSION},$_AZ_REGISTRY/bws:latest,ghcr.io/bitwarden/bws:latest" >> $GITHUB_OUTPUT
+            echo "tags=$_AZ_REGISTRY/bws:${VERSION},ghcr.io/bitwarden/bws:${VERSION},$_AZ_REGISTRY/bws:latest,ghcr.io/bitwarden/bws:latest" >> "$GITHUB_OUTPUT"
           fi
 
       ########## Set up Docker ##########
@@ -200,7 +211,7 @@ jobs:
           client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Login to Azure ACR
-        run: az acr login -n ${_AZ_REGISTRY%.azurecr.io}
+        run: az acr login -n "${_AZ_REGISTRY%.azurecr.io}"
       - name: Build and push Docker image
         id: build-docker
         uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # v6.9.0
@@ -221,12 +232,13 @@ jobs:
           DIGEST: ${{ steps.build-docker.outputs.digest }}
           TAGS: ${{ steps.tag-list.outputs.tags }}
         run: |
-          IFS="," read -a tags <<< "${TAGS}"
-          images=""
-          for tag in "${tags[@]}"; do
-            images+="${tag}@${DIGEST} "
+          IFS=',' read -r -a tags_array <<< "${TAGS}"
+          images=()
+          for tag in "${tags_array[@]}"; do
+            images+=("${tag}@${DIGEST}")
           done
-          cosign sign --yes ${images}
+          cosign sign --yes ${images[@]}
+          echo "images=${images[*]}" >> "$GITHUB_OUTPUT"
 
       - name: Scan Docker image
         id: container-scan
@@ -263,6 +275,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Log in to Azure
         uses: bitwarden/gh-actions/azure-login@main
@@ -275,19 +289,19 @@ jobs:
         run: |
           echo "Version: $EXPECTED_VERSION" && \
           az storage blob list \
-          --account-name $_ACCOUNT_NAME \
-          --container-name $_CONTAINER_NAME \
+          --account-name "$_ACCOUNT_NAME" \
+          --container-name "$_CONTAINER_NAME" \
           --query "[].name"
 
       - name: Test upload install scripts
         run: |
           for file in crates/bws/scripts/*; do
-            base=$(basename "$file") 
+            base=$(basename "$file")
             name="${base%.*}-prerelease.${base##*.}"
             echo "Uploading $file as $name"
             az storage blob upload \
-              --account-name $_ACCOUNT_NAME \
-              --container-name $_CONTAINER_NAME \
+              --account-name "$_ACCOUNT_NAME" \
+              --container-name "$_CONTAINER_NAME" \
               --file "$file" \
               --name "$name" \
               --overwrite true
@@ -322,8 +336,8 @@ jobs:
           release_name="${base%.*}.${base##*.}"
           echo "Copying $prerelease_name to $release_name in Azure Blob Storage"
           az storage blob copy start \
-            --account-name $_ACCOUNT_NAME \
-            --destination-container $_CONTAINER_NAME \
+            --account-name "$_ACCOUNT_NAME" \
+            --destination-container "$_CONTAINER_NAME" \
             --destination-blob "$release_name" \
             --source-uri "https://${_ACCOUNT_NAME}.blob.core.windows.net/${_CONTAINER_NAME}/${prerelease_name}"
           done

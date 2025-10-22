@@ -27,6 +27,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Branch check
         if: ${{ inputs.release_type != 'Dry Run' }}
@@ -42,7 +44,7 @@ jobs:
         id: version
         run: |
           VERSION=$(cat languages/php/composer.json | grep -Eo '"version": "[0-9]+\.[0-9]+\.[0-9]+"' | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
   setup-php:
     name: Setup PHP
@@ -52,6 +54,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Setup PHP with PECL extension
         uses: shivammathur/setup-php@c541c155eee45413f5b09a52248675b1a2575231 # 2.31.1
@@ -85,6 +89,7 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           path: sdk
+          persist-credentials: true
 
       - name: Log in to Azure
         uses: bitwarden/gh-actions/azure-login@main
@@ -110,6 +115,7 @@ jobs:
           path: sm-sdk-php
           ref: main
           token: ${{ steps.retrieve-secrets.outputs.github-pat-bitwarden-devops-bot-repo-scope }}
+          persist-credentials: true
 
       - name: Setup Git
         working-directory: sm-sdk-php
@@ -152,15 +158,15 @@ jobs:
         working-directory: sm-sdk-php
         run: |
           # Check if tag exists, set output then exit 0 if true.
-          if git log v${{ env._PKG_VERSION }} >/dev/null 2>&1; then
+          if git log "v${_PKG_VERSION}" >/dev/null 2>&1; then
             echo "==================================="
-            echo "[!] Tag v${{ env._PKG_VERSION }} already exists"
+            echo "[!] Tag v${_PKG_VERSION} already exists"
             echo "==================================="
             exit 1
           fi
 
-          git tag v${{ env._PKG_VERSION }}
-          git push origin v${{ env._PKG_VERSION }}
+          git tag "v${_PKG_VERSION}"
+          git push origin "v${_PKG_VERSION}"
 
   github-release:
     name: GitHub Release
@@ -230,10 +236,10 @@ jobs:
 
       - name: Rename build artifacts
         run: |
-          mv libbitwarden_c_files-x86_64-apple-darwin.zip libbitwarden_c_files-x86_64-apple-darwin-$_PKG_VERSION.zip
-          mv libbitwarden_c_files-aarch64-apple-darwin.zip libbitwarden_c_files-aarch64-apple-darwin-$_PKG_VERSION.zip
-          mv libbitwarden_c_files-x86_64-unknown-linux-gnu.zip libbitwarden_c_files-x86_64-unknown-linux-gnu-$_PKG_VERSION.zip
-          mv libbitwarden_c_files-x86_64-pc-windows-msvc.zip libbitwarden_c_files-x86_64-pc-windows-msvc-$_PKG_VERSION.zip
+          mv libbitwarden_c_files-x86_64-apple-darwin.zip "libbitwarden_c_files-x86_64-apple-darwin-$_PKG_VERSION.zip"
+          mv libbitwarden_c_files-aarch64-apple-darwin.zip "libbitwarden_c_files-aarch64-apple-darwin-$_PKG_VERSION.zip"
+          mv libbitwarden_c_files-x86_64-unknown-linux-gnu.zip "libbitwarden_c_files-x86_64-unknown-linux-gnu-$_PKG_VERSION.zip"
+          mv libbitwarden_c_files-x86_64-pc-windows-msvc.zip "libbitwarden_c_files-x86_64-pc-windows-msvc-$_PKG_VERSION.zip"
 
       - name: Create release
         if: ${{ inputs.release_type != 'Dry Run' }}
@@ -288,10 +294,11 @@ jobs:
           path: sm-sdk-php
           ref: main
           token: ${{ steps.retrieve-secrets.outputs.github-pat-bitwarden-devops-bot-repo-scope }}
+          persist-credentials: false
 
       - name: Publish version
         if: ${{ inputs.release_type != 'Dry Run' }}
         env:
           PACKAGIST_KEY: ${{ steps.retrieve-secrets.outputs.packagist-key }}
-        run: curl -XPOST -H'content-type:application/json' 'https://packagist.org/api/update-package?username=bitwarden&apiToken=${{ env.PACKAGIST_KEY }}' -d'{"repository":{"url":"https://packagist.org/packages/bitwarden/sdk-secrets"}}'
+        run: curl -XPOST -H'content-type:application/json' "https://packagist.org/api/update-package?username=bitwarden&apiToken=${PACKAGIST_KEY}" -d'{"repository":{"url":"https://packagist.org/packages/bitwarden/sdk-secrets"}}'
         working-directory: sm-sdk-php

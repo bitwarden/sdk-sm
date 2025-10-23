@@ -29,6 +29,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Branch check
         if: ${{ inputs.release_type != 'Dry Run' }}
@@ -44,7 +46,7 @@ jobs:
         id: version
         run: |
           VERSION=$(cat languages/go/.version | grep -Eo "[0-9]+\.[0-9]+\.[0-9]+")
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
   repo-sync:
     name: Push changed files to SDK Go repo
@@ -64,6 +66,7 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           path: sdk
+          persist-credentials: false
 
       - name: Log in to Azure
         uses: bitwarden/gh-actions/azure-login@main
@@ -89,6 +92,7 @@ jobs:
           path: sdk-go
           ref: main
           token: ${{ steps.retrieve-secrets.outputs.github-pat-bitwarden-devops-bot-repo-scope }}
+          persist-credentials: true
 
       - name: Setup Git
         working-directory: sdk-go
@@ -187,15 +191,15 @@ jobs:
         working-directory: sdk-go
         run: |
           # Check if tag exists, set output then exit 0 if true.
-          if git log v${{ env._PKG_VERSION }} >/dev/null 2>&1; then
+          if git log "v${_PKG_VERSION}" >/dev/null 2>&1; then
             echo "==================================="
-            echo "[!] Tag v${{ env._PKG_VERSION }} already exists"
+            echo "[!] Tag v${_PKG_VERSION} already exists"
             echo "==================================="
             exit 1
           fi
 
-          git tag v${{ env._PKG_VERSION }}
-          git push origin v${{ env._PKG_VERSION }}
+          git tag "v${_PKG_VERSION}"
+          git push origin "v${_PKG_VERSION}"
 
   github-release:
     name: GitHub Release
@@ -277,13 +281,13 @@ jobs:
           artifacts=("x86_64-apple-darwin" "aarch64-apple-darwin" "x86_64-unknown-linux-musl" "aarch64-unknown-linux-musl" "x86_64-pc-windows-gnu")
           for value in "${artifacts[@]}"
           do
-            unzip libbitwarden_c_files-$value.zip -d libbitwarden_c_files-$value
-            cd libbitwarden_c_files-$value
-            zip -Rj ../libbitwarden_c_files-$value-$_PKG_VERSION.zip 'libbitwarden_c.*'
+            unzip "libbitwarden_c_files-$value.zip" -d "libbitwarden_c_files-$value"
+            cd "libbitwarden_c_files-$value"
+            zip -Rj "../libbitwarden_c_files-$value-$_PKG_VERSION.zip" 'libbitwarden_c.*'
             cd ..
           done
 
-          ls ./libbitwarden_c_files-x86_64-apple-darwin-$_PKG_VERSION.zip -lRa
+          ls "./libbitwarden_c_files-x86_64-apple-darwin-$_PKG_VERSION.zip" -lRa
 
       - name: Create release
         if: ${{ inputs.release_type != 'Dry Run' }}

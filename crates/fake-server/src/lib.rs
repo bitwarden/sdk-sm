@@ -1,7 +1,7 @@
 use axum::{
+    Router,
     response::Json,
     routing::{get, post, put},
-    Router,
 };
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 

@@ -92,11 +92,14 @@ jobs:
           name: libbitwarden_c_files-x86_64-pc-windows-msvc
           path: languages/csharp/Bitwarden.Sdk/windows-x64
 
-      - name: Build .NET Project
-        working-directory: languages/csharp/Bitwarden.Sdk
-        run: |
-          dotnet restore
-          dotnet build --configuration Release
+      - name: Test
+        working-directory: languages/csharp
+        run: dotnet test
+        env:
+          IDENTITY_URL: "https://identity.qa.bitwarden.pw"
+          API_URL: "https://api.qa.bitwarden.pw"
+          ORGANIZATION_ID: ${{ secrets.SM_TEST_ORGANIZATION }}
+          ACCESS_TOKEN: ${{ secrets.SM_TEST_ACCESS_TOKEN }}
 
       - name: Pack NuGet Package
         run: dotnet pack --configuration Release --output ./nuget-output /nologo /v:n

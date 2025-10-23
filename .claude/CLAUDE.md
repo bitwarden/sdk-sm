@@ -1,8 +1,5 @@
 # Bitwarden Secrets Manager SDK
 
-TODO: see https://bitwarden.atlassian.net/wiki/x/LgDMaQ for configuration tips to complete the
-contents of this file.
-
 ## References
 
 - [SDK Architecture](https://contributing.bitwarden.com/architecture/sdk/secrets-manager/)

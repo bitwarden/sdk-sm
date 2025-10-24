@@ -19,7 +19,7 @@ keywords = ["bitwarden"]
 [workspace.dependencies]
 bitwarden = { path = "crates/bitwarden", version = "=1.0.0" }
 bitwarden-cli = { git = "https://github.com/bitwarden/sdk-internal.git", rev = "49d027c1f5144d6d319e3cab56782f8b844cd8c2" }
-bitwarden-core = { git = "https://github.com/bitwarden/sdk-internal.git", rev = "49d027c1f5144d6d319e3cab56782f8b844cd8c2" }
+bitwarden-core = { git = "https://github.com/bitwarden/sdk-internal.git", rev = "ac7150235ee7f3e362419a9240ba233a2e45f53b" }
 bitwarden-crypto = { git = "https://github.com/bitwarden/sdk-internal.git", rev = "49d027c1f5144d6d319e3cab56782f8b844cd8c2" }
 bitwarden-generators = { git = "https://github.com/bitwarden/sdk-internal.git", rev = "49d027c1f5144d6d319e3cab56782f8b844cd8c2" }
 bitwarden-sm = { git = "https://github.com/bitwarden/sdk-internal.git", rev = "49d027c1f5144d6d319e3cab56782f8b844cd8c2" }

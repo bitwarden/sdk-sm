@@ -20,28 +20,28 @@ using var bitwardenClient = new BitwardenClient(new BitwardenSettings
     IdentityUrl = identityUrl
 });
 
-bitwardenClient.LoginAccessToken(accessToken, stateFile);
+await bitwardenClient.Auth.LoginAccessTokenAsync(accessToken, stateFile);
 ```
 
 ### Create new project
 
 ```csharp
 var organizationId = Guid.Parse("<organization-id>");
-var projectResponse = bitwardenClient.Projects().Create(organizationId, "TestProject");
+var projectResponse = await bitwardenClient.Projects.CreateAsync(organizationId, "TestProject");
 ```
 
 ### List all projects
 
 ```csharp
-var response = bitwardenClient.Projects.List(organizationId);
+var projectList = await bitwardenClient.Projects.ListAsync(organizationId);
 ```
 
 ### Update project
 
 ```csharp
 var projectId = projectResponse.Id;
-projectResponse = bitwardenClient.Projects.Get(projectId);
-projectResponse = bitwardenClient.Projects.Update(organizationId, projectId, "TestProjectUpdated");
+projectResponse = await bitwardenClient.Projects.UpdateAsync(organizationId, projectId, "TestProjectUpdated");
+projectResponse = await bitwardenClient.Projects.GetAsync(projectId);
 ```
 
 ### Add new secret
@@ -50,40 +50,41 @@ projectResponse = bitwardenClient.Projects.Update(organizationId, projectId, "Te
 var key = "key";
 var value = "value";
 var note = "note";
-var secretResponse = bitwardenClient.Secrets.Create(organizationId, key, value, note, new[] { projectId });
+var secretResponse = await bitwardenClient.Secrets.CreateAsync(organizationId, key, value, note, new[] { projectId });
 ```
 
 ### Update secret
 ```csharp
 var secretId = secretResponse.Id;
-secretResponse = bitwardenClient.Secrets.Get(secretId);
-secretResponse = bitwardenClient.Secrets.Update(organizationId, secretId, "key2", "value2", "note2", new[] { projectId });
+secretResponse = await bitwardenClient.Secrets.UpdateAsync(organizationId, secretId, "key2", "value2", "note2", new[] { projectId });
+secretResponse = await bitwardenClient.Secrets.GetAsync(secretId);
 ```
 
 ### Secret GetByIds
 
 ```csharp
-var secretsResponse = bitwardenClient.Secrets.GetByIds(new[] { secretResponse.Id });
+var secretsResponse = await bitwardenClient.Secrets.GetByIdsAsync(new[] { secretResponse.Id });
 ```
 
 ### List secrets
 
 ```csharp
-var secretIdentifiersResponse = bitwardenClient.Secrets.List(organizationId);
+var secretsList = await bitwardenClient.Secrets.ListAsync(organizationId);
 ```
 
 ### Sync secrets
 
 ```csharp
-var syncResponse = bitwardenClient.Secrets.Sync(organizationId, null);
+var syncResponse = await bitwardenClient.Secrets.SyncAsync(organizationId, null);
 ```
 
 # Delete secret or project
 
 ```csharp
-bitwardenClient.Secrets.Delete(new [] { secretId });
-bitwardenClient.Projects.Delete(new [] { projectId });
+await bitwardenClient.Secrets.DeleteAsync(new [] { secretId });
+await bitwardenClient.Projects.DeleteAsync(new [] { projectId });
 ```
+# All main SDK methods are asynchronous. Use `await` and ensure your calling code is in an `async Task` method.
 
 [Access Tokens]: https://bitwarden.com/help/access-tokens/
 [Bitwarden Secrets Manager]: https://bitwarden.com/products/secrets-manager/

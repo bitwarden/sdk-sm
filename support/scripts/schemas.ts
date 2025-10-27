@@ -55,7 +55,7 @@ async function main() {
     lang: "csharp",
     rendererOptions: {
       namespace: "Bitwarden.Sdk",
-      framework: "SystemTextJson",
+      framework: "NewtonSoft",
       "csharp-version": "6",
     },
   });

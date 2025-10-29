@@ -1,6 +1,7 @@
+﻿using System;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Bitwarden.Sdk;
 
@@ -8,7 +9,6 @@ namespace Bitwarden.Sdk;
 [EditorBrowsable(EditorBrowsableState.Never)]
 partial class DebugCommand
 {
-
 }
 
 #if DEBUG
@@ -16,7 +16,7 @@ public sealed partial class BitwardenClient
 {
     public async Task<int> CancellationTestAsync(CancellationToken token)
     {
-        var result = await _commandRunner.RunCommandAsync<JsonElement>(
+        var result = await _commandRunner.RunCommandAsync<JToken>(
             new Command
             {
                 Debug = new DebugCommand
@@ -28,12 +28,12 @@ public sealed partial class BitwardenClient
                 },
             }, token);
 
-        return ParseResult(result).GetInt32();
+        return ParseResult(result).Value<int>();
     }
 
     public async Task<int> ErrorTestAsync()
     {
-        var result = await _commandRunner.RunCommandAsync<JsonElement>(
+        var result = await _commandRunner.RunCommandAsync<JToken>(
             new Command
             {
                 Debug = new DebugCommand
@@ -42,17 +42,24 @@ public sealed partial class BitwardenClient
                 },
             }, CancellationToken.None);
 
-        return ParseResult(result).GetInt32();
+        return ParseResult(result).Value<int>();
     }
 
-    private JsonElement ParseResult(JsonElement result)
+    private JToken ParseResult(JToken result)
     {
-        if (result.GetProperty("success").GetBoolean())
+        // Expecting: { "success": true|false, "data": ..., "errorMessage": "..." }
+        if (result is JObject obj && obj.Value<bool?>("success") == true)
         {
-            return result.GetProperty("data");
+            var data = obj["data"];
+            if (data is null)
+            {
+                throw new BitwardenException("Missing 'data' in successful response.");
+            }
+            return data;
         }
 
-        throw new BitwardenException(result.GetProperty("errorMessage").GetString());
+        var message = (result as JObject)?.Value<string>("errorMessage") ?? "Unknown error.";
+        throw new BitwardenException(message);
     }
 }
 #endif

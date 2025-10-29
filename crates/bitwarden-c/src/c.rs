@@ -17,7 +17,7 @@ pub struct CClient {
     client: Client,
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn run_command(c_str_ptr: *const c_char, client_ptr: *const CClient) -> *mut c_char {
     let client = unsafe { ffi_ref!(client_ptr) };
     let input_str = str::from_utf8(unsafe { CStr::from_ptr(c_str_ptr) }.to_bytes())
@@ -35,7 +35,7 @@ pub extern "C" fn run_command(c_str_ptr: *const c_char, client_ptr: *const CClie
 
 type OnCompletedCallback = unsafe extern "C" fn(result: *mut c_char) -> ();
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn run_command_async(
     c_str_ptr: *const c_char,
     client_ptr: *const CClient,
@@ -74,7 +74,7 @@ pub extern "C" fn run_command_async(
 }
 
 // Init client, potential leak! You need to call free_mem after this!
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn init(c_str_ptr: *const c_char) -> *mut CClient {
     // This will only fail if another logger was already initialized, so we can ignore the result
     let _ = env_logger::try_init();
@@ -97,19 +97,19 @@ pub extern "C" fn init(c_str_ptr: *const c_char) -> *mut CClient {
 }
 
 // Free mem
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn free_mem(client_ptr: *mut CClient) {
     std::mem::drop(unsafe { Box::from_raw(client_ptr) });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn abort_and_free_handle(join_handle_ptr: *mut tokio::task::JoinHandle<()>) {
     let join_handle = unsafe { Box::from_raw(join_handle_ptr) };
     join_handle.abort();
     std::mem::drop(join_handle);
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn free_handle(join_handle_ptr: *mut tokio::task::JoinHandle<()>) {
     std::mem::drop(unsafe { Box::from_raw(join_handle_ptr) });
 }

@@ -45,6 +45,8 @@ jobs:
 
       - name: Checkout repo
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Branch check
         if: ${{ inputs.release_type != 'Dry Run' }}
@@ -67,7 +69,7 @@ jobs:
             TAG_NAME=$(gh release list --json tagName --jq ".[].tagName | select(startswith(\"$TAG_PREFIX\"))" --limit 100 --order desc | head -n 1)
           else
             TAG_NAME=$(gh release list --json tagName --jq ".[].tagName | select(. == \"$TAG_PREFIX-v$INPUT_VERSION\")" --limit 100 | head -n 1)
-            echo "version=$INPUT_VERSION" >> $GITHUB_OUTPUT
+            echo "version=$INPUT_VERSION" >> "$GITHUB_OUTPUT"
           fi
 
           echo "Found Tag Name: '$TAG_NAME' for version: '$INPUT_VERSION'"
@@ -79,8 +81,8 @@ jobs:
           VERSION=$(echo "$TAG_NAME" | grep -ohE '[0-9]+\.[0-9]+\.[0-9]+')
           echo "Latest Tag Name: $TAG_NAME"
           echo "Latest Released Version: $VERSION"
-          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
   publish:
     name: Publish
@@ -98,7 +100,7 @@ jobs:
           VERSION: ${{ needs.setup.outputs.version }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
-          gh release download $TAG_NAME --repo "$GITHUB_REPOSITORY" --dir "$_TARGET_DIR" --pattern "bitwarden_sdk-${VERSION}-*.whl"
+          gh release download "$TAG_NAME" --repo "$GITHUB_REPOSITORY" --dir "$_TARGET_DIR" --pattern "bitwarden_sdk-${VERSION}-*.whl"
           find "$_TARGET_DIR" -type f
 
       - name: Publish package to PyPI

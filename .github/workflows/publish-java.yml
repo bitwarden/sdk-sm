@@ -37,6 +37,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Branch check
         if: ${{ inputs.release_type != 'Dry Run' }}
@@ -50,18 +52,20 @@ jobs:
 
       - name: Version output
         id: version-output
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          if [[ "${{ inputs.version }}" == "latest" || "${{ inputs.version }}" == "" ]]; then
+          if [[ "${VERSION}" == "latest" || "${VERSION}" == "" ]]; then
             TAG_NAME=$(curl  "https://api.github.com/repos/bitwarden/sdk-sm/releases" | jq -rc '.[] | select(.tag_name | contains("java")) | .tag_name' | head -1)
-            VERSION=$(echo $TAG_NAME | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+            VERSION=$(echo "$TAG_NAME" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
             echo "Latest Released Version: $VERSION"
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
             echo "Latest Released Tag name: $TAG_NAME"
-            echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+            echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
           else
-            echo "Release Version: ${{ inputs.version }}"
-            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+            echo "Release Version: ${VERSION}"
+            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           fi
 
   publish:
@@ -77,6 +81,7 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ needs.validate.outputs.tag_name }}
+          persist-credentials: false
 
       - name: Log in to Azure
         uses: bitwarden/gh-actions/azure-login@main
@@ -103,7 +108,7 @@ jobs:
           java-version: 17
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@d156388eb19639ec20ade50009f3d199ce1e2808 # v4.1.0
+        uses: gradle/actions/setup-gradle@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2 # v5.0.0
 
       - name: Download Java SDK Build
         uses: bitwarden/gh-actions/download-artifacts@main

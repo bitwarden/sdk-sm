@@ -16,7 +16,7 @@ async function main() {
     "schema",
     {
       name: "SchemaTypes",
-      uris: ["support/schemas/schema_types/SchemaTypes.json#/definitions/"],
+      uris: ["support/schemas/schema_types/SchemaTypes.json#/$defs/"],
     },
     () => new JSONSchemaInput(new FetchingJSONSchemaStore()),
   );

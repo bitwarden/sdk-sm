@@ -5,7 +5,7 @@ use std::{
 };
 
 use bitwarden::{
-    Client,
+    Client, OrganizationId,
     secrets_manager::{
         ClientSecretsExt,
         secrets::{SecretIdentifiersByProjectRequest, SecretIdentifiersRequest, SecretsGetRequest},
@@ -26,7 +26,7 @@ const WINDOWS_ESSENTIAL_VARS: &[&str] = &["SystemRoot", "ComSpec", "windir"];
 
 pub(crate) async fn run(
     client: Client,
-    organization_id: Uuid,
+    organization_id: OrganizationId,
     project_id: Option<Uuid>,
     uuids_as_keynames: bool,
     no_inherit_env: bool,
@@ -67,7 +67,9 @@ pub(crate) async fn run(
     } else {
         client
             .secrets()
-            .list(&SecretIdentifiersRequest { organization_id })
+            .list(&SecretIdentifiersRequest {
+                organization_id: organization_id.into(),
+            })
             .await?
     };
 

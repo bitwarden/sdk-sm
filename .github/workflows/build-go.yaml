@@ -31,11 +31,11 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
+      - name: Setup Node version
         uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
           cache: "npm"
           cache-dependency-path: "package-lock.json"
-          node-version: "16"
           node-version: "24"
 
       - name: Cache dependencies

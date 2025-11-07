@@ -11,6 +11,7 @@ accepted = [
     "Unicode-DFS-2016",
     "Unicode-3.0",
     "OpenSSL",
+    "Zlib",
 ]
 
 # Ring has all the licenses combined into a single file, which causes cargo about to

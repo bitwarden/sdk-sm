@@ -5,7 +5,7 @@
 The project is structured as a monorepo using cargo workspaces. Some of the more noteworthy crates
 are:
 
-- [`bitwarden`](./crates/bitwarden/): Rust friendly API for interacting with the secrets manager.
+- [`bitwarden`](./crates/bitwarden/): Rust-friendly API for interacting with the secrets manager.
 - [`bitwarden-c`](./crates/bitwarden-c/): C bindings for FFI interop.
 - [`bitwarden-json`](./crates/bitwarden-json/): JSON wrapper around the `bitwarden` crate. Powers
   the other language bindings.
@@ -25,8 +25,10 @@ PHP, Python, and Ruby. All bindings share a consistent API for projects and secr
 ## Schemas
 
 To minimize the amount of work required to support additional bindings the project is structured
-around a `json` based API. With every binding only needing to implement one method, namely
-`run_command`.
+around a `json` based API, beginning with every binding only needing to implement one method, namely
+a `run_command`. Additional work may be required to implement other functions, like a `free` command
+for languages that require manual memory management. Additional language-specific implementation
+details will apply based on the language.
 
 To ensure type safety in the API, _json schemas_ are generated from the rust structs in `bitwarden`
 using [schemars](https://crates.io/crates/schemars). The _json schemas_ are later used to generate
@@ -42,8 +44,9 @@ npm run schemas
 
 The SDK uses a **layered architecture** to support multiple languages efficiently:
 
-1. **Core Layer**: External Rust dependencies from `sdk-internal` repository (`bitwarden-core`,
-   `bitwarden-sm`, `bitwarden-generators`) contain the core business logic and cryptography.
+1. **Core Layer**: External Rust dependencies from
+   [sdk-internal](https://github.com/bitwarden/sdk-internal) repository contain the core business
+   logic and cryptography. The `Cargo.toml` file **must** be inspected for these dependencies.
 2. **Public API Layer**: The public `bitwarden` crate provides the Rust API.
 3. **JSON API Layer**: `bitwarden-json` wraps the Rust API with a single `run_command` method.
 4. **Language Bindings**: All language bindings call `run_command` with JSON requests/responses.
@@ -103,8 +106,8 @@ The fake server provides minimal CRUD operations for secrets and projects.
 ### Code Quality
 
 - **Formatting**: Requires nightly toolchain: `cargo +nightly fmt`
-- **Linting**: `cargo clippy` (workspace lints deny unwrap_used and unused_async)
-- **Testing**: Consider using `cargo-nextest` for faster parallel test execution
+- **Linting**: `cargo clippy --all-features --tests` (workspace lints deny unwrap_used and
+  unused_async)
 - **MSRV**: Minimum Supported Rust Version is 1.85
 
 ## References

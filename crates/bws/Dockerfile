@@ -1,7 +1,7 @@
 ###############################################
 #                 Build stage                 #
 ###############################################
-FROM rust:1.90-alpine AS build
+FROM rust:1.91-alpine AS build
 
 # Docker buildx supplies the value for this arg
 ARG TARGETPLATFORM

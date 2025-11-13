@@ -27,5 +27,5 @@ crates/bws/scripts/install.sh
 
 # Claude related files
 .claude/ @bitwarden/team-ai-sme
-.github/workflows/respond.yml @bitwarden/dept-bre
-.github/workflows/review-code.yml @bitwarden/dept-bre
+.github/workflows/respond.yml @bitwarden/team-ai-sme
+.github/workflows/review-code.yml @bitwarden/team-ai-sme

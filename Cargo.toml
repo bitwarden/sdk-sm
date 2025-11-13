@@ -25,7 +25,7 @@ bitwarden-generators = { git = "https://github.com/bitwarden/sdk-internal.git", 
 bitwarden-sm = { git = "https://github.com/bitwarden/sdk-internal.git", rev = "1586bd838a190dbaaa9d49aad386eb9700d9e36e" }
 
 log = "0.4.20"
-schemars = { version = "1.0.5", features = ["uuid1", "chrono04"] }
+schemars = { version = ">=1.0.0, <2.0", features = ["uuid1", "chrono04"] }
 tokio = { version = "1.36.0", features = ["macros"] }
 
 [workspace.lints.clippy]

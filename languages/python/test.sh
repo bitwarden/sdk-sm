@@ -67,6 +67,13 @@ build_package() {
 	source_venv
 
 	# Build the package in development mode
+	if [ "$(uname -s)" = "Linux" ]; then
+		# Linux requires patchelf for binary compatibility
+		uv pip install .[dev-linux]
+	else
+		uv pip install .[dev]
+	fi
+
 	maturin develop
 	echo "✓ Built Python package"
 }

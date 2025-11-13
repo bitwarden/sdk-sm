@@ -34,7 +34,7 @@ jobs:
       version: ${{ steps.version-output.outputs.version }}
       tag_name: ${{ steps.version-output.outputs.tag_name }}
     env:
-      INPUTS: ${{ toJson(inputs) }}
+      _INPUTS: ${{ toJson(inputs) }}
     steps:
       - name: Log inputs to job summary
         run: |
@@ -42,7 +42,7 @@ jobs:
             echo "<details><summary>Job Inputs</summary>"
             echo ""
             echo '```json'
-            echo "${INPUTS}"
+            echo "${_INPUTS}"
             echo '```'
             echo "</details>"
           } >> "$GITHUB_STEP_SUMMARY"

@@ -30,13 +30,13 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          - os: macos-13
+          - os: macos-15
             target: x86_64-apple-darwin
             build: |
               npm run build
               strip -x *.node
 
-          - os: macos-13
+          - os: macos-15
             target: aarch64-apple-darwin
             build: |
               npm run build-arm64

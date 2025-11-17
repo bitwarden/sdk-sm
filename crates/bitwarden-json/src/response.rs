@@ -1,10 +1,11 @@
 use std::error::Error;
 
-use schemars::{JsonSchema, json_schema};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[schemars(rename = "Response_for_{T}")]
 pub struct Response<T: Serialize + JsonSchema> {
     /// Whether or not the SDK request succeeded.
     pub success: bool,
@@ -12,44 +13,6 @@ pub struct Response<T: Serialize + JsonSchema> {
     pub error_message: Option<String>,
     /// The response data. Populated if `success` is true.
     pub data: Option<T>,
-}
-
-impl<T: Serialize + JsonSchema> JsonSchema for Response<T> {
-    fn schema_name() -> std::borrow::Cow<'static, str> {
-        format!("Response_for_{}", T::schema_name()).into()
-    }
-
-    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
-        json_schema!({
-          "type": "object",
-          "required": [
-            "success"
-          ],
-          "properties": {
-            "success": {
-              "description": "Whether or not the SDK request succeeded.",
-              "type": "boolean"
-            },
-            "errorMessage": {
-              "description": "A message for any error that may occur. Populated if `success` is false.",
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "data": {
-              "description": "The response data. Populated if `success` is true.",
-              "anyOf": [
-                generator.subschema_for::<T>(),
-                {
-                  "type": "null"
-                }
-              ]
-            }
-          },
-          "additionalProperties": false
-        })
-    }
 }
 
 impl<T: Serialize + JsonSchema> Response<T> {

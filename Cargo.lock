@@ -363,7 +363,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-api-api"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=1586bd838a190dbaaa9d49aad386eb9700d9e36e#1586bd838a190dbaaa9d49aad386eb9700d9e36e"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
 dependencies = [
  "async-trait",
  "reqwest",
@@ -378,7 +378,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-api-identity"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=1586bd838a190dbaaa9d49aad386eb9700d9e36e#1586bd838a190dbaaa9d49aad386eb9700d9e36e"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
 dependencies = [
  "async-trait",
  "reqwest",
@@ -402,7 +402,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-cli"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=1586bd838a190dbaaa9d49aad386eb9700d9e36e#1586bd838a190dbaaa9d49aad386eb9700d9e36e"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
 dependencies = [
  "clap",
  "color-eyre",
@@ -413,7 +413,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-core"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=1586bd838a190dbaaa9d49aad386eb9700d9e36e#1586bd838a190dbaaa9d49aad386eb9700d9e36e"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
 dependencies = [
  "async-trait",
  "bitwarden-api-api",
@@ -445,7 +445,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-crypto"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=1586bd838a190dbaaa9d49aad386eb9700d9e36e#1586bd838a190dbaaa9d49aad386eb9700d9e36e"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
 dependencies = [
  "aes",
  "argon2 0.6.0-rc.1",
@@ -483,7 +483,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-encoding"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=1586bd838a190dbaaa9d49aad386eb9700d9e36e#1586bd838a190dbaaa9d49aad386eb9700d9e36e"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
 dependencies = [
  "data-encoding",
  "data-encoding-macro",
@@ -494,7 +494,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-error"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=1586bd838a190dbaaa9d49aad386eb9700d9e36e#1586bd838a190dbaaa9d49aad386eb9700d9e36e"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
 dependencies = [
  "bitwarden-error-macro",
 ]
@@ -502,7 +502,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-error-macro"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=1586bd838a190dbaaa9d49aad386eb9700d9e36e#1586bd838a190dbaaa9d49aad386eb9700d9e36e"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
 dependencies = [
  "darling 0.20.11",
  "proc-macro2",
@@ -513,7 +513,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-generators"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=1586bd838a190dbaaa9d49aad386eb9700d9e36e#1586bd838a190dbaaa9d49aad386eb9700d9e36e"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
 dependencies = [
  "bitwarden-core",
  "bitwarden-crypto",
@@ -564,7 +564,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-sm"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=1586bd838a190dbaaa9d49aad386eb9700d9e36e#1586bd838a190dbaaa9d49aad386eb9700d9e36e"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
 dependencies = [
  "bitwarden-api-api",
  "bitwarden-core",
@@ -582,7 +582,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-state"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=1586bd838a190dbaaa9d49aad386eb9700d9e36e#1586bd838a190dbaaa9d49aad386eb9700d9e36e"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
 dependencies = [
  "async-trait",
  "bitwarden-error",
@@ -600,7 +600,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-threading"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=1586bd838a190dbaaa9d49aad386eb9700d9e36e#1586bd838a190dbaaa9d49aad386eb9700d9e36e"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
 dependencies = [
  "bitwarden-error",
  "log",
@@ -613,7 +613,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-uuid"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=1586bd838a190dbaaa9d49aad386eb9700d9e36e#1586bd838a190dbaaa9d49aad386eb9700d9e36e"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
 dependencies = [
  "bitwarden-uuid-macro",
 ]
@@ -621,7 +621,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-uuid-macro"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=1586bd838a190dbaaa9d49aad386eb9700d9e36e#1586bd838a190dbaaa9d49aad386eb9700d9e36e"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
 dependencies = [
  "quote",
  "syn",

@@ -17,14 +17,14 @@ on:
         required: false
         default: "latest"
 
-permissions:
-  contents: read
-  id-token: write
+permissions: {}
 
 jobs:
   setup:
     name: Setup
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
     outputs:
       release_version: ${{ steps.version-output.outputs.version }}
       tag_name: ${{ steps.version-output.outputs.tag_name }}
@@ -65,6 +65,9 @@ jobs:
   publish:
     name: Publish
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      id-token: write
     needs: setup
     env:
       _VERSION: ${{ needs.setup.outputs.release_version }}

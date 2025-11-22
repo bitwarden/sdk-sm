@@ -154,7 +154,7 @@ SecretsDeleteResponse Secrets::deleteSecrets(const std::vector<boost::uuids::uui
     }
     secretsDeleteRequest.set_ids(idsStr);
 
-    secretsCommand.set_secrets_command_delete(secretsDeleteRequest);
+    secretsCommand.set_secrets_delete(secretsDeleteRequest);
     command.set_secrets(secretsCommand);
 
     try {

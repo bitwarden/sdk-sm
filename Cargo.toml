@@ -21,7 +21,7 @@ bitwarden = { path = "crates/bitwarden", version = "=1.0.0" }
 bitwarden-cli = { git = "https://github.com/bitwarden/sdk-internal.git", rev = "49d027c1f5144d6d319e3cab56782f8b844cd8c2" }
 bitwarden-core = { git = "https://github.com/bitwarden/sdk-internal.git", rev = "49d027c1f5144d6d319e3cab56782f8b844cd8c2" }
 bitwarden-crypto = { git = "https://github.com/bitwarden/sdk-internal.git", rev = "49d027c1f5144d6d319e3cab56782f8b844cd8c2" }
-bitwarden-generators = { git = "https://github.com/bitwarden/sdk-internal.git", rev = "49d027c1f5144d6d319e3cab56782f8b844cd8c2" }
+bitwarden-generators = { git = "https://github.com/bitwarden/sdk-internal.git", rev = "f1185705b1aa0af0a11b4c1193a0b46a1150c0de" }
 bitwarden-sm = { git = "https://github.com/bitwarden/sdk-internal.git", rev = "49d027c1f5144d6d319e3cab56782f8b844cd8c2" }
 
 log = "0.4.20"

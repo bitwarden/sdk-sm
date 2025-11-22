@@ -1,3 +1,4 @@
+pub(crate) mod generate;
 pub(crate) mod project;
 pub(crate) mod run;
 pub(crate) mod secret;

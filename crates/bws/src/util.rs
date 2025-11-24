@@ -26,6 +26,7 @@ pub(crate) fn uuid_to_posix(uuid: &Uuid) -> String {
     format!("_{}", uuid.to_string().replace('-', "_"))
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 

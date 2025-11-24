@@ -27,7 +27,6 @@ async fn main() -> Result<()> {
     process_commands().await
 }
 
-#[allow(clippy::comparison_chain)]
 async fn process_commands() -> Result<()> {
     let cli = Cli::parse();
     let color = cli.color;

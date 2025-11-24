@@ -87,7 +87,7 @@ fn write_schema(schema: RootSchema, dir_path: String, type_name: String) -> Resu
 
 use bitwarden_json::response::Response;
 
-#[allow(dead_code)]
+#[expect(dead_code)]
 #[derive(JsonSchema)]
 struct SchemaTypes {
     // Input types for new Client

@@ -14,7 +14,7 @@ pub(crate) const UUIDS_AS_KEYNAMES_VAR_NAME: &str = "BWS_UUIDS_AS_KEYNAMES";
 pub(crate) const DEFAULT_CONFIG_FILENAME: &str = "config";
 pub(crate) const DEFAULT_CONFIG_DIRECTORY: &str = ".config/bws";
 
-#[allow(non_camel_case_types)]
+#[expect(non_camel_case_types)]
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
 pub(crate) enum ProfileKey {
     server_base,
@@ -25,7 +25,7 @@ pub(crate) enum ProfileKey {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
-#[allow(clippy::upper_case_acronyms)]
+#[expect(clippy::upper_case_acronyms)]
 pub(crate) enum Output {
     JSON,
     YAML,

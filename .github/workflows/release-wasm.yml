@@ -17,14 +17,14 @@ defaults:
   run:
     working-directory: languages/js/wasm
 
-permissions:
-  contents: write
-  actions: read
+permissions: {}
 
 jobs:
   setup:
     name: Setup
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
     outputs:
       release_version: ${{ steps.version.outputs.version }}
     steps:
@@ -55,6 +55,9 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      actions: read
     needs: setup
     steps:
       - name: Checkout repo

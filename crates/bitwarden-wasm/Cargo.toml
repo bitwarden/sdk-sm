@@ -15,10 +15,6 @@ keywords.workspace = true
 crate-type = ["cdylib"]
 
 [dependencies]
-argon2 = { version = ">=0.5.0, <0.6", features = [
-    "alloc",
-    "zeroize",
-], default-features = false }
 bitwarden-json = { path = "../bitwarden-json", features = ["secrets"] }
 console_error_panic_hook = "0.1.7"
 console_log = { version = "1.0.0", features = ["color"] }

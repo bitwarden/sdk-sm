@@ -7,22 +7,22 @@
     <Nullable>enable</Nullable>
     <RootNamespace>Bitwarden.Sdk</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Title>Bitwarden Secrets Manager SDK</Title>
-    <Authors>Bitwarden Inc.</Authors>
-    <Description>.NET bindings for interacting with the Bitwarden Secrets Manager</Description>
-    <Copyright>Bitwarden Inc.</Copyright>
-    <Product>SDK</Product>
+  <Title>Bitwarden Secrets Manager SDK (Community Fork)</Title>
+  <Authors>youcefnb</Authors>
+  <Description>Forked .NET bindings for interacting with the Bitwarden Secrets Manager</Description>
+  <Copyright>Bitwarden Inc. (forked by youcefnb)</Copyright>
+  <Product>SDK</Product>
 
-    <RepositoryUrl>https://github.com/bitwarden/sdk-sm/tree/main/languages/csharp</RepositoryUrl>
-    <RepositoryType>Git</RepositoryType>
+  <RepositoryUrl>https://github.com/youcefnb/sdk-sm/tree/main/languages/csharp</RepositoryUrl>
+  <RepositoryType>Git</RepositoryType>
 
-    <PackageProjectUrl>https://bitwarden.com/products/secrets-manager/</PackageProjectUrl>
-    <PackageId>Bitwarden.Secrets.Sdk</PackageId>
-    <PackageIcon>bitwarden.png</PackageIcon>
-    <PackageTags>Bitwarden;Secrets Manager;Sdk;.NET</PackageTags>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-    <Version>1.0.0</Version>
+  <PackageProjectUrl>https://bitwarden.com/products/secrets-manager/</PackageProjectUrl>
+  <PackageId>Community.Bitwarden.Secrets.Sdk.Standard</PackageId>
+  <PackageIcon>bitwarden.png</PackageIcon>
+  <PackageTags>Bitwarden;Secrets Manager;Sdk;.NET;Standard</PackageTags>
+  <PackageReadmeFile>README.md</PackageReadmeFile>
+  <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+  <Version>1.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -73,6 +73,11 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <PackagePath>runtimes/win-x64/native</PackagePath>
+    </Content>
+    <Content Include="windows-x86/bitwarden_c*.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <PackagePath>runtimes/win-x86/native</PackagePath>
     </Content>
   </ItemGroup>
 </Project>

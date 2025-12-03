@@ -143,14 +143,14 @@ dependencies = [
 
 [[package]]
 name = "argon2"
-version = "0.6.0-rc.1"
+version = "0.6.0-rc.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d911686206fdd816a61ed5226535997149b0fc7726e37fee46f407c9ff82ed87"
+checksum = "e1a213fe583d472f454ae47407edc78848bebd950493528b1d4f7327a7dc335f"
 dependencies = [
  "base64ct",
- "blake2 0.11.0-rc.2",
+ "blake2 0.11.0-rc.3",
  "cpufeatures",
- "password-hash 0.6.0-rc.1",
+ "password-hash 0.6.0-rc.2",
  "zeroize",
 ]
 
@@ -363,7 +363,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-api-api"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=ab7ae369f07ecbcce8db5512f076881ff8cc8f7b#ab7ae369f07ecbcce8db5512f076881ff8cc8f7b"
 dependencies = [
  "async-trait",
  "reqwest",
@@ -378,7 +378,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-api-identity"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=ab7ae369f07ecbcce8db5512f076881ff8cc8f7b#ab7ae369f07ecbcce8db5512f076881ff8cc8f7b"
 dependencies = [
  "async-trait",
  "reqwest",
@@ -402,7 +402,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-cli"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=ab7ae369f07ecbcce8db5512f076881ff8cc8f7b#ab7ae369f07ecbcce8db5512f076881ff8cc8f7b"
 dependencies = [
  "clap",
  "color-eyre",
@@ -413,7 +413,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-core"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=ab7ae369f07ecbcce8db5512f076881ff8cc8f7b#ab7ae369f07ecbcce8db5512f076881ff8cc8f7b"
 dependencies = [
  "async-trait",
  "bitwarden-api-api",
@@ -425,7 +425,6 @@ dependencies = [
  "bitwarden-uuid",
  "chrono",
  "getrandom 0.2.16",
- "log",
  "rand 0.8.5",
  "reqwest",
  "rustls",
@@ -437,6 +436,7 @@ dependencies = [
  "serde_qs",
  "serde_repr",
  "thiserror 1.0.69",
+ "tracing",
  "uuid",
  "zeroize",
  "zxcvbn",
@@ -445,10 +445,10 @@ dependencies = [
 [[package]]
 name = "bitwarden-crypto"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=ab7ae369f07ecbcce8db5512f076881ff8cc8f7b#ab7ae369f07ecbcce8db5512f076881ff8cc8f7b"
 dependencies = [
  "aes",
- "argon2 0.6.0-rc.1",
+ "argon2 0.6.0-rc.2",
  "bitwarden-encoding",
  "bitwarden-error",
  "cbc",
@@ -483,7 +483,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-encoding"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=ab7ae369f07ecbcce8db5512f076881ff8cc8f7b#ab7ae369f07ecbcce8db5512f076881ff8cc8f7b"
 dependencies = [
  "data-encoding",
  "data-encoding-macro",
@@ -494,7 +494,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-error"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=ab7ae369f07ecbcce8db5512f076881ff8cc8f7b#ab7ae369f07ecbcce8db5512f076881ff8cc8f7b"
 dependencies = [
  "bitwarden-error-macro",
 ]
@@ -502,7 +502,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-error-macro"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=ab7ae369f07ecbcce8db5512f076881ff8cc8f7b#ab7ae369f07ecbcce8db5512f076881ff8cc8f7b"
 dependencies = [
  "darling 0.20.11",
  "proc-macro2",
@@ -513,7 +513,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-generators"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=ab7ae369f07ecbcce8db5512f076881ff8cc8f7b#ab7ae369f07ecbcce8db5512f076881ff8cc8f7b"
 dependencies = [
  "bitwarden-core",
  "bitwarden-crypto",
@@ -564,17 +564,17 @@ dependencies = [
 [[package]]
 name = "bitwarden-sm"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=ab7ae369f07ecbcce8db5512f076881ff8cc8f7b#ab7ae369f07ecbcce8db5512f076881ff8cc8f7b"
 dependencies = [
  "bitwarden-api-api",
  "bitwarden-core",
  "bitwarden-crypto",
  "chrono",
- "log",
  "schemars 1.0.5",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
+ "tracing",
  "uuid",
  "validator",
 ]
@@ -582,7 +582,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-state"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=ab7ae369f07ecbcce8db5512f076881ff8cc8f7b#ab7ae369f07ecbcce8db5512f076881ff8cc8f7b"
 dependencies = [
  "async-trait",
  "bitwarden-error",
@@ -600,20 +600,20 @@ dependencies = [
 [[package]]
 name = "bitwarden-threading"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=ab7ae369f07ecbcce8db5512f076881ff8cc8f7b#ab7ae369f07ecbcce8db5512f076881ff8cc8f7b"
 dependencies = [
  "bitwarden-error",
- "log",
  "serde",
  "thiserror 1.0.69",
  "tokio",
  "tokio-util",
+ "tracing",
 ]
 
 [[package]]
 name = "bitwarden-uuid"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=ab7ae369f07ecbcce8db5512f076881ff8cc8f7b#ab7ae369f07ecbcce8db5512f076881ff8cc8f7b"
 dependencies = [
  "bitwarden-uuid-macro",
 ]
@@ -621,7 +621,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-uuid-macro"
 version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=9574dcc1f5916e73e54cf16e18be456c937a1b99#9574dcc1f5916e73e54cf16e18be456c937a1b99"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=ab7ae369f07ecbcce8db5512f076881ff8cc8f7b#ab7ae369f07ecbcce8db5512f076881ff8cc8f7b"
 dependencies = [
  "quote",
  "syn",
@@ -655,11 +655,11 @@ dependencies = [
 
 [[package]]
 name = "blake2"
-version = "0.11.0-rc.2"
+version = "0.11.0-rc.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1edac47499deef695d9431bf241c75ea29f4cf3dcb78d39e19b31515e4ad3b08"
+checksum = "679065eb2b85a078ace42411e657bef3a6afe93a40d1b9cb04e39ca303cc3f36"
 dependencies = [
- "digest 0.11.0-rc.3",
+ "digest 0.11.0-rc.4",
 ]
 
 [[package]]
@@ -1180,9 +1180,9 @@ dependencies = [
 
 [[package]]
 name = "crypto-common"
-version = "0.2.0-rc.4"
+version = "0.2.0-rc.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a8235645834fbc6832939736ce2f2d08192652269e11010a6240f61b908a1c6"
+checksum = "919bd05924682a5480aec713596b9e2aabed3a0a6022fab6847f85a99e5f190a"
 dependencies = [
  "hybrid-array",
 ]
@@ -1386,12 +1386,12 @@ dependencies = [
 
 [[package]]
 name = "digest"
-version = "0.11.0-rc.3"
+version = "0.11.0-rc.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dac89f8a64533a9b0eaa73a68e424db0fb1fd6271c74cc0125336a05f090568d"
+checksum = "ea390c940e465846d64775e55e3115d5dc934acb953de6f6e6360bc232fe2bf7"
 dependencies = [
  "block-buffer 0.11.0-rc.5",
- "crypto-common 0.2.0-rc.4",
+ "crypto-common 0.2.0-rc.5",
  "subtle",
 ]
 
@@ -2706,12 +2706,12 @@ dependencies = [
 
 [[package]]
 name = "password-hash"
-version = "0.6.0-rc.1"
+version = "0.6.0-rc.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ee14c44aa1c04c22c4d4532c4fa2cdd5b6d31c2514a5898530d889fc2fc2737"
+checksum = "a7d47a2d1aee5a339aa6c740d9128211a8a3d2bdf06a13e01b3f8a0b5c49b9db"
 dependencies = [
  "base64ct",
- "rand_core 0.9.3",
+ "rand_core 0.10.0-rc-2",
  "subtle",
 ]
 
@@ -3110,6 +3110,12 @@ checksum = "99d9a13982dcf210057a8a78572b2217b667c3beacbf3a0d8b454f6f82837d38"
 dependencies = [
  "getrandom 0.3.4",
 ]
+
+[[package]]
+name = "rand_core"
+version = "0.10.0-rc-2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "104a23e4e8b77312a823b6b5613edbac78397e2f34320bc7ac4277013ec4478e"
 
 [[package]]
 name = "rayon"

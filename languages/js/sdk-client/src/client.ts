@@ -29,7 +29,7 @@ export class BitwardenClient {
   async accessTokenLogin(accessToken: string): Promise<void> {
     const response = await this.client.run_command(
       Convert.commandToJson({
-        accessTokenLogin: {
+        loginAccessToken: {
           accessToken,
         },
       }),

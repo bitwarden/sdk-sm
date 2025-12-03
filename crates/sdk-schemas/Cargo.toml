@@ -17,6 +17,6 @@ keywords.workspace = true
 anyhow = "1.0.82"
 bitwarden = { workspace = true }
 bitwarden-json = { path = "../bitwarden-json" }
-itertools = "0.13.0"
+itertools = "0.14.0"
 schemars = { workspace = true, features = ["preserve_order"] }
 serde_json = "1.0.113"

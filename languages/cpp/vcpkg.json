@@ -3,9 +3,5 @@
   "version": "0.1.0",
   "homepage": "https://github.com/bitwarden/sdk-sm/tree/languages/cpp",
   "description": "Bitwarden Secrets Manager SDK for C++",
-  "dependencies": [
-    "boost-uuid",
-    "boost-optional",
-    "nlohmann-json"
-  ]
+  "dependencies": ["boost-uuid", "boost-optional", "nlohmann-json"]
 }

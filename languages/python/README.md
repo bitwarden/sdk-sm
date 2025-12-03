@@ -1,4 +1,5 @@
 # Build locally
+
 ## Requirements
 
 - Python 3
@@ -16,8 +17,8 @@ npm run schemas # generate schemas.py
 cd languages/python/
 ```
 
-You will need to build and run the script using a virtual environment.
-This will be slightly different depending on the OS you are using:
+You will need to build and run the script using a virtual environment. This will be slightly
+different depending on the OS you are using:
 
 ```bash
 # --- Linux/macOS ---
@@ -41,6 +42,7 @@ deactivate # run this to close the virtual session
 ```
 
 You can now import `BitwardenClient` in your Python code with:
+
 ```python
 from bitwarden_sdk import BitwardenClient
 ```
@@ -53,7 +55,8 @@ pip install bitwarden-sdk
 
 # Run
 
-Set the `ORGANIZATION_ID` and `ACCESS_TOKEN` environment variables to your organization ID and access token, respectively.
+Set the `ORGANIZATION_ID` and `ACCESS_TOKEN` environment variables to your organization ID and
+access token, respectively.
 
 ```bash
 python3 ./example.py

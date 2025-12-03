@@ -1,6 +1,7 @@
 # Bitwarden Secrets Manager SDK wrapper for PHP
 
-PHP bindings for interacting with the [Bitwarden Secrets Manager]. This is a beta release and might be missing some functionality.
+PHP bindings for interacting with the [Bitwarden Secrets Manager]. This is a beta release and might
+be missing some functionality.
 
 ## Installation
 
@@ -10,8 +11,8 @@ See the [installation instructions](./INSTALL.md)
 
 ### Create access token
 
-To interact with the client first you need to obtain the access token from Bitwarden.
-Review the help documentation on [Access Tokens].
+To interact with the client first you need to obtain the access token from Bitwarden. Review the
+help documentation on [Access Tokens].
 
 ### Create new Bitwarden client
 
@@ -30,8 +31,9 @@ $bitwarden_client = new \Bitwarden\Sdk\BitwardenClient($bitwarden_settings);
 $bitwarden_client->auth->login_access_token($access_token, $state_file);
 ```
 
-Initialize `BitwardenSettings` by passing `$api_url` and `$identity_url` or set to null to use the defaults.
-The default for `api_url` is `https://api.bitwarden.com` and for `identity_url` is `https://identity.bitwarden.com`.
+Initialize `BitwardenSettings` by passing `$api_url` and `$identity_url` or set to null to use the
+defaults. The default for `api_url` is `https://api.bitwarden.com` and for `identity_url` is
+`https://identity.bitwarden.com`.
 
 ### Create new project
 
@@ -117,5 +119,4 @@ $res = $bitwarden_client->secrets->delete([$secret_id]);
 ```
 
 [Access Tokens]: https://bitwarden.com/help/access-tokens/
-
 [Bitwarden Secrets Manager]: https://bitwarden.com/products/secrets-manager/

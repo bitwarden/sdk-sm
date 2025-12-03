@@ -1,7 +1,7 @@
 # Bitwarden Secrets Manager SDK
 
-Java bindings for interacting with the [Bitwarden Secrets Manager]. This is a beta release and might be missing some
-functionality.
+Java bindings for interacting with the [Bitwarden Secrets Manager]. This is a beta release and might
+be missing some functionality.
 
 ## Create access token
 
@@ -92,6 +92,7 @@ var secretIdentifiersResponse = bitwardenClient.secrets().list(organizationId);
 ```
 
 ### Secrets sync
+
 ```java
 SecretsSyncResponse syncResponse = bitwardenClient.secrets().sync(organizationId, OffsetDateTime.now());
 System.out.println("Has changes: " + syncResponse.getHasChanges());

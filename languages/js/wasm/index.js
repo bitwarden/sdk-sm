@@ -1,5 +1,5 @@
 if (typeof WebAssembly !== "object" || typeof WebAssembly.instantiate !== "function") {
-	throw new Error("WebAssembly is required to use @bitwarden/sdk-wasm.");
+  throw new Error("WebAssembly is required to use @bitwarden/sdk-wasm.");
 }
 
 const wasm = await import("./bitwarden_wasm_bg.wasm");

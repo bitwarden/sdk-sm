@@ -101,7 +101,7 @@ ProjectsDeleteResponse Projects::deleteProjects(const std::vector<boost::uuids::
     }
     projectsDeleteRequest.set_ids(idStrs);
 
-    projectsCommand.set_projects_command_delete(projectsDeleteRequest);
+    projectsCommand.set_projects_delete(projectsDeleteRequest);
     command.set_projects(projectsCommand);
 
     try {

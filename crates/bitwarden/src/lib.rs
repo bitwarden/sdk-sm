@@ -33,6 +33,7 @@
 //!         api_url: "https://api.bitwarden.com".to_string(),
 //!         user_agent: "Bitwarden Rust-SDK".to_string(),
 //!         device_type: DeviceType::SDK,
+//!         bitwarden_client_version: Some(env!("CARGO_PKG_VERSION").to_string()),
 //!     };
 //!     let mut client = Client::new(Some(settings));
 //!

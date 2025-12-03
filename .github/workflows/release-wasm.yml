@@ -17,14 +17,14 @@ defaults:
   run:
     working-directory: languages/js/wasm
 
-permissions:
-  contents: write
-  actions: read
+permissions: {}
 
 jobs:
   setup:
     name: Setup
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
     outputs:
       release_version: ${{ steps.version.outputs.version }}
     steps:
@@ -55,6 +55,9 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      actions: read
     needs: setup
     steps:
       - name: Checkout repo
@@ -63,7 +66,7 @@ jobs:
           persist-credentials: false
 
       - name: Download artifacts
-        uses: dawidd6/action-download-artifact@bf251b5aa9c2f7eeb574a96ee720e24f801b7c11 # v6
+        uses: dawidd6/action-download-artifact@ac66b43f0e6a346234dd65d4d0c8fbb31cb316e5 # v11
         with:
           workflow: build-wasm.yml
           skip_unpack: true

@@ -29,6 +29,7 @@ schemars = { version = ">=1.0.0, <2.0", features = ["uuid1", "chrono04"] }
 tokio = { version = "1.36.0", features = ["macros"] }
 
 [workspace.lints.clippy]
+allow-attributes = "deny"
 unused_async = "deny"
 unwrap_used = "deny"
 

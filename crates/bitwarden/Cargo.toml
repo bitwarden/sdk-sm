@@ -24,7 +24,10 @@ secrets = [
     "dep:bitwarden-sm",
     "dep:bitwarden-generators",
 ] # Secrets manager API
-wasm = [] # WASM support
+wasm = [
+    "bitwarden-core/wasm",
+    "bitwarden-generators/wasm",
+] # WASM support
 
 [dependencies]
 bitwarden-core = { workspace = true }

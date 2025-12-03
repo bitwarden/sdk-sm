@@ -437,7 +437,10 @@ dependencies = [
  "serde_repr",
  "thiserror 1.0.69",
  "tracing",
+ "tsify",
  "uuid",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
  "zeroize",
  "zxcvbn",
 ]
@@ -474,8 +477,10 @@ dependencies = [
  "sha2",
  "subtle",
  "thiserror 1.0.69",
+ "tsify",
  "typenum",
  "uuid",
+ "wasm-bindgen",
  "zeroize",
  "zeroizing-alloc",
 ]
@@ -489,6 +494,8 @@ dependencies = [
  "data-encoding-macro",
  "serde",
  "thiserror 1.0.69",
+ "tsify",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -497,6 +504,9 @@ version = "1.0.0"
 source = "git+https://github.com/bitwarden/sdk-internal.git?rev=ab7ae369f07ecbcce8db5512f076881ff8cc8f7b#ab7ae369f07ecbcce8db5512f076881ff8cc8f7b"
 dependencies = [
  "bitwarden-error-macro",
+ "js-sys",
+ "tsify",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -524,6 +534,8 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 1.0.69",
+ "tsify",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -603,11 +615,15 @@ version = "1.0.0"
 source = "git+https://github.com/bitwarden/sdk-internal.git?rev=ab7ae369f07ecbcce8db5512f076881ff8cc8f7b#ab7ae369f07ecbcce8db5512f076881ff8cc8f7b"
 dependencies = [
  "bitwarden-error",
+ "gloo-timers",
+ "js-sys",
  "serde",
  "thiserror 1.0.69",
  "tokio",
  "tokio-util",
  "tracing",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]
@@ -1769,6 +1785,18 @@ dependencies = [
  "log",
  "regex-automata",
  "regex-syntax",
+]
+
+[[package]]
+name = "gloo-timers"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbb143cf96099802033e0d4f4963b19fd2e0b728bcf076cd9cf7f6634f092994"
+dependencies = [
+ "futures-channel",
+ "futures-core",
+ "js-sys",
+ "wasm-bindgen",
 ]
 
 [[package]]

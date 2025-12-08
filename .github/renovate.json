@@ -27,6 +27,11 @@
       "groupName": "go minor",
       "matchManagers": ["gomod"],
       "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "napi crates",
+      "matchManagers": ["cargo"],
+      "matchPackageNames": ["napi", "napi-derive", "napi-build", "napi-derive-backend", "napi-sys"]
     }
   ],
   "ignoreDeps": ["dotnet-sdk"]

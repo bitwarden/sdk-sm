@@ -18,11 +18,8 @@ license-file.workspace = true
 bat = { version = "0.26.0", features = ["regex-fancy"], default-features = false }
 bitwarden = { workspace = true, features = ["secrets"] }
 bitwarden-cli = { workspace = true }
-chrono = { version = "0.4.38", features = [
-    "clock",
-    "std",
-], default-features = false }
-clap = { version = "4.5.37", features = ["derive", "env", "string"] }
+chrono = { version = "0.4.38", default-features = false }
+clap = { version = "4.5.37", features = ["derive", "env"] }
 clap_complete = "4.5.37"
 color-eyre = "0.6.3"
 comfy-table = "7.1.1"
@@ -30,13 +27,11 @@ directories = "6.0.0"
 env_logger = "0.11.1"
 itertools = "0.14.0"
 log = "0.4.20"
-regex = { version = "1.10.3", features = [
-    "std",
-    "perf",
-], default-features = false }
+regex = { version = "1.10.3", default-features = false }
 serde = "1.0.196"
 serde_json = "1.0.113"
 serde_yaml = "0.9"
+supports-color = "3.0.0"
 tokio = { workspace = true, features = ["rt-multi-thread"] }
 toml = "0.9.0"
 uuid = { version = "1.7.0", features = ["serde"] }
@@ -44,9 +39,9 @@ which = "8.0.0"
 
 [build-dependencies]
 bitwarden-cli = { workspace = true }
-clap = { version = "4.5.4", features = ["derive", "string"] }
-clap_complete = "4.5.2"
-clap_mangen = "0.2.20"
+clap = { version = "4.5.37", features = ["derive", "string"] }
+clap_complete = "4.5.37"
+clap_mangen = "0.2.31"
 uuid = { version = "1.7.0" }
 
 [dev-dependencies]

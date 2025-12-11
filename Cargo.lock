@@ -355,7 +355,7 @@ dependencies = [
  "bitwarden-core",
  "bitwarden-generators",
  "bitwarden-sm",
- "thiserror 1.0.69",
+ "thiserror 2.0.17",
  "uuid",
 ]
 
@@ -653,7 +653,6 @@ dependencies = [
  "console_log",
  "js-sys",
  "log",
- "serde",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-bindgen-test",
@@ -743,7 +742,6 @@ dependencies = [
  "serde_yaml",
  "supports-color",
  "tempfile",
- "thiserror 1.0.69",
  "tokio",
  "toml",
  "uuid",
@@ -1569,7 +1567,6 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
- "tower",
  "tower-http",
  "tracing",
  "tracing-subscriber",

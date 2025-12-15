@@ -70,6 +70,8 @@ jobs:
             packages/bws-macos-universal-${{ env.PKG_VERSION }}.zip,
             packages/bws-x86_64-pc-windows-msvc-${{ env.PKG_VERSION }}.zip,
             packages/bws-aarch64-pc-windows-msvc-${{ env.PKG_VERSION }}.zip,
+            packages/bws-x86_64-unknown-linux-musl-${{ env.PKG_VERSION }}.zip,
+            packages/bws-aarch64-unknown-linux-musl-${{ env.PKG_VERSION }}.zip,
             packages/bws-x86_64-unknown-linux-gnu-${{ env.PKG_VERSION }}.zip,
             packages/bws-aarch64-unknown-linux-gnu-${{ env.PKG_VERSION }}.zip,
             packages/THIRDPARTY.html,

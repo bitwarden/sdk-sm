@@ -400,8 +400,8 @@ dependencies = [
 
 [[package]]
 name = "bitwarden-cli"
-version = "1.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal.git?rev=ab7ae369f07ecbcce8db5512f076881ff8cc8f7b#ab7ae369f07ecbcce8db5512f076881ff8cc8f7b"
+version = "2.0.0"
+source = "git+https://github.com/bitwarden/sdk-internal.git?rev=0794e100645d97d0359551939673b2d09db2204d#0794e100645d97d0359551939673b2d09db2204d"
 dependencies = [
  "clap",
  "color-eyre",
@@ -743,7 +743,7 @@ dependencies = [
  "serde_yaml",
  "supports-color",
  "tempfile",
- "thiserror 1.0.69",
+ "thiserror 2.0.17",
  "tokio",
  "toml",
  "uuid",

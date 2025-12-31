@@ -89,6 +89,49 @@ pub(crate) enum Commands {
     #[command(long_about = "Generate shell completion files")]
     Completions { shell: Option<Shell> },
 
+    /// Generate secrets
+    Generate {
+        /// Include lowercase characters
+        #[arg(long, short = 'l', default_value_t = true, num_args=0..=1)]
+        include_lowercase: bool,
+
+        /// Include uppercase characters
+        #[arg(long, short = 'U', default_value_t = true, num_args=0..=1)]
+        include_uppercase: bool,
+
+        /// Include numeric characters
+        #[arg(long, short = 'n', default_value_t = true, num_args=0..=1)]
+        include_numbers: bool,
+
+        /// Length of the secret, up to 255 characters
+        #[arg(default_value_t = 24, value_parser = clap::value_parser!(u8).range(1..=255))]
+        length: u8,
+
+        /// Include special characters
+        #[arg(long, short = 's', default_value_t = true, num_args=0..=1)]
+        include_special: bool,
+
+        /// Include ambiguous characters (I, O, l, 0, 1)
+        #[arg(long, default_value_t = false, num_args=0..=1)]
+        include_ambiguous: bool,
+
+        /// Minimum lowercase characters
+        #[arg(long)]
+        min_lowercase: Option<u8>,
+
+        /// Minimum uppercase characters
+        #[arg(long)]
+        min_uppercase: Option<u8>,
+
+        /// Minimum numeric characters
+        #[arg(long)]
+        min_number: Option<u8>,
+
+        /// Minimum special characters
+        #[arg(long)]
+        min_special: Option<u8>,
+    },
+
     #[command(long_about = "Commands available on Projects")]
     Project {
         #[command(subcommand)]

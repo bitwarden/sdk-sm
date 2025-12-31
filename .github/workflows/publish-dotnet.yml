@@ -17,9 +17,6 @@ on:
         required: false
         default: "latest"
 
-env:
-  _KEY_VAULT: "bitwarden-ci"
-
 jobs:
   validate:
     name: Setup
@@ -97,21 +94,31 @@ jobs:
           tenant_id: ${{ secrets.AZURE_TENANT_ID }}
           client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
-      - name: Retrieve secrets
-        id: retrieve-secrets
+      - name: Get Azure Key Vault secrets
+        id: get-kv-secrets
         uses: bitwarden/gh-actions/get-keyvault-secrets@main
         with:
-          keyvault: ${{ env._KEY_VAULT }}
-          secrets: "nuget-api-key"
+          keyvault: gh-sdk-sm
+          secrets: "NUGET-OIDC-USER"
 
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
 
+      - name: Login to NuGet
+        id: login-nuget
+        uses: nuget/login@d22cc5f58ff5b88bf9bd452535b4335137e24544 # v1.1.0
+        with:
+          user: ${{ steps.get-kv-secrets.outputs.NUGET-OIDC-USER }}
+
       - name: Publish NuGet Package
         if: ${{ inputs.release_type != 'Dry Run' }}
         env:
-          NUGET_API_KEY: ${{ steps.retrieve-secrets.outputs.nuget-api-key }}
-        run: dotnet nuget push ./nuget-output/*.nupkg -k "${NUGET_API_KEY}" -s https://api.nuget.org/v3/index.json
+          NUGET_SOURCE: "https://api.nuget.org/v3/index.json"
+          NUGET_API_KEY: ${{ steps.login-nuget.outputs.NUGET_API_KEY }}
+        run: >
+          dotnet nuget push ./nuget-output/*.nupkg
+          --source "${NUGET_SOURCE}"
+          --api-key "${NUGET_API_KEY}"
 
       - name: Update deployment status to Success
         if: ${{ inputs.release_type != 'Dry Run' && success() }}

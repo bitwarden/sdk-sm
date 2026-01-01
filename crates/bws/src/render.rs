@@ -11,11 +11,16 @@ const ASCII_HEADER_ONLY: &str = "     --            ";
 pub(crate) struct OutputSettings {
     pub(crate) output: Output,
     pub(crate) color: Color,
+    pub(crate) theme: String,
 }
 
 impl OutputSettings {
-    pub(crate) fn new(output: Output, color: Color) -> Self {
-        OutputSettings { output, color }
+    pub(crate) fn new(output: Output, color: Color, theme: String) -> Self {
+        OutputSettings {
+            output,
+            color,
+            theme,
+        }
     }
 }
 
@@ -25,43 +30,39 @@ pub(crate) fn serialize_response<T: Serialize + TableSerialize<N>, const N: usiz
 ) {
     match output_settings.output {
         Output::JSON => {
-            let mut text =
+            let mut data =
                 serde_json::to_string_pretty(&data).expect("Serialize should be infallible");
             // Yaml/table/tsv serializations add a newline at the end, so we do the same here for
             // consistency
-            text.push('\n');
-            pretty_print("json", &text, output_settings.color);
+            data.push('\n');
+            pretty_print("json", &data, output_settings);
         }
         Output::YAML => {
-            let text = serde_yaml::to_string(&data).expect("Serialize should be infallible");
-            pretty_print("yaml", &text, output_settings.color);
+            let data = serde_yaml::to_string(&data).expect("Serialize should be infallible");
+            pretty_print("yaml", &data, output_settings);
         }
         Output::Env => {
             let mut commented_out = false;
-            let mut text: Vec<String> = data
+            let mut data: Vec<String> = data
                 .get_values()
                 .into_iter()
                 .map(|row| {
                     if is_valid_posix_name(&row[1]) {
-                        format!("{}=\"{}\"", row[1], row[2])
+                        format!("{}=\"{}\"", &row[1], &row[2])
                     } else {
                         commented_out = true;
-                        format!("# {}=\"{}\"", row[1], row[2].replace('\n', "\n# "))
+                        format!("# {}=\"{}\"", &row[1], &row[2].replace('\n', "\n# "))
                     }
                 })
                 .collect();
 
             if commented_out {
-                text.push(String::from(
+                data.push(String::from(
                     "\n# one or more secrets have been commented-out due to a problematic key name",
                 ));
             }
 
-            pretty_print(
-                "sh",
-                &format!("{}\n", text.join("\n")),
-                output_settings.color,
-            );
+            pretty_print("sh", &format!("{}\n", data.join("\n")), output_settings);
         }
         Output::Table => {
             let mut table = Table::new();
@@ -86,16 +87,14 @@ pub(crate) fn serialize_response<T: Serialize + TableSerialize<N>, const N: usiz
     }
 }
 
-fn pretty_print(language: &str, data: &str, color: Color) {
-    if color.is_enabled() {
-        bat::PrettyPrinter::new()
-            .input_from_bytes(data.as_bytes())
-            .language(language)
-            .print()
-            .expect("Input is valid");
-    } else {
-        print!("{}", data);
-    }
+fn pretty_print(language: &str, data: &str, output_settings: OutputSettings) {
+    bat::PrettyPrinter::new()
+        .input_from_bytes(data.as_bytes())
+        .language(&language)
+        .theme(output_settings.theme)
+        .colored_output(output_settings.color.is_enabled())
+        .print()
+        .expect("Input is valid");
 }
 
 // We're using const generics for the array lengths to make sure the header count and value count

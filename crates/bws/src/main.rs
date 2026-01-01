@@ -30,8 +30,22 @@ async fn main() -> Result<()> {
 async fn process_commands() -> Result<()> {
     let cli = Cli::parse();
     let color = cli.color;
+    let theme = cli.theme.unwrap_or_default();
 
     install_color_eyre(color)?;
+
+    if cli.list_themes {
+        let pretty_printer = bat::PrettyPrinter::new();
+        let themes = pretty_printer.themes();
+        let mut to_print = String::new();
+        for theme in themes {
+            // push to String because of:
+            // https://github.com/rust-lang/rust/issues/119980#issuecomment-1891481430
+            to_print.push_str(theme);
+        }
+        println!("{to_print}");
+        return Ok(());
+    }
 
     let Some(command) = cli.command else {
         let mut cmd = Cli::command();
@@ -121,7 +135,7 @@ async fn process_commands() -> Result<()> {
         }
     };
 
-    let output_settings = OutputSettings::new(cli.output, color);
+    let output_settings = OutputSettings::new(cli.output, color, theme);
 
     // And finally we process all the commands which require authentication
     match command {

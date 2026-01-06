@@ -2,7 +2,6 @@
 set -euo pipefail
 
 if command -v go >/dev/null; then
-  : # Go is installed, proceed
   go test || exit 1
 else
   echo "Go is not installed. Please install Go to run the tests." >&2

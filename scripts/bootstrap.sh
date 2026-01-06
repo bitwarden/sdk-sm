@@ -14,6 +14,11 @@ export API_URL="${SERVER_URL}/api"
 export IDENTITY_URL="${SERVER_URL}/identity"
 export STATE_FILE="${TMP_DIR}/state"
 
+# force a debug build of bws (HTTP is blocked in release builds of the CLI).
+export BWS_ACCESS_TOKEN="$ACCESS_TOKEN"
+export BWS_SERVER_URL="$SERVER_URL"
+export BWS_FORCE_BUILD_FROM_SOURCE=1
+
 # input: bws, or any of the lanaguages in ./languages
 # output: a build directory
 build_directory() {

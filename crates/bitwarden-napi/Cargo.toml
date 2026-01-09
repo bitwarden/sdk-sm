@@ -23,8 +23,8 @@ bitwarden-json = { path = "../bitwarden-json", version = "0.3.0", features = [
 ] }
 env_logger = "0.11.1"
 log = { workspace = true }
-napi = { version = "2", features = ["async"] }
-napi-derive = "2"
+napi = { version = "3", features = ["async"] }
+napi-derive = "3"
 
 [build-dependencies]
 napi-build = "2.1.0"

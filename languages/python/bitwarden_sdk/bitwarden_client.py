@@ -145,6 +145,9 @@ class SecretsClient:
         note: Optional[str],
         project_ids: Optional[List[UUID]] = None,
     ) -> ResponseForSecretResponse:
+        if organization_id is None:
+            organization_id = self.client.inner.get_access_token_organization()
+
         if note is None:
             # secrets api does not accept empty notes
             note = ""

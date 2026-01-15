@@ -19,7 +19,6 @@ client = BitwardenClient(
 
 # Add some logging & set the org id
 logging.basicConfig(level=logging.DEBUG)
-organization_id = os.getenv("ORGANIZATION_ID")
 
 # -- Example Generator Commands --
 # Note: using the generator does not require authentication with a server
@@ -49,44 +48,44 @@ client.auth().login_access_token(os.getenv("ACCESS_TOKEN"), state_path)
 
 # -- Example Project Commands --
 
-project = client.projects().create(organization_id, "ProjectName")
-project2 = client.projects().create(organization_id, "AnotherProject")
+project = client.projects().create(None, "ProjectName")
+project2 = client.projects().create(None, "AnotherProject")
 updated_project = client.projects().update(
-    organization_id, project.data.id, "Cool New Project Name"
+    None, project.data.id, "Cool New Project Name"
 )
 get_that_project = client.projects().get(project.data.id)
 
 input("Press Enter to delete the project...")
 client.projects().delete([project.data.id])
 
-print(client.projects().list(organization_id))
+print(client.projects().list(None))
 
 # -- Example Secret Commands --
 
-if client.secrets().sync(organization_id, None).data.has_changes is True:
+if client.secrets().sync(None, None).data.has_changes is True:
     print("There are changes to sync")
 else:
     print("No changes to sync")
 
 last_synced_date = datetime.now(tz=timezone.utc)
-print(client.secrets().sync(organization_id, last_synced_date))
+print(client.secrets().sync(None, last_synced_date))
 
 secret = client.secrets().create(
-    organization_id,
+    None,
     "TEST_SECRET",
     "This is a test secret",
     "Secret1234!",
     [project2.data.id],
 )
 secret2 = client.secrets().create(
-    organization_id,
+    None,
     "ANOTHER_SECRET",
     "Secret1234!",
     None,
     [project2.data.id],
 )
 secret_updated = client.secrets().update(
-    organization_id,
+    None,
     secret.data.id,
     "TEST_SECRET_UPDATED",
     "This as an updated test secret",

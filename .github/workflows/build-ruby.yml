@@ -11,9 +11,14 @@ permissions:
   contents: read
 
 jobs:
+  generate_schemas:
+    name: Generate schemas
+    uses: ./.github/workflows/generate_schemas.yml
+
   build:
     name: Build Ruby
     runs-on: ubuntu-22.04
+    needs: generate_schemas
     steps:
       - name: Checkout Repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -30,9 +35,6 @@ jobs:
         with:
           workflow: generate_schemas.yml
           path: languages/ruby/bitwarden_sdk_secrets/lib
-          workflow_conclusion: success
-          branch: ${{ github.ref_name }}
-          artifacts: schemas.rb
 
       - name: Download x86_64-apple-darwin artifact
         uses: bitwarden/gh-actions/download-artifacts@main

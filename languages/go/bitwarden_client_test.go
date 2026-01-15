@@ -12,7 +12,6 @@ func TestBitwardenClient(t *testing.T) {
 	apiURL := os.Getenv("API_URL")
 	identityURL := os.Getenv("IDENTITY_URL")
 	accessToken := os.Getenv("ACCESS_TOKEN")
-	organizationIDStr := os.Getenv("ORGANIZATION_ID")
 	stateFile := os.Getenv("STATE_FILE")
 
 	bitwardenClient, err := NewBitwardenClient(&apiURL, &identityURL)
@@ -24,11 +23,6 @@ func TestBitwardenClient(t *testing.T) {
 	err = bitwardenClient.AccessTokenLogin(accessToken, &stateFile)
 	if err != nil {
 		t.Errorf("AccessTokenLogin failed: %v", err)
-	}
-
-	organizationID, err := uuid.FromString(organizationIDStr)
-	if err != nil {
-		t.Errorf("Failed to parse organization ID: %v", err)
 	}
 
 	// --- generator ---
@@ -52,7 +46,7 @@ func TestBitwardenClient(t *testing.T) {
 
 	// --- secrets ---
 	// list; should return a list of secret IDs (without the values)
-	secretList, err := bitwardenClient.Secrets().List(organizationID.String())
+	secretList, err := bitwardenClient.Secrets().List()
 	if err != nil || len(secretList.Data) == 0 {
 		t.Errorf("secret list failed: %v", err)
 		t.Errorf("secret list data: %v", secretList.Data)
@@ -78,13 +72,13 @@ func TestBitwardenClient(t *testing.T) {
 	// create; should return a secret with the given key, value, and note
 	newProjectID, _ := uuid.NewV4() // random project ID is fine; the fake-server doesn't validate it
 
-	secret, err = bitwardenClient.Secrets().Create("testKey", "testValue", "testNote", organizationID.String(), []string{newProjectID.String()})
+	secret, err = bitwardenClient.Secrets().Create("testKey", "testValue", "testNote", []string{newProjectID.String()})
 	if err != nil || secret.Key != "testKey" || secret.Value != "testValue" || secret.Note != "testNote" {
 		t.Errorf("secret create failed: %v", err)
 	}
 
 	// update; should return a secret with the updated key, value, and note
-	updatedSecret, err := bitwardenClient.Secrets().Update(secret.ID, "updatedKey", "updatedValue", "updatedNote", organizationID.String(), []string{})
+	updatedSecret, err := bitwardenClient.Secrets().Update(secret.ID, "updatedKey", "updatedValue", "updatedNote", []string{})
 	if err != nil || updatedSecret.Key != "updatedKey" || updatedSecret.Value != "updatedValue" || updatedSecret.Note != "updatedNote" || updatedSecret.ProjectID != nil {
 		t.Errorf("secret update failed: %v", err)
 	}
@@ -99,14 +93,14 @@ func TestBitwardenClient(t *testing.T) {
 	}
 
 	// sync; should return new/modified secrets from a given point in time
-	syncedSecrets, err := bitwardenClient.Secrets().Sync(organizationID.String(), nil)
+	syncedSecrets, err := bitwardenClient.Secrets().Sync(nil)
 	if err != nil || syncedSecrets.HasChanges == false {
 		t.Errorf("secret initial sync failed: %v", err)
 		t.Errorf("secret hasChanges: %v", syncedSecrets.HasChanges)
 	}
 
 	lastSyncTime := time.Now()
-	newSyncedSecrets, err := bitwardenClient.Secrets().Sync(organizationID.String(), &lastSyncTime)
+	newSyncedSecrets, err := bitwardenClient.Secrets().Sync(&lastSyncTime)
 	if err != nil || newSyncedSecrets.HasChanges == true {
 		t.Errorf("secret sync with lastSyncTime failed: %v", err)
 		t.Errorf("secret hasChanges: %v", newSyncedSecrets.HasChanges)
@@ -114,7 +108,7 @@ func TestBitwardenClient(t *testing.T) {
 
 	// --- projects ---
 	// list; should return a list of project IDs
-	projectList, err := bitwardenClient.Projects().List(organizationID.String())
+	projectList, err := bitwardenClient.Projects().List()
 	if err != nil || len(projectList.Data) == 0 {
 		t.Errorf("project list failed: %v", err)
 		t.Errorf("project list data: %v", projectList.Data)
@@ -127,14 +121,14 @@ func TestBitwardenClient(t *testing.T) {
 	}
 
 	// create; should return a project with the given name
-	project, err := bitwardenClient.Projects().Create(organizationID.String(), "testProject")
+	project, err := bitwardenClient.Projects().Create("testProject")
 	if err != nil || project.Name != "testProject" {
 		t.Errorf("project create failed: %v", err)
 		t.Errorf("expected project name: testProject, got: %s", project.Name)
 	}
 
 	// update; should return a project with the updated name
-	project, err = bitwardenClient.Projects().Update(project.ID, organizationID.String(), "updatedProject")
+	project, err = bitwardenClient.Projects().Update(project.ID, "updatedProject")
 	if err != nil || project.Name != "updatedProject" {
 		t.Errorf("project update failed: %v", err)
 		t.Errorf("expected project name: updatedProject, got: %s", project.Name)

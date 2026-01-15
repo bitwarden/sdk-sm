@@ -1,19 +1,22 @@
 package sdk
 
+import "fmt"
+
 type ProjectsInterface interface {
-	Create(organizationID string, name string) (*ProjectResponse, error)
-	List(organizationID string) (*ProjectsResponse, error)
+	Create(name string) (*ProjectResponse, error)
+	List() (*ProjectsResponse, error)
 	Get(projectID string) (*ProjectResponse, error)
-	Update(projectID string, organizationID string, name string) (*ProjectResponse, error)
+	Update(projectID string, name string) (*ProjectResponse, error)
 	Delete(projectIDs []string) (*ProjectsDeleteResponse, error)
 }
 
 type Projects struct {
 	CommandRunner CommandRunnerInterface
+	Client        BitwardenClientInterface
 }
 
-func NewProjects(commandRunner CommandRunnerInterface) *Projects {
-	return &Projects{CommandRunner: commandRunner}
+func NewProjects(commandRunner CommandRunnerInterface, client BitwardenClientInterface) *Projects {
+	return &Projects{CommandRunner: commandRunner, Client: client}
 }
 
 func (p *Projects) Get(id string) (*ProjectResponse, error) {
@@ -31,11 +34,19 @@ func (p *Projects) Get(id string) (*ProjectResponse, error) {
 	return &response, nil
 }
 
-func (p *Projects) Create(organizationID string, name string) (*ProjectResponse, error) {
+func (p *Projects) Create(name string) (*ProjectResponse, error) {
+	orgID, err := p.Client.GetAccessTokenOrganization()
+	if err != nil {
+		return nil, err
+	}
+	if orgID == "" {
+		return nil, fmt.Errorf("no organization found in access token")
+	}
+
 	command := Command{
 		Projects: &ProjectsCommand{
 			Create: &ProjectCreateRequest{
-				OrganizationID: organizationID,
+				OrganizationID: orgID,
 				Name:           name,
 			},
 		},
@@ -48,11 +59,19 @@ func (p *Projects) Create(organizationID string, name string) (*ProjectResponse,
 	return &response, nil
 }
 
-func (p *Projects) List(organizationID string) (*ProjectsResponse, error) {
+func (p *Projects) List() (*ProjectsResponse, error) {
+	orgID, err := p.Client.GetAccessTokenOrganization()
+	if err != nil {
+		return nil, err
+	}
+	if orgID == "" {
+		return nil, fmt.Errorf("no organization found in access token")
+	}
+
 	command := Command{
 		Projects: &ProjectsCommand{
 			List: &ProjectsListRequest{
-				OrganizationID: organizationID,
+				OrganizationID: orgID,
 			},
 		},
 	}
@@ -64,12 +83,20 @@ func (p *Projects) List(organizationID string) (*ProjectsResponse, error) {
 	return &response, nil
 }
 
-func (p *Projects) Update(projectID, organizationID, name string) (*ProjectResponse, error) {
+func (p *Projects) Update(projectID, name string) (*ProjectResponse, error) {
+	orgID, err := p.Client.GetAccessTokenOrganization()
+	if err != nil {
+		return nil, err
+	}
+	if orgID == "" {
+		return nil, fmt.Errorf("no organization found in access token")
+	}
+
 	command := Command{
 		Projects: &ProjectsCommand{
 			Update: &ProjectPutRequest{
 				ID:             projectID,
-				OrganizationID: organizationID,
+				OrganizationID: orgID,
 				Name:           name,
 			},
 		},
@@ -98,7 +125,7 @@ func (p *Projects) Delete(projectIDs []string) (*ProjectsDeleteResponse, error) 
 	return &response, nil
 }
 
-func (p *Projects) executeCommand(command Command, target interface{}) error {
+func (p *Projects) executeCommand(command Command, target any) error {
 	responseStr, err := p.CommandRunner.RunCommand(command)
 	if err != nil {
 		return err

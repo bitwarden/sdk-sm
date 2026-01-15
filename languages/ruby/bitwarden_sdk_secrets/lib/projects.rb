@@ -4,14 +4,18 @@ require_relative 'bitwarden_error'
 
 module BitwardenSDKSecrets
   class ProjectsClient
-    def initialize(command_runner)
+    def initialize(command_runner, bitwarden_client)
       @command_runner = command_runner
+      @bitwarden_client = bitwarden_client
     end
 
-    def create(organization_id, project_name)
+    def create(project_name)
+      org_id = @bitwarden_client.get_access_token_organization
+      raise BitwardenError, 'Could not get organization id with access token' if org_id.nil? || org_id.empty?
+
       project_create_request = ProjectCreateRequest.new(
-        project_create_request_name: project_name,
-        organization_id: organization_id
+        create_name: project_name,
+        organization_id: org_id
       )
       command = create_command(
         create: project_create_request
@@ -43,8 +47,11 @@ module BitwardenSDKSecrets
       error_response(projects_response)
     end
 
-    def list(organization_id)
-      project_list_request = ProjectsListRequest.new(organization_id: organization_id)
+    def list
+      org_id = @bitwarden_client.get_access_token_organization
+      raise BitwardenError, 'Could not get organization id with access token' if org_id.nil? || org_id.empty?
+
+      project_list_request = ProjectsListRequest.new(organization_id: org_id)
       command = create_command(list: project_list_request)
       response = parse_response(command)
 
@@ -58,11 +65,14 @@ module BitwardenSDKSecrets
       error_response(projects_response)
     end
 
-    def update(organization_id, id, project_put_request_name)
+    def update(id, project_put_request_name)
+      org_id = @bitwarden_client.get_access_token_organization
+      raise BitwardenError, 'Could not get organization id with access token' if org_id.nil? || org_id.empty?
+
       project_put_request = ProjectPutRequest.new(
         id: id,
-        project_put_request_name: project_put_request_name,
-        organization_id: organization_id
+        update_name: project_put_request_name,
+        organization_id: org_id
       )
       command = create_command(
         update: project_put_request

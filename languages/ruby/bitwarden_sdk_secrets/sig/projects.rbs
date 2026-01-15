@@ -2,15 +2,17 @@ module BitwardenSDKSecrets
   class ProjectsClient
     @command_runner: untyped
 
-    def initialize: (untyped command_runner) -> void
+    @bitwarden_client: untyped
 
-    def create: (untyped organization_id, untyped project_name) -> untyped
+    def initialize: (untyped command_runner, untyped bitwarden_client) -> void
+
+    def create: (untyped project_name) -> untyped
 
     def get: (untyped project_id) -> untyped
 
-    def list: (untyped organization_id) -> untyped
+    def list: () -> untyped
 
-    def update: (untyped organization_id, untyped id, untyped project_put_request_name) -> untyped
+    def update: (untyped id, untyped project_put_request_name) -> untyped
 
     def delete: (untyped ids) -> untyped
 

@@ -4,8 +4,9 @@ require 'json'
 
 module BitwardenSDKSecrets
   class SecretsClient
-    def initialize(command_runner)
+    def initialize(command_runner, bitwarden_client)
       @command_runner = command_runner
+      @bitwarden_client = bitwarden_client
     end
 
     def get(id)
@@ -36,9 +37,12 @@ module BitwardenSDKSecrets
       error_response(secrets_response)
     end
 
-    def sync(organization_id, last_synced_date)
+    def sync(last_synced_date)
+      org_id = @bitwarden_client.get_access_token_organization
+      raise BitwardenError, 'Could not get organization id with access token' if org_id.nil? || org_id.empty?
+
       command = create_command(
-        sync: SecretsSyncRequest.new(organization_id: organization_id, last_synced_date: last_synced_date)
+        sync: SecretsSyncRequest.new(organization_id: org_id, last_synced_date: last_synced_date)
       )
       response = run_command(command)
 
@@ -52,10 +56,13 @@ module BitwardenSDKSecrets
       error_response(secrets_response)
     end
 
-    def create(organization_id, key, value, note, project_ids)
+    def create(key, value, note, project_ids)
+      org_id = @bitwarden_client.get_access_token_organization
+      raise BitwardenError, 'Could not get organization id with access token' if org_id.nil? || org_id.empty?
+
       command = create_command(
         create: SecretCreateRequest.new(
-          key: key, note: note, organization_id: organization_id, project_ids: project_ids, value: value
+          key: key, note: note, organization_id: org_id, project_ids: project_ids, value: value
         )
       )
       response = run_command(command)
@@ -70,8 +77,11 @@ module BitwardenSDKSecrets
       error_response(secrets_response)
     end
 
-    def list(organization_id)
-      command = create_command(list: SecretIdentifiersRequest.new(organization_id: organization_id))
+    def list
+      org_id = @bitwarden_client.get_access_token_organization
+      raise BitwardenError, 'Could not get organization id with access token' if org_id.nil? || org_id.empty?
+
+      command = create_command(list: SecretIdentifiersRequest.new(organization_id: org_id))
       response = run_command(command)
 
       secrets_response = ResponseForSecretIdentifiersResponse.from_json!(response).to_dynamic
@@ -84,10 +94,13 @@ module BitwardenSDKSecrets
       error_response(secrets_response)
     end
 
-    def update(organization_id, id, key, value, note, project_ids)
+    def update(id, key, value, note, project_ids)
+      org_id = @bitwarden_client.get_access_token_organization
+      raise BitwardenError, 'Could not get organization id with access token' if org_id.nil? || org_id.empty?
+
       command = create_command(
         update: SecretPutRequest.new(
-          id: id, key: key, note: note, organization_id: organization_id, project_ids: project_ids, value: value
+          id: id, key: key, note: note, organization_id: org_id, project_ids: project_ids, value: value
         )
       )
       response = run_command(command)

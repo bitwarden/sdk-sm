@@ -48,44 +48,39 @@ client.auth().login_access_token(os.getenv("ACCESS_TOKEN"), state_path)
 
 # -- Example Project Commands --
 
-project = client.projects().create(None, "ProjectName")
-project2 = client.projects().create(None, "AnotherProject")
-updated_project = client.projects().update(
-    None, project.data.id, "Cool New Project Name"
-)
+project = client.projects().create("ProjectName")
+project2 = client.projects().create("AnotherProject")
+updated_project = client.projects().update(project.data.id, "Cool New Project Name")
 get_that_project = client.projects().get(project.data.id)
 
 input("Press Enter to delete the project...")
 client.projects().delete([project.data.id])
 
-print(client.projects().list(None))
+print(client.projects().list())
 
 # -- Example Secret Commands --
 
-if client.secrets().sync(None, None).data.has_changes is True:
+if client.secrets().sync(None).data.has_changes is True:
     print("There are changes to sync")
 else:
     print("No changes to sync")
 
 last_synced_date = datetime.now(tz=timezone.utc)
-print(client.secrets().sync(None, last_synced_date))
+print(client.secrets().sync(last_synced_date))
 
 secret = client.secrets().create(
-    None,
     "TEST_SECRET",
     "This is a test secret",
     "Secret1234!",
     [project2.data.id],
 )
 secret2 = client.secrets().create(
-    None,
     "ANOTHER_SECRET",
     "Secret1234!",
     None,
     [project2.data.id],
 )
 secret_updated = client.secrets().update(
-    None,
     secret.data.id,
     "TEST_SECRET_UPDATED",
     "This as an updated test secret",

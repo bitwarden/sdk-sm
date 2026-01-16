@@ -27,6 +27,18 @@
       "groupName": "go minor",
       "matchManagers": ["gomod"],
       "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "napi dependencies",
+      "matchManagers": ["cargo", "npm"],
+      "matchPackageNames": [
+        "napi",
+        "napi-derive",
+        "napi-build",
+        "napi-derive-backend",
+        "napi-sys",
+        "@napi-rs/cli"
+      ]
     }
   ],
   "ignoreDeps": ["dotnet-sdk"]

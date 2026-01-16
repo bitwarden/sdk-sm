@@ -1,26 +1,30 @@
 package sdk
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type SecretsInterface interface {
-	Create(key, value, note string, organizationID string, projectIDs []string) (*SecretResponse, error)
-	List(organizationID string) (*SecretIdentifiersResponse, error)
+	Create(key, value, note string, projectIDs []string) (*SecretResponse, error)
+	List() (*SecretIdentifiersResponse, error)
 	Get(secretID string) (*SecretResponse, error)
 	GetByIDS(secretIDs []string) (*SecretsResponse, error)
-	Update(secretID string, key, value, note string, organizationID string, projectIDs []string) (*SecretResponse, error)
+	Update(secretID string, key, value, note string, projectIDs []string) (*SecretResponse, error)
 	Delete(secretIDs []string) (*SecretsDeleteResponse, error)
-	Sync(organizationID string, lastSyncedDate *time.Time) (*SecretsSyncResponse, error)
+	Sync(lastSyncedDate *time.Time) (*SecretsSyncResponse, error)
 }
 
 type Secrets struct {
 	CommandRunner CommandRunnerInterface
+	Client        BitwardenClientInterface
 }
 
-func NewSecrets(commandRunner CommandRunnerInterface) *Secrets {
-	return &Secrets{CommandRunner: commandRunner}
+func NewSecrets(commandRunner CommandRunnerInterface, client BitwardenClientInterface) *Secrets {
+	return &Secrets{CommandRunner: commandRunner, Client: client}
 }
 
-func (s *Secrets) executeCommand(command Command, target interface{}) error {
+func (s *Secrets) executeCommand(command Command, target any) error {
 	responseStr, err := s.CommandRunner.RunCommand(command)
 	if err != nil {
 		return err
@@ -28,14 +32,22 @@ func (s *Secrets) executeCommand(command Command, target interface{}) error {
 	return checkSuccessAndError(responseStr, target)
 }
 
-func (s *Secrets) Create(key, value, note string, organizationID string, projectIDs []string) (*SecretResponse, error) {
+func (s *Secrets) Create(key, value, note string, projectIDs []string) (*SecretResponse, error) {
+	orgID, err := s.Client.GetAccessTokenOrganization()
+	if err != nil {
+		return nil, err
+	}
+	if orgID == "" {
+		return nil, fmt.Errorf("no organization found in access token")
+	}
+
 	command := Command{
 		Secrets: &SecretsCommand{
 			Create: &SecretCreateRequest{
 				Key:            key,
 				Value:          value,
 				Note:           note,
-				OrganizationID: organizationID,
+				OrganizationID: orgID,
 				ProjectIDS:     projectIDs,
 			},
 		},
@@ -48,11 +60,19 @@ func (s *Secrets) Create(key, value, note string, organizationID string, project
 	return &response, nil
 }
 
-func (s *Secrets) List(organizationID string) (*SecretIdentifiersResponse, error) {
+func (s *Secrets) List() (*SecretIdentifiersResponse, error) {
+	orgID, err := s.Client.GetAccessTokenOrganization()
+	if err != nil {
+		return nil, err
+	}
+	if orgID == "" {
+		return nil, fmt.Errorf("no organization found in access token")
+	}
+
 	command := Command{
 		Secrets: &SecretsCommand{
 			List: &SecretIdentifiersRequest{
-				OrganizationID: organizationID,
+				OrganizationID: orgID,
 			},
 		},
 	}
@@ -96,7 +116,15 @@ func (s *Secrets) GetByIDS(ids []string) (*SecretsResponse, error) {
 	return &response, nil
 }
 
-func (s *Secrets) Update(id string, key, value, note string, organizationID string, projectIDs []string) (*SecretResponse, error) {
+func (s *Secrets) Update(id string, key, value, note string, projectIDs []string) (*SecretResponse, error) {
+	orgID, err := s.Client.GetAccessTokenOrganization()
+	if err != nil {
+		return nil, err
+	}
+	if orgID == "" {
+		return nil, fmt.Errorf("no organization found in access token")
+	}
+
 	command := Command{
 		Secrets: &SecretsCommand{
 			Update: &SecretPutRequest{
@@ -104,7 +132,7 @@ func (s *Secrets) Update(id string, key, value, note string, organizationID stri
 				Key:            key,
 				Value:          value,
 				Note:           note,
-				OrganizationID: organizationID,
+				OrganizationID: orgID,
 				ProjectIDS:     projectIDs,
 			},
 		},
@@ -133,11 +161,19 @@ func (s *Secrets) Delete(ids []string) (*SecretsDeleteResponse, error) {
 	return &response, nil
 }
 
-func (s *Secrets) Sync(organizationID string, lastSyncedDate *time.Time) (*SecretsSyncResponse, error) {
+func (s *Secrets) Sync(lastSyncedDate *time.Time) (*SecretsSyncResponse, error) {
+	orgID, err := s.Client.GetAccessTokenOrganization()
+	if err != nil {
+		return nil, err
+	}
+	if orgID == "" {
+		return nil, fmt.Errorf("no organization found in access token")
+	}
+
 	command := Command{
 		Secrets: &SecretsCommand{
 			Sync: &SecretsSyncRequest{
-				OrganizationID: organizationID,
+				OrganizationID: orgID,
 				LastSyncedDate: lastSyncedDate,
 			},
 		},

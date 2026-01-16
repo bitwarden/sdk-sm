@@ -25,4 +25,13 @@ impl BitwardenClient {
     fn run_command(&self, command_input: String) -> String {
         self.0.block_on(self.1.run_command(&command_input))
     }
+
+    #[pyo3(text_signature = "($self")]
+    fn get_access_token_organization(&self) -> String {
+        if let Some(organization_id) = self.1.get_access_token_organization() {
+            organization_id.to_string()
+        } else {
+            "".to_string()
+        }
+    }
 }

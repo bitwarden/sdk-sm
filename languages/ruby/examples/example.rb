@@ -2,7 +2,6 @@
 require 'bitwarden-sdk-secrets'
 
 token = ENV['ACCESS_TOKEN']
-organization_id = ENV['ORGANIZATION_ID']
 state_file = ENV['STATE_FILE']
 
 # Configuring the URLS is optional, set them to nil to use the default values
@@ -17,7 +16,7 @@ puts response
 
 # CREATE project
 project_name = 'Test project 1'
-response = bw_client.projects.create(organization_id, project_name)
+response = bw_client.projects.create(project_name)
 puts response
 project_id = response['id']
 
@@ -26,19 +25,19 @@ response = bw_client.projects.get(project_id)
 puts response
 
 # LIST projects
-response = bw_client.projects.list(organization_id)
+response = bw_client.projects.list
 puts response
 
 # UPDATE projects
 name = 'Updated test project 1'
-response = bw_client.projects.update(organization_id, project_id, name)
+response = bw_client.projects.update(project_id, name)
 puts response
 
 # CREATE secret
 key = 'AWS-SES'
 note = 'Private account'
 value = '8t27.dfj;'
-response = bw_client.secrets.create(organization_id, key, value, note, [project_id])
+response = bw_client.secrets.create(key, value, note, [project_id])
 puts response
 secret_id = response['id']
 
@@ -51,21 +50,21 @@ response = bw_client.secrets.get_by_ids([secret_id])
 puts response
 
 # LIST secrets
-response = bw_client.secrets.list(organization_id)
+response = bw_client.secrets.list
 puts response
 
 # SYNC secrets
-response = bw_client.secrets.sync(organization_id, nil)
+response = bw_client.secrets.sync(nil)
 last_synced_date = Time.now.utc.strftime('%Y-%m-%dT%H:%M:%S.%6NZ')
 puts response
 
-response = bw_client.secrets.sync(organization_id, last_synced_date)
+response = bw_client.secrets.sync(last_synced_date)
 puts response
 
 # UPDATE secret
 note = 'updated password'
 value = '7I.ert10AjK'
-response = bw_client.secrets.update(organization_id, secret_id, key, value, note, [project_id])
+response = bw_client.secrets.update(secret_id, key, value, note, [project_id])
 puts response
 
 # DELETE secret

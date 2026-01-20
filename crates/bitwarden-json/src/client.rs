@@ -1,4 +1,4 @@
-use bitwarden::ClientSettings;
+use bitwarden::{ClientSettings, OrganizationId};
 #[cfg(feature = "secrets")]
 use bitwarden::{
     generators::GeneratorClientsExt,
@@ -18,6 +18,11 @@ impl Client {
     pub fn new(settings_input: Option<String>) -> Self {
         let settings = Self::parse_settings(settings_input);
         Self(bitwarden::Client::new(settings))
+    }
+
+    pub fn get_access_token_organization(&self) -> Option<OrganizationId> {
+        let client = &self.0;
+        client.internal.get_access_token_organization()
     }
 
     pub async fn run_command(&self, input_str: &str) -> String {

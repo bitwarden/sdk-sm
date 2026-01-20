@@ -113,3 +113,18 @@ pub extern "C" fn abort_and_free_handle(join_handle_ptr: *mut tokio::task::JoinH
 pub extern "C" fn free_handle(join_handle_ptr: *mut tokio::task::JoinHandle<()>) {
     std::mem::drop(unsafe { Box::from_raw(join_handle_ptr) });
 }
+
+#[unsafe(no_mangle)]
+pub extern "C" fn get_access_token_organization(client_ptr: *const CClient) -> *mut c_char {
+    let client = unsafe { ffi_ref!(client_ptr) };
+    
+    match client.client.get_access_token_organization() {
+        Some(organization_id) => {
+            match std::ffi::CString::new(organization_id.to_string()) {
+                Ok(cstr) => cstr.into_raw(),
+                Err(_) => std::ptr::null_mut(),
+            }
+        }
+        None => std::ptr::null_mut(),
+    }
+}

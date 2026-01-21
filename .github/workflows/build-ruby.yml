@@ -11,9 +11,15 @@ permissions:
   contents: read
 
 jobs:
+  generate_schemas:
+    name: Generate schemas
+    uses: ./.github/workflows/generate_schemas.yml
+
   build:
     name: Build Ruby
     runs-on: ubuntu-22.04
+    needs:
+      - generate_schemas
     steps:
       - name: Checkout Repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -31,7 +37,7 @@ jobs:
           workflow: generate_schemas.yml
           path: languages/ruby/bitwarden_sdk_secrets/lib
           workflow_conclusion: success
-          branch: ${{ github.ref_name }}
+          commit: ${{ github.event.pull_request.head.sha }}
           artifacts: schemas.rb
 
       - name: Download x86_64-apple-darwin artifact
@@ -40,7 +46,7 @@ jobs:
           workflow: build-rust-cross-platform.yml
           path: temp/macos-x64
           workflow_conclusion: success
-          branch: ${{ github.ref_name }}
+          commit: ${{ github.event.pull_request.head.sha }}
           artifacts: libbitwarden_c_files-x86_64-apple-darwin
 
       - name: Download aarch64-apple-darwin artifact
@@ -48,7 +54,7 @@ jobs:
         with:
           workflow: build-rust-cross-platform.yml
           workflow_conclusion: success
-          branch: ${{ github.ref_name }}
+          commit: ${{ github.event.pull_request.head.sha }}
           artifacts: libbitwarden_c_files-aarch64-apple-darwin
           path: temp/macos-arm64
 
@@ -57,7 +63,7 @@ jobs:
         with:
           workflow: build-rust-cross-platform.yml
           workflow_conclusion: success
-          branch: ${{ github.ref_name }}
+          commit: ${{ github.event.pull_request.head.sha }}
           artifacts: libbitwarden_c_files-x86_64-unknown-linux-gnu
           path: temp/linux-x64
 
@@ -66,7 +72,7 @@ jobs:
         with:
           workflow: build-rust-cross-platform.yml
           workflow_conclusion: success
-          branch: ${{ github.ref_name }}
+          commit: ${{ github.event.pull_request.head.sha }}
           artifacts: libbitwarden_c_files-x86_64-pc-windows-msvc
           path: temp/windows-x64
 

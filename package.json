@@ -22,7 +22,7 @@
   "devDependencies": {
     "prettier": "3.7.4",
     "quicktype-core": "23.2.6",
-    "rimraf": "6.0.1",
+    "rimraf": "6.1.2",
     "ts-node": "10.9.2",
     "typescript": "5.9.3"
   }

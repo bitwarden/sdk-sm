@@ -29,7 +29,7 @@
     "version": "napi version"
   },
   "devDependencies": {
-    "@napi-rs/cli": "2.18.4",
+    "@napi-rs/cli": "3.5.1",
     "typescript": "5.9.3"
   },
   "engines": {

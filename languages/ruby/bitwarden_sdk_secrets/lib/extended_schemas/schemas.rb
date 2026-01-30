@@ -1,27 +1,19 @@
 
 module BitwardenSDKSecrets
-    class SelectiveCommand < Command
-      attribute :password_login,     PasswordLoginRequest.optional.default(nil)
-      attribute :api_key_login,      APIKeyLoginRequest.optional.default(nil)
+class SelectiveCommand < Command
       attribute :login_access_token, AccessTokenLoginRequest.optional.default(nil)
-      attribute :get_user_api_key,   SecretVerificationRequest.optional.default(nil)
-      attribute :fingerprint,        FingerprintRequest.optional.default(nil)
-      attribute :sync,               SyncRequest.optional.default(nil)
       attribute :secrets,            SecretsCommand.optional.default(nil)
       attribute :projects,           ProjectsCommand.optional.default(nil)
       attribute :generators,         GeneratorsCommand.optional.default(nil)
+      attribute :debug,              DebugCommand.optional.default(nil)
 
       def to_dynamic
         {
-          "passwordLogin"    => password_login&.to_dynamic,
-          "apiKeyLogin"      => api_key_login&.to_dynamic,
           "loginAccessToken" => login_access_token&.to_dynamic,
-          "getUserApiKey"    => get_user_api_key&.to_dynamic,
-          "fingerprint"      => fingerprint&.to_dynamic,
-          "sync"             => sync&.to_dynamic,
           "secrets"          => secrets&.to_dynamic,
           "projects"         => projects&.to_dynamic,
           "generators"       => generators&.to_dynamic,
+          "debug"            => debug&.to_dynamic,
         }.compact
       end
     end
@@ -68,7 +60,7 @@ module BitwardenSDKSecrets
 
     class SelectiveGeneratorsCommand < GeneratorsCommand
         attribute :generate_password,   PasswordGeneratorRequest.optional.default(nil)
-  
+
         def to_dynamic
           {
             "generate_password"      => generate_password&.to_dynamic,

@@ -9,6 +9,7 @@ pub(crate) const ACCESS_TOKEN_KEY_VAR_NAME: &str = "BWS_ACCESS_TOKEN";
 pub(crate) const CONFIG_FILE_KEY_VAR_NAME: &str = "BWS_CONFIG_FILE";
 pub(crate) const PROFILE_KEY_VAR_NAME: &str = "BWS_PROFILE";
 pub(crate) const SERVER_URL_KEY_VAR_NAME: &str = "BWS_SERVER_URL";
+pub(crate) const THEME_KEY_VAR_NAME: &str = "BWS_THEME";
 pub(crate) const UUIDS_AS_KEYNAMES_VAR_NAME: &str = "BWS_UUIDS_AS_KEYNAMES";
 
 pub(crate) const DEFAULT_CONFIG_FILENAME: &str = "config";
@@ -65,6 +66,12 @@ pub(crate) struct Cli {
 
     #[arg(short = 'u', long, global = true, env = SERVER_URL_KEY_VAR_NAME, help="Override the server URL from the config file", value_parser = ValueParser::new(url_parser) )]
     pub(crate) server_url: Option<String>,
+
+    #[arg(long, global = true, env = THEME_KEY_VAR_NAME, help="Theme for colored output")]
+    pub(crate) theme: Option<String>,
+
+    #[arg(long, alias = "list-theme", help = "List supported themes")]
+    pub(crate) list_themes: bool,
 }
 
 fn url_parser(value: &str) -> Result<String, String> {

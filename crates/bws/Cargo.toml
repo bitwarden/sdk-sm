@@ -5,7 +5,7 @@ description = """
 Bitwarden Secrets Manager CLI
 """
 keywords = ["bitwarden", "secrets-manager", "cli"]
-exclude = ["Dockerfile*", "entitlements.plist"]
+exclude = ["Dockerfile*", "entitlements.plist", "test.sh"]
 
 authors.workspace = true
 edition.workspace = true

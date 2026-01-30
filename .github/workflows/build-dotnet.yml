@@ -58,7 +58,7 @@ jobs:
           persist-credentials: false
 
       - name: Download C# schemas artifact
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: schemas.cs
           path: languages/csharp/Bitwarden.Sdk
@@ -69,25 +69,25 @@ jobs:
           global-json-file: languages/csharp/global.json
 
       - name: Download x86_64-apple-darwin files
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: libbitwarden_c_files-x86_64-apple-darwin
           path: languages/csharp/Bitwarden.Sdk/macos-x64
 
       - name: Download aarch64-apple-darwin files
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: libbitwarden_c_files-aarch64-apple-darwin
           path: languages/csharp/Bitwarden.Sdk/macos-arm64
 
       - name: Download x86_64-unknown-linux-gnu files
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: libbitwarden_c_files-x86_64-unknown-linux-gnu
           path: languages/csharp/Bitwarden.Sdk/linux-x64
 
       - name: Download x86_64-pc-windows-msvc files
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: libbitwarden_c_files-x86_64-pc-windows-msvc
           path: languages/csharp/Bitwarden.Sdk/windows-x64
@@ -103,7 +103,7 @@ jobs:
         working-directory: languages/csharp/Bitwarden.Sdk
 
       - name: Upload NuGet package
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: Bitwarden.Sdk.${{ needs.version.outputs.version }}.nupkg
           path: |

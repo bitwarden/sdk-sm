@@ -134,7 +134,7 @@ jobs:
         run: 7z a ./bws-${{ matrix.settings.target }}-%_PACKAGE_VERSION%.zip ./target/${{ matrix.settings.target }}/release/bws.exe
 
       - name: Upload artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: bws-${{ matrix.settings.target }}-${{ env._PACKAGE_VERSION }}.zip
           path: ./bws-${{ matrix.settings.target }}-${{ env._PACKAGE_VERSION }}.zip
@@ -260,7 +260,7 @@ jobs:
           xcrun notarytool submit "./bws-${{ matrix.settings.target }}-${_PACKAGE_VERSION}.zip" --keychain-profile "notarytool-profile" --wait
 
       - name: Upload artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: bws-${{ matrix.settings.target }}-${{ env._PACKAGE_VERSION }}.zip
           path: ./bws-${{ matrix.settings.target }}-${{ env._PACKAGE_VERSION }}.zip
@@ -323,7 +323,7 @@ jobs:
         run: zip -j "./bws-${{ matrix.settings.target }}-${_PACKAGE_VERSION}.zip" ./target/${{ matrix.settings.target }}/release/bws
 
       - name: Upload artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: bws-${{ matrix.settings.target }}-${{ env._PACKAGE_VERSION }}.zip
           path: ./bws-${{ matrix.settings.target }}-${{ env._PACKAGE_VERSION }}.zip
@@ -347,12 +347,12 @@ jobs:
           persist-credentials: false
 
       - name: Download x86_64-apple-darwin artifact
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: bws-x86_64-apple-darwin-${{ env._PACKAGE_VERSION }}.zip
 
       - name: Download aarch64-apple-darwin artifact
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: bws-aarch64-apple-darwin-${{ env._PACKAGE_VERSION }}.zip
 
@@ -445,7 +445,7 @@ jobs:
           xcrun notarytool submit "./bws-macos-universal-${_PACKAGE_VERSION}.zip" --keychain-profile "notarytool-profile" --wait
 
       - name: Upload artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: bws-macos-universal-${{ env._PACKAGE_VERSION }}.zip
           path: ./bws-macos-universal-${{ env._PACKAGE_VERSION }}.zip
@@ -484,7 +484,7 @@ jobs:
           sed -i.bak "s/\$NAME\$/Bitwarden Secrets Manager CLI/g" THIRDPARTY.html
 
       - name: Upload artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: THIRDPARTY.html
           path: ./crates/bws/THIRDPARTY.html
@@ -519,7 +519,7 @@ jobs:
           mv "$OUT_DIR/manpages" .
 
       - name: Upload artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: manpages
           path: ./manpages/*

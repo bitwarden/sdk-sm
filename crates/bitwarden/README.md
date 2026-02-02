@@ -37,6 +37,7 @@ async fn test() -> Result<()> {
         user_agent: "Bitwarden Rust-SDK".to_string(),
         device_type: DeviceType::SDK,
         bitwarden_client_version: Some(env!("CARGO_PKG_VERSION").to_string()),
+        ..Default::default()
     };
     let mut client = Client::new(Some(settings));
 

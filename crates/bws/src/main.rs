@@ -1,12 +1,11 @@
 use std::{path::PathBuf, str::FromStr};
 
-use bitwarden::{
-    ClientSettings,
-    auth::{AccessToken, login::AccessTokenLoginRequest},
+use bitwarden::secrets_manager::{
+    AccessToken, AccessTokenLoginRequest, ClientSettings, SecretsManagerClient,
 };
 use bitwarden_cli::install_color_eyre;
 use clap::{CommandFactory, Parser};
-use color_eyre::eyre::{Result, bail};
+use color_eyre::eyre::{bail, Result};
 use config::Profile;
 use log::error;
 use render::OutputSettings;
@@ -27,6 +26,7 @@ async fn main() -> Result<()> {
     process_commands().await
 }
 
+#[allow(clippy::comparison_chain)]
 async fn process_commands() -> Result<()> {
     let cli = Cli::parse();
     let color = cli.color;
@@ -93,16 +93,13 @@ async fn process_commands() -> Result<()> {
         ) {
             Ok(state_file) => Some(state_file),
             Err(e) => {
-                eprintln!(
-                    "Warning: {}\nRetrieving the state file failed. Attempting to continue without using state. Please set \"state_dir\" in your config file to avoid authentication limits.",
-                    e
-                );
+                eprintln!("Warning: {}\nRetrieving the state file failed. Attempting to continue without using state. Please set \"state_dir\" in your config file to avoid authentication limits.", e);
                 None
             }
         },
     };
 
-    let client = bitwarden::Client::new(settings);
+    let client = SecretsManagerClient::new(settings);
 
     // Load session or return if no session exists
     let _ = client
@@ -113,8 +110,8 @@ async fn process_commands() -> Result<()> {
         })
         .await?;
 
-    let organization_id = match client.internal.get_access_token_organization() {
-        Some(id) => id,
+    let organization_id = match client.get_access_token_organization() {
+        Some(id) => id.into(),
         None => {
             error!("Access token isn't associated to an organization.");
             return Ok(());

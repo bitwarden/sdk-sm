@@ -34,6 +34,7 @@
 //!         user_agent: "Bitwarden Rust-SDK".to_string(),
 //!         device_type: DeviceType::SDK,
 //!         bitwarden_client_version: Some(env!("CARGO_PKG_VERSION").to_string()),
+//!         ..Default::default()
 //!     };
 //!     let mut client = Client::new(Some(settings));
 //!
@@ -59,7 +60,8 @@
 #[doc = include_str!("../README.md")]
 mod readme {}
 
-pub use bitwarden_core::*;
+pub use bitwarden_core::DeviceType;
+
 pub mod error;
 
 #[cfg(feature = "secrets")]
@@ -70,4 +72,29 @@ pub mod generators {
 #[cfg(feature = "secrets")]
 pub mod secrets_manager {
     pub use bitwarden_sm::*;
+
+    // These traits are here just for backwards compatibility, as now this functionality is exposed
+    // by the client type directly.
+    #[deprecated(note = "Using `ClientSecretsExt` is no longer necessary")]
+    pub trait ClientSecretsExt {}
+    #[deprecated(note = "Using `ClientProjectsExt` is no longer necessary")]
+    pub trait ClientProjectsExt {}
+    #[deprecated(note = "Using `ClientGeneratorsExt` is no longer necessary")]
+    pub trait ClientGeneratorsExt {}
+}
+
+#[cfg(feature = "secrets")]
+#[deprecated(note = "Use bitwarden_sm::secrets_manager::ClientSettings instead")]
+pub use bitwarden_sm::ClientSettings;
+#[cfg(feature = "secrets")]
+#[deprecated(note = "Use bitwarden_sm::secrets_manager::SecretsManagerClient instead")]
+pub use bitwarden_sm::SecretsManagerClient as Client;
+
+#[cfg(feature = "secrets")]
+#[deprecated(note = "Use bitwarden_sm::secrets_manager::* instead")]
+pub mod auth {
+    pub use bitwarden_sm::AccessToken;
+    pub mod login {
+        pub use bitwarden_sm::{AccessTokenLoginRequest, AccessTokenLoginResponse};
+    }
 }

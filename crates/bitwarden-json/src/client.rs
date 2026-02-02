@@ -1,9 +1,5 @@
-use bitwarden::ClientSettings;
 #[cfg(feature = "secrets")]
-use bitwarden::{
-    generators::GeneratorClientsExt,
-    secrets_manager::{ProjectsClientExt, SecretsClientExt},
-};
+use bitwarden::secrets_manager::{ClientSettings, SecretsManagerClient};
 
 #[cfg(feature = "secrets")]
 use crate::command::{GeneratorsCommand, ProjectsCommand, SecretsCommand};
@@ -12,12 +8,12 @@ use crate::{
     response::{Response, ResponseIntoString},
 };
 
-pub struct Client(bitwarden::Client);
+pub struct Client(SecretsManagerClient);
 
 impl Client {
     pub fn new(settings_input: Option<String>) -> Self {
         let settings = Self::parse_settings(settings_input);
-        Self(bitwarden::Client::new(settings))
+        Self(SecretsManagerClient::new(settings))
     }
 
     pub async fn run_command(&self, input_str: &str) -> String {
@@ -49,6 +45,7 @@ impl Client {
             }
         };
 
+        #[cfg(feature = "secrets")]
         let client = &self.0;
 
         match cmd {

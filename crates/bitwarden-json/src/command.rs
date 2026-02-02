@@ -1,6 +1,5 @@
 #[cfg(feature = "secrets")]
 use bitwarden::{
-    auth::login::AccessTokenLoginRequest,
     generators::PasswordGeneratorRequest,
     secrets_manager::{
         projects::{
@@ -11,6 +10,7 @@ use bitwarden::{
             SecretCreateRequest, SecretGetRequest, SecretIdentifiersRequest, SecretPutRequest,
             SecretsDeleteRequest, SecretsGetRequest, SecretsSyncRequest,
         },
+        AccessTokenLoginRequest,
     },
 };
 use schemars::JsonSchema;

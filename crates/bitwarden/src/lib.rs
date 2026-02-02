@@ -60,8 +60,6 @@
 #[doc = include_str!("../README.md")]
 mod readme {}
 
-pub use bitwarden_core::DeviceType;
-
 pub mod error;
 
 #[cfg(feature = "secrets")]
@@ -84,12 +82,8 @@ pub mod secrets_manager {
 }
 
 #[cfg(feature = "secrets")]
-#[deprecated(note = "Use bitwarden_sm::secrets_manager::ClientSettings instead")]
-pub use bitwarden_sm::ClientSettings;
-#[cfg(feature = "secrets")]
-#[deprecated(note = "Use bitwarden_sm::secrets_manager::SecretsManagerClient instead")]
-pub use bitwarden_sm::SecretsManagerClient as Client;
-
+#[deprecated(note = "Use bitwarden_sm::secrets_manager::* instead")]
+pub use bitwarden_sm::{ClientSettings, DeviceType, SecretsManagerClient as Client};
 #[cfg(feature = "secrets")]
 #[deprecated(note = "Use bitwarden_sm::secrets_manager::* instead")]
 pub mod auth {

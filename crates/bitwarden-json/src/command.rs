@@ -2,6 +2,7 @@
 use bitwarden::{
     generators::PasswordGeneratorRequest,
     secrets_manager::{
+        AccessTokenLoginRequest,
         projects::{
             ProjectCreateRequest, ProjectGetRequest, ProjectPutRequest, ProjectsDeleteRequest,
             ProjectsListRequest,
@@ -10,7 +11,6 @@ use bitwarden::{
             SecretCreateRequest, SecretGetRequest, SecretIdentifiersRequest, SecretPutRequest,
             SecretsDeleteRequest, SecretsGetRequest, SecretsSyncRequest,
         },
-        AccessTokenLoginRequest,
     },
 };
 use schemars::JsonSchema;

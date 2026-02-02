@@ -1,17 +1,17 @@
 use bitwarden::secrets_manager::{
+    SecretsManagerClient,
     secrets::{
         SecretCreateRequest, SecretGetRequest, SecretIdentifiersByProjectRequest,
         SecretIdentifiersRequest, SecretPutRequest, SecretResponse, SecretsDeleteRequest,
         SecretsGetRequest,
     },
-    SecretsManagerClient,
 };
-use color_eyre::eyre::{bail, Result};
+use color_eyre::eyre::{Result, bail};
 use uuid::Uuid;
 
 use crate::{
-    render::{serialize_response, OutputSettings},
     SecretCommand,
+    render::{OutputSettings, serialize_response},
 };
 
 #[derive(Debug)]

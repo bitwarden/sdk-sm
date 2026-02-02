@@ -108,7 +108,7 @@ The fake server provides minimal CRUD operations for secrets and projects.
 - **Formatting**: Requires nightly toolchain: `cargo +nightly fmt`
 - **Linting**: `cargo clippy --all-features --tests` (workspace lints deny unwrap_used and
   unused_async)
-- **MSRV**: Minimum Supported Rust Version is 1.85
+- **MSRV**: Minimum Supported Rust Version is 1.85.1
 
 ## References
 

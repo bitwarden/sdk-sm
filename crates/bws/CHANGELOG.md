@@ -9,7 +9,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
-- **BREAKING:** Updated MSRV to `1.85.0` (#1308)
+- **BREAKING:** Updated MSRV to `1.85.1` (#1425)
 
 ### Fixed
 

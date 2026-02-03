@@ -10,7 +10,7 @@ and this project adheres to
 
 ### Changed
 
-- **BREAKING:** Updated MSRV to `1.88.0` (TODO)
+- **BREAKING:** Updated MSRV to `1.88.0` (#1426)
 
 ## [1.0.0] - 2024-09-26
 

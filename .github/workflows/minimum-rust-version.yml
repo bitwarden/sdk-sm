@@ -38,7 +38,7 @@ jobs:
         with:
           # Important: When updating this, make sure to update the Readme file
           # and also the `rust-version` field in all the `Cargo.toml`.
-          toolchain: 1.85.1
+          toolchain: 1.88.0
           targets: ${{ matrix.settings.target }}
 
       - name: Cache cargo registry

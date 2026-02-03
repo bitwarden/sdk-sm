@@ -20,7 +20,6 @@ no-memory-hardening = [
     "bitwarden-core/no-memory-hardening",
 ] # Disable memory hardening features
 secrets = [
-    "bitwarden-core/secrets",
     "dep:bitwarden-sm",
     "dep:bitwarden-generators",
 ] # Secrets manager API

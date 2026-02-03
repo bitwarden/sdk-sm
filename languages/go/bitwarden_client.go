@@ -64,7 +64,7 @@ func (c *BitwardenClient) AccessTokenLogin(accessToken string, stateFile *string
 		return err
 	}
 
-	var response APIKeyLoginResponse
+	var response AccessTokenLoginResponse
 	return checkSuccessAndError(responseStr, &response)
 }
 

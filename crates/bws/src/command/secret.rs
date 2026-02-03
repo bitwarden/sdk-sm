@@ -1,7 +1,7 @@
 use bitwarden::{
-    Client, OrganizationId,
+    OrganizationId,
     secrets_manager::{
-        ClientSecretsExt,
+        SecretsManagerClient,
         secrets::{
             SecretCreateRequest, SecretGetRequest, SecretIdentifiersByProjectRequest,
             SecretIdentifiersRequest, SecretPutRequest, SecretResponse, SecretsDeleteRequest,
@@ -36,7 +36,7 @@ pub(crate) struct SecretEditCommandModel {
 
 pub(crate) async fn process_command(
     command: SecretCommand,
-    client: Client,
+    client: SecretsManagerClient,
     organization_id: OrganizationId,
     output_settings: OutputSettings,
 ) -> Result<()> {
@@ -90,7 +90,7 @@ pub(crate) async fn process_command(
 }
 
 pub(crate) async fn list(
-    client: Client,
+    client: SecretsManagerClient,
     organization_id: OrganizationId,
     project_id: Option<Uuid>,
     output_settings: OutputSettings,
@@ -126,7 +126,7 @@ pub(crate) async fn list(
 }
 
 pub(crate) async fn get(
-    client: Client,
+    client: SecretsManagerClient,
     secret_id: Uuid,
     output_settings: OutputSettings,
 ) -> Result<()> {
@@ -140,7 +140,7 @@ pub(crate) async fn get(
 }
 
 pub(crate) async fn create(
-    client: Client,
+    client: SecretsManagerClient,
     organization_id: OrganizationId,
     secret: SecretCreateCommandModel,
     output_settings: OutputSettings,
@@ -161,7 +161,7 @@ pub(crate) async fn create(
 }
 
 pub(crate) async fn edit(
-    client: Client,
+    client: SecretsManagerClient,
     organization_id: OrganizationId,
     secret: SecretEditCommandModel,
     output_settings: OutputSettings,
@@ -190,7 +190,7 @@ pub(crate) async fn edit(
     Ok(())
 }
 
-pub(crate) async fn delete(client: Client, secret_ids: Vec<Uuid>) -> Result<()> {
+pub(crate) async fn delete(client: SecretsManagerClient, secret_ids: Vec<Uuid>) -> Result<()> {
     let count = secret_ids.len();
 
     let result = client

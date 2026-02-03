@@ -1,8 +1,7 @@
 use std::{path::PathBuf, str::FromStr};
 
-use bitwarden::{
-    ClientSettings,
-    auth::{AccessToken, login::AccessTokenLoginRequest},
+use bitwarden::secrets_manager::{
+    AccessToken, AccessTokenLoginRequest, ClientSettings, SecretsManagerClient,
 };
 use bitwarden_cli::install_color_eyre;
 use clap::{CommandFactory, Parser};
@@ -102,7 +101,7 @@ async fn process_commands() -> Result<()> {
         },
     };
 
-    let client = bitwarden::Client::new(settings);
+    let client = SecretsManagerClient::new(settings);
 
     // Load session or return if no session exists
     let _ = client
@@ -113,8 +112,8 @@ async fn process_commands() -> Result<()> {
         })
         .await?;
 
-    let organization_id = match client.internal.get_access_token_organization() {
-        Some(id) => id,
+    let organization_id = match client.get_access_token_organization() {
+        Some(id) => id.into(),
         None => {
             error!("Access token isn't associated to an organization.");
             return Ok(());

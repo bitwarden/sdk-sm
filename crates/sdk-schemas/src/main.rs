@@ -91,15 +91,13 @@ use bitwarden_json::response::Response;
 #[derive(JsonSchema)]
 struct SchemaTypes {
     // Input types for new Client
-    client_settings: bitwarden::ClientSettings,
+    client_settings: bitwarden::secrets_manager::ClientSettings,
 
     // Input types for Client::run_command
     input_command: bitwarden_json::command::Command,
 
     // Output types for Client::run_command
-    api_key_login: Response<bitwarden::auth::login::ApiKeyLoginResponse>,
-    password_login: Response<bitwarden::auth::login::PasswordLoginResponse>,
-    login_access_token: Response<bitwarden::auth::login::AccessTokenLoginResponse>,
+    login_access_token: Response<bitwarden::secrets_manager::AccessTokenLoginResponse>,
     secret_identifiers: Response<bitwarden::secrets_manager::secrets::SecretIdentifiersResponse>,
     secret: Response<bitwarden::secrets_manager::secrets::SecretResponse>,
     secrets: Response<bitwarden::secrets_manager::secrets::SecretsResponse>,

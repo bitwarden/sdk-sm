@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-pushd "$REPO_ROOT"/languages/go > /dev/null || exit 1
+if command -v go >/dev/null; then
+  go test || exit 1
+else
+  echo "Go is not installed. Please install Go to run the tests." >&2
+  exit 1
+fi
 
-go test || exit 1
-
-popd > /dev/null || exit 1

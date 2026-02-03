@@ -1,8 +1,11 @@
-use bitwarden::secrets_manager::{
-    SecretsManagerClient,
-    projects::{
-        ProjectCreateRequest, ProjectGetRequest, ProjectPutRequest, ProjectsDeleteRequest,
-        ProjectsListRequest,
+use bitwarden::{
+    OrganizationId,
+    secrets_manager::{
+        SecretsManagerClient,
+        projects::{
+            ProjectCreateRequest, ProjectGetRequest, ProjectPutRequest, ProjectsDeleteRequest,
+            ProjectsListRequest,
+        },
     },
 };
 use color_eyre::eyre::{Result, bail};
@@ -16,7 +19,7 @@ use crate::{
 pub(crate) async fn process_command(
     command: ProjectCommand,
     client: SecretsManagerClient,
-    organization_id: Uuid,
+    organization_id: OrganizationId,
     output_settings: OutputSettings,
 ) -> Result<()> {
     match command {
@@ -34,12 +37,14 @@ pub(crate) async fn process_command(
 
 pub(crate) async fn list(
     client: SecretsManagerClient,
-    organization_id: Uuid,
+    organization_id: OrganizationId,
     output_settings: OutputSettings,
 ) -> Result<()> {
     let projects = client
         .projects()
-        .list(&ProjectsListRequest { organization_id })
+        .list(&ProjectsListRequest {
+            organization_id: organization_id.into(),
+        })
         .await?
         .data;
     serialize_response(projects, output_settings);
@@ -63,14 +68,14 @@ pub(crate) async fn get(
 
 pub(crate) async fn create(
     client: SecretsManagerClient,
-    organization_id: Uuid,
+    organization_id: OrganizationId,
     name: String,
     output_settings: OutputSettings,
 ) -> Result<()> {
     let project = client
         .projects()
         .create(&ProjectCreateRequest {
-            organization_id,
+            organization_id: organization_id.into(),
             name,
         })
         .await?;
@@ -81,7 +86,7 @@ pub(crate) async fn create(
 
 pub(crate) async fn edit(
     client: SecretsManagerClient,
-    organization_id: Uuid,
+    organization_id: OrganizationId,
     project_id: Uuid,
     name: String,
     output_settings: OutputSettings,
@@ -90,7 +95,7 @@ pub(crate) async fn edit(
         .projects()
         .update(&ProjectPutRequest {
             id: project_id,
-            organization_id,
+            organization_id: organization_id.into(),
             name,
         })
         .await?;

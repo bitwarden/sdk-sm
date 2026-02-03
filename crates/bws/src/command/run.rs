@@ -4,9 +4,12 @@ use std::{
     process,
 };
 
-use bitwarden::secrets_manager::{
-    SecretsManagerClient,
-    secrets::{SecretIdentifiersByProjectRequest, SecretIdentifiersRequest, SecretsGetRequest},
+use bitwarden::{
+    OrganizationId,
+    secrets_manager::{
+        SecretsManagerClient,
+        secrets::{SecretIdentifiersByProjectRequest, SecretIdentifiersRequest, SecretsGetRequest},
+    },
 };
 use color_eyre::eyre::{Result, bail};
 use itertools::Itertools;
@@ -23,7 +26,7 @@ const WINDOWS_ESSENTIAL_VARS: &[&str] = &["SystemRoot", "ComSpec", "windir"];
 
 pub(crate) async fn run(
     client: SecretsManagerClient,
-    organization_id: Uuid,
+    organization_id: OrganizationId,
     project_id: Option<Uuid>,
     uuids_as_keynames: bool,
     no_inherit_env: bool,
@@ -64,7 +67,9 @@ pub(crate) async fn run(
     } else {
         client
             .secrets()
-            .list(&SecretIdentifiersRequest { organization_id })
+            .list(&SecretIdentifiersRequest {
+                organization_id: organization_id.into(),
+            })
             .await?
     };
 

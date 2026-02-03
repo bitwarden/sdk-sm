@@ -45,7 +45,6 @@ impl Client {
             }
         };
 
-        #[cfg(feature = "secrets")]
         let client = &self.0;
 
         match cmd {

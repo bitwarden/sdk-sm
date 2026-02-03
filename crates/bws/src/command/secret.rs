@@ -1,9 +1,12 @@
-use bitwarden::secrets_manager::{
-    SecretsManagerClient,
-    secrets::{
-        SecretCreateRequest, SecretGetRequest, SecretIdentifiersByProjectRequest,
-        SecretIdentifiersRequest, SecretPutRequest, SecretResponse, SecretsDeleteRequest,
-        SecretsGetRequest,
+use bitwarden::{
+    OrganizationId,
+    secrets_manager::{
+        SecretsManagerClient,
+        secrets::{
+            SecretCreateRequest, SecretGetRequest, SecretIdentifiersByProjectRequest,
+            SecretIdentifiersRequest, SecretPutRequest, SecretResponse, SecretsDeleteRequest,
+            SecretsGetRequest,
+        },
     },
 };
 use color_eyre::eyre::{Result, bail};
@@ -34,7 +37,7 @@ pub(crate) struct SecretEditCommandModel {
 pub(crate) async fn process_command(
     command: SecretCommand,
     client: SecretsManagerClient,
-    organization_id: Uuid,
+    organization_id: OrganizationId,
     output_settings: OutputSettings,
 ) -> Result<()> {
     match command {
@@ -88,7 +91,7 @@ pub(crate) async fn process_command(
 
 pub(crate) async fn list(
     client: SecretsManagerClient,
-    organization_id: Uuid,
+    organization_id: OrganizationId,
     project_id: Option<Uuid>,
     output_settings: OutputSettings,
 ) -> Result<()> {
@@ -100,7 +103,9 @@ pub(crate) async fn list(
     } else {
         client
             .secrets()
-            .list(&SecretIdentifiersRequest { organization_id })
+            .list(&SecretIdentifiersRequest {
+                organization_id: organization_id.into(),
+            })
             .await?
     };
 
@@ -136,14 +141,14 @@ pub(crate) async fn get(
 
 pub(crate) async fn create(
     client: SecretsManagerClient,
-    organization_id: Uuid,
+    organization_id: OrganizationId,
     secret: SecretCreateCommandModel,
     output_settings: OutputSettings,
 ) -> Result<()> {
     let secret = client
         .secrets()
         .create(&SecretCreateRequest {
-            organization_id,
+            organization_id: organization_id.into(),
             key: secret.key,
             value: secret.value,
             note: secret.note.unwrap_or_default(),
@@ -157,7 +162,7 @@ pub(crate) async fn create(
 
 pub(crate) async fn edit(
     client: SecretsManagerClient,
-    organization_id: Uuid,
+    organization_id: OrganizationId,
     secret: SecretEditCommandModel,
     output_settings: OutputSettings,
 ) -> Result<()> {
@@ -170,7 +175,7 @@ pub(crate) async fn edit(
         .secrets()
         .update(&SecretPutRequest {
             id: secret.id,
-            organization_id,
+            organization_id: organization_id.into(),
             key: secret.key.unwrap_or(old_secret.key),
             value: secret.value.unwrap_or(old_secret.value),
             note: secret.note.unwrap_or(old_secret.note),

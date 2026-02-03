@@ -24,7 +24,7 @@ pub enum Command {
     ///
     /// This command is for initiating an authentication handshake with Bitwarden.
     ///
-    /// Returns: [ApiKeyLoginResponse](bitwarden::auth::login::ApiKeyLoginResponse)
+    /// Returns: [AccessTokenLoginResponse](bitwarden::secrets_manager::AccessTokenLoginResponse)
     LoginAccessToken(AccessTokenLoginRequest),
 
     #[cfg(feature = "secrets")]

@@ -18,11 +18,11 @@ keywords = ["bitwarden"]
 # Define dependencies that are expected to be consistent across all crates
 [workspace.dependencies]
 bitwarden = { path = "crates/bitwarden", version = "=1.0.0" }
-bitwarden-cli = { git = "https://github.com/bitwarden/sdk-internal", rev = "72b240d1720ac39fc85d16c831bcee8849f7ae2f" }
-bitwarden-core = { git = "https://github.com/bitwarden/sdk-internal", rev = "72b240d1720ac39fc85d16c831bcee8849f7ae2f" }
-bitwarden-crypto = { git = "https://github.com/bitwarden/sdk-internal", rev = "72b240d1720ac39fc85d16c831bcee8849f7ae2f" }
-bitwarden-generators = { git = "https://github.com/bitwarden/sdk-internal", rev = "72b240d1720ac39fc85d16c831bcee8849f7ae2f" }
-bitwarden-sm = { git = "https://github.com/bitwarden/sdk-internal", rev = "72b240d1720ac39fc85d16c831bcee8849f7ae2f" }
+bitwarden-cli = { git = "https://github.com/bitwarden/sdk-internal", rev = "f892494e835c24cd8d3d51cdeffeb914d21c068d" }
+bitwarden-core = { git = "https://github.com/bitwarden/sdk-internal", rev = "f892494e835c24cd8d3d51cdeffeb914d21c068d" }
+bitwarden-crypto = { git = "https://github.com/bitwarden/sdk-internal", rev = "f892494e835c24cd8d3d51cdeffeb914d21c068d" }
+bitwarden-generators = { git = "https://github.com/bitwarden/sdk-internal", rev = "f892494e835c24cd8d3d51cdeffeb914d21c068d" }
+bitwarden-sm = { git = "https://github.com/bitwarden/sdk-internal", rev = "f892494e835c24cd8d3d51cdeffeb914d21c068d" }
 
 log = "0.4.20"
 schemars = { version = ">=1.0.0, <2.0", features = ["uuid1", "chrono04"] }

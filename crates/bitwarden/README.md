@@ -1,8 +1,8 @@
 # Bitwarden Secrets Manager SDK
 
 A Rust client SDK to interact with the
-[Bitwarden Secrets Manager](https://bitwarden.com/products/secrets-manager/). This is a beta release
-and might be missing some functionality.
+[Bitwarden Secrets Manager](https://bitwarden.com/products/secrets-manager/).
+This is a beta release and might be missing some functionality.
 
 ## Usage
 
@@ -13,7 +13,7 @@ bitwarden = { "*", features = ["secrets"] }
 
 ## Minimum Supported Rust Version
 
-Rust **1.85.1** or higher.
+Rust **1.88.0** or higher.
 
 ## Example
 

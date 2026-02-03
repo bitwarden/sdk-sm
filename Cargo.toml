@@ -22,7 +22,7 @@ bitwarden-cli = { git = "https://github.com/bitwarden/sdk-internal.git", rev = "
 bitwarden-core = { git = "https://github.com/bitwarden/sdk-internal.git", rev = "ab7ae369f07ecbcce8db5512f076881ff8cc8f7b" }
 bitwarden-crypto = { git = "https://github.com/bitwarden/sdk-internal.git", rev = "ab7ae369f07ecbcce8db5512f076881ff8cc8f7b" }
 bitwarden-generators = { git = "https://github.com/bitwarden/sdk-internal.git", rev = "ab7ae369f07ecbcce8db5512f076881ff8cc8f7b" }
-bitwarden-sm = { git = "https://github.com/bitwarden/sdk-internal.git", rev = "ab7ae369f07ecbcce8db5512f076881ff8cc8f7b" }
+bitwarden-sm = { git = "https://github.com/bitwarden/sdk-internal.git", rev = "d6c06c35e91dbec6d26093e0143eb1d1979cb94e" }
 
 log = "0.4.20"
 schemars = { version = ">=1.0.0, <2.0", features = ["uuid1", "chrono04"] }

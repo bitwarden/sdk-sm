@@ -1,5 +1,5 @@
 name: Build and Publish Python Wheels (Dev)
-run-name: ${{ github.ref != 'refs/heads/main' && 'Dry Run - ' || '' }}Build and Publish Python Wheels (Dev)
+run-name: Build and Publish Python Wheels (Dev)
 
 on:
   push:
@@ -44,7 +44,6 @@ jobs:
           find "$_TARGET_DIR" -type f
 
       - name: Publish dev package to Test PyPI
-        if: github.ref == 'refs/heads/main'
         uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
         with:
           repository-url: https://test.pypi.org/legacy/
@@ -54,7 +53,6 @@ jobs:
   validate:
     name: Validate Dev
     runs-on: ubuntu-24.04
-    if: github.ref == 'refs/heads/main'
     needs:
       - build-dev
       - publish-dev

@@ -12,7 +12,7 @@ classifiers = [
   "Programming Language :: Rust",
   "Topic :: Security",
 ]
-dependencies = ["dateutils >= 0.6.6"]
+dependencies = ["python-dateutil >= 2.6.0"]
 description = "A Bitwarden Client for python"
 name = "bitwarden_sdk"
 readme = "README.md"

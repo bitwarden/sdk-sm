@@ -131,41 +131,41 @@ jobs:
       - name: Bump python-sdk Version
         if: ${{ inputs.project == 'python-sdk' }}
         run: |
-          sed -i 's/version = "[0-9]\.[0-9]\.[0-9]"/version = "${_VERSION}"/' ./languages/python/pyproject.toml
-          sed -i 's/__version__ = "[0-9]\.[0-9]\.[0-9]"/__version__ = "${_VERSION}"/' ./languages/python/bitwarden_sdk/__init__.py
+          cargo set-version -p bitwarden-py "${_VERSION}"
+          sed -i "s/__version__ = \"[0-9]\+\.[0-9]\+\.[0-9]\+\"/__version__ = \"${_VERSION}\"/" ./languages/python/bitwarden_sdk/__init__.py
 
       ### ruby sdk
       - name: Bump ruby-sdk Version
         if: ${{ inputs.project == 'ruby-sdk' }}
-        run: sed -i "s/VERSION = '[0-9]\.[0-9]\.[0-9]'/VERSION = '${_VERSION}'/" ./languages/ruby/bitwarden_sdk_secrets/lib/version.rb
+        run: sed -i "s/VERSION = '[0-9]\+\.[0-9]\+\.[0-9]\+'/VERSION = '${_VERSION}'/" ./languages/ruby/bitwarden_sdk_secrets/lib/version.rb
 
       ### go sdk
       - name: Bump go-sdk Version
         if: ${{ inputs.project == 'go-sdk' }}
-        run: sed -i 's/[0-9]\.[0-9]\.[0-9]/${_VERSION}/' ./languages/go/.version
+        run: sed -i "s/[0-9]\+\.[0-9]\+\.[0-9]\+/${_VERSION}/" ./languages/go/.version
 
       ### dotnet sdk
       - name: Bump dotnet-sdk Version
         if: ${{ inputs.project == 'dotnet-sdk' }}
-        run: sed -i 's/<Version>[0-9]\.[0-9]\.[0-9]<\/Version>/<Version>${_VERSION}<\/Version>/' languages/csharp/Bitwarden.Sdk/Bitwarden.Sdk.csproj
+        run: sed -i "s/<Version>[0-9]\+\.[0-9]\+\.[0-9]\+<\/Version>/<Version>${_VERSION}<\/Version>/" languages/csharp/Bitwarden.Sdk/Bitwarden.Sdk.csproj
 
       ### php sdk
       - name: Bump php-sdk Version
         if: ${{ inputs.project == 'php-sdk' }}
         run: |
-          sed -i 's/"version": "[0-9]\.[0-9]\.[0-9]"/"version": "${_VERSION}"/' ./languages/php/composer.json
+          sed -i "s/\"version\": \"[0-9]\+\.[0-9]\+\.[0-9]\+\"/\"version\": \"${_VERSION}\"/" ./languages/php/composer.json
 
       ### java sdk
       - name: Bump java-sdk Version
         if: ${{ inputs.project == 'java-sdk' }}
         run: |
-          sed -i 's/version = "[0-9]\.[0-9]\.[0-9]"/version = "${_VERSION}"/' ./languages/java/build.gradle
+          sed -i "s/version = \"[0-9]\+\.[0-9]\+\.[0-9]\+"/version = \"${_VERSION}\"/" ./languages/java/build.gradle
 
       ### cpp sdk
       - name: Bump C++ SDK Version
         if: ${{ inputs.project == 'cpp-sdk' }}
         run: |
-          sed -i 's/"version": "[0-9]\.[0-9]\.[0-9]"/"version": "${_VERSION}"/' ./languages/cpp/vcpkg.json
+          sed -i "s/\"version\": \"[0-9]\+\.[0-9]\+\.[0-9]\+\"/\"version\": \"${_VERSION}\"/" ./languages/cpp/vcpkg.json
 
       ############################
       # VERSION BUMP SECTION END #

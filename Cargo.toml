@@ -5,7 +5,7 @@ members = ["crates/*"]
 # Global settings for all crates should be defined here
 [workspace.package]
 # Update using `cargo set-version -p bitwarden <new-version>`
-version = "1.0.0"
+version = "2.0.0"
 authors = ["Bitwarden Inc"]
 edition = "2024"
 # Note: Changing rust-version should be considered a breaking change
@@ -17,7 +17,7 @@ keywords = ["bitwarden"]
 
 # Define dependencies that are expected to be consistent across all crates
 [workspace.dependencies]
-bitwarden = { path = "crates/bitwarden", version = "=1.0.0" }
+bitwarden = { path = "crates/bitwarden", version = "=2.0.0" }
 bitwarden-cli = "2.0.0"
 bitwarden-core = "2.0.0"
 bitwarden-crypto = "2.0.0"

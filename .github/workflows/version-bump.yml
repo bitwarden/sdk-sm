@@ -30,7 +30,7 @@ on:
 jobs:
   bump_version:
     name: "Bump ${{ inputs.project }} Version to v${{ inputs.version_number }}"
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
       pull-requests: write
@@ -245,7 +245,7 @@ jobs:
     permissions:
       contents: write
     if: ${{ inputs.cut_rc_branch == true }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Branch
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1

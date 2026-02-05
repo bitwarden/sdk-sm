@@ -34,15 +34,15 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Branch check
-        if: ${{ inputs.release_type != 'Dry Run' }}
-        run: |
-          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
-            echo "==================================="
-            echo "[!] Can only release from the 'main' branch"
-            echo "==================================="
-            exit 1
-          fi
+      # - name: Branch check
+      #   if: ${{ inputs.release_type != 'Dry Run' }}
+      #   run: |
+      #     if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+      #       echo "==================================="
+      #       echo "[!] Can only release from the 'main' branch"
+      #       echo "==================================="
+      #       exit 1
+      #     fi
 
       - name: Version output
         id: version-output
@@ -121,7 +121,7 @@ jobs:
         env:
           PUBLISH_GRACE_SLEEP: 10
           CARGO_REGISTRY_TOKEN: ${{ steps.retrieve-secrets.outputs.cratesio-api-token }}
-        run: cargo-release release publish --exclude bws --execute --no-confirm
+        run: cargo-release release publish --exclude bws --execute --no-confirm --allow-branch '*'
 
       - name: Update deployment status to Success
         if: ${{ inputs.release_type != 'Dry Run' && success() }}

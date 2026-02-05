@@ -740,7 +740,7 @@ checksum = "5dd9dc738b7a8311c7ade152424974d8115f2cdad61e8dab8dac9f2362298510"
 
 [[package]]
 name = "bws"
-version = "1.0.0"
+version = "2.0.0"
 dependencies = [
  "bat",
  "bitwarden",

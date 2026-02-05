@@ -50,8 +50,8 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: |
           if [[ "${VERSION}" == "latest" || "${VERSION}" == "" ]]; then
-            TAG_NAME=$(curl  "https://api.github.com/repos/bitwarden/sdk-sm/releases" | jq -c '.[] | select(.tag_name | contains("rust")) | .tag_name' | head -1)
-            VERSION=$(echo "$TAG_NAME" | grep -ohE '20[0-9]{2}\.([1-9]|1[0-2])\.[0-9]+')
+            TAG_NAME=$(curl  "https://api.github.com/repos/bitwarden/sdk-sm/releases" | jq -r -c '.[] | select(.tag_name | contains("rust")) | .tag_name' | head -1)
+            VERSION=$(echo "$TAG_NAME" | grep -ohE '[0-9]+\.[0-9]+\.[0-9]+$')
             echo "Latest Released Version: $VERSION"
             echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 

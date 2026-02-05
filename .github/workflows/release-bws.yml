@@ -57,7 +57,7 @@ jobs:
         run: ls -la packages
 
       - name: Get checksum files
-        uses: bitwarden/gh-actions/get-checksum@main
+        uses: bitwarden/gh-actions/get-checksum@374930bf2acbd09a72c79368f4e06837add42400
         with:
           packages_dir: "packages"
           file_path: "packages/bws-sha256-checksums-${{ steps.version.outputs.version }}.txt"

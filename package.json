@@ -20,7 +20,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
-    "prettier": "3.7.4",
+    "prettier": "3.8.1",
     "quicktype-core": "23.2.6",
     "rimraf": "6.1.2",
     "ts-node": "10.9.2",

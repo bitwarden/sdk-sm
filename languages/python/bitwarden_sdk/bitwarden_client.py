@@ -100,12 +100,15 @@ class SecretsClient:
 
     def create(
         self,
-        organization_id: UUID,
+        organization_id: Optional[UUID],
         key: str,
         value: str,
         note: Optional[str],
         project_ids: Optional[List[UUID]] = None,
     ) -> ResponseForSecretResponse:
+        if organization_id is None:
+            organization_id = self.client.inner.get_access_token_organization()
+
         if note is None:
             # secrets api does not accept empty notes
             note = ""
@@ -120,7 +123,12 @@ class SecretsClient:
         )
         return ResponseForSecretResponse.from_dict(result)
 
-    def list(self, organization_id: str) -> ResponseForSecretIdentifiersResponse:
+    def list(
+        self, organization_id: Optional[UUID]
+    ) -> ResponseForSecretIdentifiersResponse:
+        if organization_id is None:
+            organization_id = self.client.inner.get_access_token_organization()
+
         result = self.client._run_command(
             Command(
                 secrets=SecretsCommand(list=SecretIdentifiersRequest(organization_id))
@@ -130,13 +138,16 @@ class SecretsClient:
 
     def update(
         self,
-        organization_id: str,
+        organization_id: Optional[UUID],
         id: str,
         key: str,
         value: str,
         note: Optional[str],
         project_ids: Optional[List[UUID]] = None,
     ) -> ResponseForSecretResponse:
+        if organization_id is None:
+            organization_id = self.client.inner.get_access_token_organization()
+
         if note is None:
             # secrets api does not accept empty notes
             note = ""
@@ -158,8 +169,11 @@ class SecretsClient:
         return ResponseForSecretsDeleteResponse.from_dict(result)
 
     def sync(
-        self, organization_id: str, last_synced_date: Optional[str]
+        self, organization_id: Optional[UUID], last_synced_date: Optional[str]
     ) -> ResponseForSecretsSyncResponse:
+        if organization_id is None:
+            organization_id = self.client.inner.get_access_token_organization()
+
         result = self.client._run_command(
             Command(
                 secrets=SecretsCommand(
@@ -182,9 +196,12 @@ class ProjectsClient:
 
     def create(
         self,
-        organization_id: str,
+        organization_id: Optional[UUID],
         name: str,
     ) -> ResponseForProjectResponse:
+        if organization_id is None:
+            organization_id = self.client.inner.get_access_token_organization()
+
         result = self.client._run_command(
             Command(
                 projects=ProjectsCommand(
@@ -194,7 +211,10 @@ class ProjectsClient:
         )
         return ResponseForProjectResponse.from_dict(result)
 
-    def list(self, organization_id: str) -> ResponseForProjectsResponse:
+    def list(self, organization_id: Optional[UUID]) -> ResponseForProjectsResponse:
+        if organization_id is None:
+            organization_id = self.client.inner.get_access_token_organization()
+
         result = self.client._run_command(
             Command(projects=ProjectsCommand(list=ProjectsListRequest(organization_id)))
         )
@@ -202,10 +222,13 @@ class ProjectsClient:
 
     def update(
         self,
-        organization_id: str,
+        organization_id: Optional[UUID],
         id: str,
         name: str,
     ) -> ResponseForProjectResponse:
+        if organization_id is None:
+            organization_id = self.client.inner.get_access_token_organization()
+
         result = self.client._run_command(
             Command(
                 projects=ProjectsCommand(

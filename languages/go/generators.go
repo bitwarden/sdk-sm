@@ -12,7 +12,7 @@ func NewGenerators(commandRunner CommandRunnerInterface) *Generators {
 	return &Generators{CommandRunner: commandRunner}
 }
 
-func (s *Generators) executeCommand(command Command, target interface{}) error {
+func (s *Generators) executeCommand(command Command, target any) error {
 	responseStr, err := s.CommandRunner.RunCommand(command)
 	if err != nil {
 		return err

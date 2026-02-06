@@ -164,6 +164,7 @@ jobs:
     permissions:
       security-events: write
       id-token: write
+      packages: write
     needs: setup
     if: ${{ inputs.publish_docker }}
 
@@ -287,7 +288,7 @@ jobs:
 
       - name: Print Version
         run: |
-          echo "Version: $EXPECTED_VERSION" && \
+          echo "Version: $_EXPECTED_VERSION" && \
           az storage blob list \
           --account-name "$_ACCOUNT_NAME" \
           --container-name "$_CONTAINER_NAME" \
@@ -320,10 +321,10 @@ jobs:
 
           INSTALLED_VERSION=$(bws --version)
           echo "Installed bws version: $INSTALLED_VERSION"
-          echo "Expected bws version: $EXPECTED_VERSION"
+          echo "Expected bws version: $_EXPECTED_VERSION"
 
-            if [ "$INSTALLED_VERSION" != "bws $EXPECTED_VERSION" ]; then
-              echo "❌ Version mismatch! Expected $EXPECTED_VERSION but got $INSTALLED_VERSION"
+            if [ "$INSTALLED_VERSION" != "bws $_EXPECTED_VERSION" ]; then
+              echo "❌ Version mismatch! Expected $_EXPECTED_VERSION but got $INSTALLED_VERSION"
               exit 1
             fi
 

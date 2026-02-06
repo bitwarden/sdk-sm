@@ -164,6 +164,7 @@ jobs:
     permissions:
       security-events: write
       id-token: write
+      packages: write
     needs: setup
     if: ${{ inputs.publish_docker }}
 

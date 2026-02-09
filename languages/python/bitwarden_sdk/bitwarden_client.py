@@ -529,6 +529,9 @@ class GeneratorsClient:
 
         Raises:
             ValueError:
+                If the requested secret length is not between 4 and 255 (inclusive)
+
+            ValueError:
                 If at least one of lowercase, uppercase, numbers, or special characters are
                 not greater than 0
 

@@ -36,14 +36,17 @@ jobs:
       pull-requests: write
       id-token: write
       actions: read
+    env:
+      _VERSION: ${{ inputs.version_number }}
+      _PROJECT: ${{ inputs.project }}
     steps:
       - name: Install rust
-        uses: dtolnay/rust-toolchain@6d653acede28d24f02e3cd41383119e8b1b35921 # stable
+        uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561 # stable
         with:
           toolchain: stable
 
       - name: Cache cargo registry
-        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+        uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
 
       - name: Install cargo-release
         run: cargo install cargo-edit --locked
@@ -68,13 +71,14 @@ jobs:
         uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Checkout Branch
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           ref: main
           repository: bitwarden/sdk-sm
+          persist-credentials: true
 
       - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@cb9bde2e2525e640591a934b1fd28eef1dcaf5e5 # v6.2.0
+        uses: crazy-max/ghaction-import-gpg@e89d40939c28e39f97cf32126055eeae86ba74ec # v6.3.0
         with:
           gpg_private_key: ${{ steps.retrieve-secrets.outputs.github-gpg-private-key }}
           passphrase: ${{ steps.retrieve-secrets.outputs.github-gpg-private-key-passphrase }}
@@ -83,17 +87,14 @@ jobs:
 
       - name: Create Version Branch
         id: branch
-        env:
-          VERSION: ${{ inputs.version_number }}
-          PROJECT: ${{ inputs.project }}
-        run: git switch -c sdk-${PROJECT}_version_bump_${VERSION}
+        run: git switch -c "sdk-${_PROJECT}_version_bump_${_VERSION}"
 
       - name: Create Version Branch
         id: create-branch
         run: |
-          NAME=version_bump_${{ github.ref_name }}_${{ inputs.project }}_${{ inputs.version_number }}
-          git switch -c $NAME
-          echo "name=$NAME" >> $GITHUB_OUTPUT
+          NAME="version_bump_${GITHUB_REF_NAME}_${_PROJECT}_${_VERSION}"
+          git switch -c "$NAME"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
 
       ########################
       # VERSION BUMP SECTION #
@@ -105,66 +106,66 @@ jobs:
         working-directory: "crates/bitwarden-napi"
         run: |
           npm ci
-          npm version ${{ inputs.version_number }}
+          npm version "${_VERSION}"
 
       - name: Bump napi crate Version
         if: ${{ inputs.project == 'napi' }}
-        run: cargo set-version -p bitwarden-napi ${{ inputs.version_number }}
+        run: cargo set-version -p bitwarden-napi "${_VERSION}"
 
       ### bitwarden
       - name: Bump bitwarden crate Version
         if: ${{ inputs.project == 'bitwarden' }}
-        run: cargo set-version -p bitwarden ${{ inputs.version_number }}
+        run: cargo set-version -p bitwarden "${_VERSION}"
 
       ### bws
       - name: Bump bws Version
         if: ${{ inputs.project == 'bws' }}
         run: |
-          cargo set-version -p bws ${{ inputs.version_number }}
+          cargo set-version -p bws "${_VERSION}"
           # bump the version in install.sh
-          sed -i 's/DEFAULT_BWS_VERSION="[0-9]\+\.[0-9]\+\.[0-9]\+"/DEFAULT_BWS_VERSION="${{ inputs.version_number }}"/' ./crates/bws/scripts/install.sh
+          sed -i 's/DEFAULT_BWS_VERSION="[0-9]\+\.[0-9]\+\.[0-9]\+"/DEFAULT_BWS_VERSION="${_VERSION}"/' ./crates/bws/scripts/install.sh
           # bump the version in install.ps1
-          sed -i 's/\$defaultBwsVersion = "[0-9]\+\.[0-9]\+\.[0-9]\+"/\$defaultBwsVersion = "${{ inputs.version_number }}"/' ./crates/bws/scripts/install.ps1
+          sed -i 's/\$defaultBwsVersion = "[0-9]\+\.[0-9]\+\.[0-9]\+"/\$defaultBwsVersion = "${_VERSION}"/' ./crates/bws/scripts/install.ps1
 
       ### python
       - name: Bump python-sdk Version
         if: ${{ inputs.project == 'python-sdk' }}
         run: |
-          sed -i 's/version = "[0-9]\.[0-9]\.[0-9]"/version = "${{ inputs.version_number }}"/' ./languages/python/pyproject.toml
-          sed -i 's/__version__ = "[0-9]\.[0-9]\.[0-9]"/__version__ = "${{ inputs.version_number }}"/' ./languages/python/bitwarden_sdk/__init__.py
+          sed -i 's/version = "[0-9]\.[0-9]\.[0-9]"/version = "${_VERSION}"/' ./languages/python/pyproject.toml
+          sed -i 's/__version__ = "[0-9]\.[0-9]\.[0-9]"/__version__ = "${_VERSION}"/' ./languages/python/bitwarden_sdk/__init__.py
 
       ### ruby sdk
       - name: Bump ruby-sdk Version
         if: ${{ inputs.project == 'ruby-sdk' }}
-        run: sed -i "s/VERSION = '[0-9]\.[0-9]\.[0-9]'/VERSION = '${{ inputs.version_number }}'/" ./languages/ruby/bitwarden_sdk_secrets/lib/version.rb
+        run: sed -i "s/VERSION = '[0-9]\.[0-9]\.[0-9]'/VERSION = '${_VERSION}'/" ./languages/ruby/bitwarden_sdk_secrets/lib/version.rb
 
       ### go sdk
       - name: Bump go-sdk Version
         if: ${{ inputs.project == 'go-sdk' }}
-        run: sed -i 's/[0-9]\.[0-9]\.[0-9]/${{ inputs.version_number }}/' ./languages/go/.version
+        run: sed -i 's/[0-9]\.[0-9]\.[0-9]/${_VERSION}/' ./languages/go/.version
 
       ### dotnet sdk
       - name: Bump dotnet-sdk Version
         if: ${{ inputs.project == 'dotnet-sdk' }}
-        run: sed -i 's/<Version>[0-9]\.[0-9]\.[0-9]<\/Version>/<Version>${{ inputs.version_number }}<\/Version>/' languages/csharp/Bitwarden.Sdk/Bitwarden.Sdk.csproj
+        run: sed -i 's/<Version>[0-9]\.[0-9]\.[0-9]<\/Version>/<Version>${_VERSION}<\/Version>/' languages/csharp/Bitwarden.Sdk/Bitwarden.Sdk.csproj
 
       ### php sdk
       - name: Bump php-sdk Version
         if: ${{ inputs.project == 'php-sdk' }}
         run: |
-          sed -i 's/"version": "[0-9]\.[0-9]\.[0-9]"/"version": "${{ inputs.version_number }}"/' ./languages/php/composer.json
+          sed -i 's/"version": "[0-9]\.[0-9]\.[0-9]"/"version": "${_VERSION}"/' ./languages/php/composer.json
 
       ### java sdk
       - name: Bump java-sdk Version
         if: ${{ inputs.project == 'java-sdk' }}
         run: |
-          sed -i 's/version = "[0-9]\.[0-9]\.[0-9]"/version = "${{ inputs.version_number }}"/' ./languages/java/build.gradle
+          sed -i 's/version = "[0-9]\.[0-9]\.[0-9]"/version = "${_VERSION}"/' ./languages/java/build.gradle
 
       ### cpp sdk
       - name: Bump C++ SDK Version
         if: ${{ inputs.project == 'cpp-sdk' }}
         run: |
-          sed -i 's/"version": "[0-9]\.[0-9]\.[0-9]"/"version": "${{ inputs.version_number }}"/' ./languages/cpp/vcpkg.json
+          sed -i 's/"version": "[0-9]\.[0-9]\.[0-9]"/"version": "${_VERSION}"/' ./languages/cpp/vcpkg.json
 
       ############################
       # VERSION BUMP SECTION END #
@@ -179,9 +180,9 @@ jobs:
         id: version-changed
         run: |
           if [ -n "$(git status --porcelain)" ]; then
-            echo "changes_to_commit=TRUE" >> $GITHUB_OUTPUT
+            echo "changes_to_commit=TRUE" >> "$GITHUB_OUTPUT"
           else
-            echo "changes_to_commit=FALSE" >> $GITHUB_OUTPUT
+            echo "changes_to_commit=FALSE" >> "$GITHUB_OUTPUT"
             echo "No changes to commit!";
           fi
 
@@ -193,13 +194,13 @@ jobs:
 
       - name: Commit files
         if: ${{ steps.version-changed.outputs.changes_to_commit == 'TRUE' }}
-        run: git commit -m "Bumped sdk-${{ inputs.project }} version to ${{ inputs.version_number }}" -a
+        run: git commit -m "Bumped sdk-${_PROJECT} version to ${_VERSION}" -a
 
       - name: Push changes
         if: ${{ steps.version-changed.outputs.changes_to_commit == 'TRUE' }}
         env:
           PR_BRANCH: ${{ steps.create-branch.outputs.name }}
-        run: git push -u origin $PR_BRANCH
+        run: git push -u origin "$PR_BRANCH"
 
       - name: Create Version PR
         if: ${{ steps.version-changed.outputs.changes_to_commit == 'TRUE' }}
@@ -223,20 +224,20 @@ jobs:
               - [X] Other
 
               ## Objective
-              Automated ${{ inputs.project }} version bump to ${{ inputs.version_number }}")
-          echo "pr_number=${PR_URL##*/}" >> $GITHUB_OUTPUT
+              Automated ${_PROJECT} version bump to ${_VERSION}")
+          echo "pr_number=${PR_URL##*/}" >> "$GITHUB_OUTPUT"
 
       - name: Approve PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ steps.create-pr.outputs.pr_number }}
-        run: gh pr review $PR_NUMBER --approve
+        run: gh pr review "$PR_NUMBER" --approve
 
       - name: Merge PR
         env:
           GH_TOKEN: ${{ steps.retrieve-secrets.outputs.github-pat-bitwarden-devops-bot-repo-scope }}
           PR_NUMBER: ${{ steps.create-pr.outputs.pr_number }}
-        run: gh pr merge $PR_NUMBER --squash --auto --delete-branch
+        run: gh pr merge "$PR_NUMBER" --squash --auto --delete-branch
 
   cut_rc:
     name: Cut RC branch
@@ -247,9 +248,10 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout Branch
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           ref: main
+          persist-credentials: true
 
       - name: Check if RC branch exists
         run: |

@@ -25,7 +25,7 @@ impl Client {
         let mut cmd_value: serde_json::Value = match serde_json::from_str(input_str) {
             Ok(cmd) => cmd,
             Err(e) => {
-                return Response::error(format!("Invalid command string: {}", e)).into_string()
+                return Response::error(format!("Invalid command string: {}", e)).into_string();
             }
         };
 
@@ -45,7 +45,7 @@ impl Client {
         let cmd: Command = match serde_json::from_value(cmd_value) {
             Ok(cmd) => cmd,
             Err(e) => {
-                return Response::error(format!("Invalid command value: {}", e)).into_string()
+                return Response::error(format!("Invalid command value: {}", e)).into_string();
             }
         };
 

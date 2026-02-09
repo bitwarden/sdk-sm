@@ -1,25 +1,25 @@
 use bitwarden::{
+    Client, OrganizationId,
     secrets_manager::{
+        ClientProjectsExt,
         projects::{
             ProjectCreateRequest, ProjectGetRequest, ProjectPutRequest, ProjectsDeleteRequest,
             ProjectsListRequest,
         },
-        ClientProjectsExt,
     },
-    Client,
 };
-use color_eyre::eyre::{bail, Result};
+use color_eyre::eyre::{Result, bail};
 use uuid::Uuid;
 
 use crate::{
-    render::{serialize_response, OutputSettings},
     ProjectCommand,
+    render::{OutputSettings, serialize_response},
 };
 
 pub(crate) async fn process_command(
     command: ProjectCommand,
     client: Client,
-    organization_id: Uuid,
+    organization_id: OrganizationId,
     output_settings: OutputSettings,
 ) -> Result<()> {
     match command {
@@ -37,12 +37,14 @@ pub(crate) async fn process_command(
 
 pub(crate) async fn list(
     client: Client,
-    organization_id: Uuid,
+    organization_id: OrganizationId,
     output_settings: OutputSettings,
 ) -> Result<()> {
     let projects = client
         .projects()
-        .list(&ProjectsListRequest { organization_id })
+        .list(&ProjectsListRequest {
+            organization_id: organization_id.into(),
+        })
         .await?
         .data;
     serialize_response(projects, output_settings);
@@ -66,14 +68,14 @@ pub(crate) async fn get(
 
 pub(crate) async fn create(
     client: Client,
-    organization_id: Uuid,
+    organization_id: OrganizationId,
     name: String,
     output_settings: OutputSettings,
 ) -> Result<()> {
     let project = client
         .projects()
         .create(&ProjectCreateRequest {
-            organization_id,
+            organization_id: organization_id.into(),
             name,
         })
         .await?;
@@ -84,7 +86,7 @@ pub(crate) async fn create(
 
 pub(crate) async fn edit(
     client: Client,
-    organization_id: Uuid,
+    organization_id: OrganizationId,
     project_id: Uuid,
     name: String,
     output_settings: OutputSettings,
@@ -93,7 +95,7 @@ pub(crate) async fn edit(
         .projects()
         .update(&ProjectPutRequest {
             id: project_id,
-            organization_id,
+            organization_id: organization_id.into(),
             name,
         })
         .await?;

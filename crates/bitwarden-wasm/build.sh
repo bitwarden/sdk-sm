@@ -1,23 +1,39 @@
-# Move to the root of the repository
-cd "$(dirname "$0")"
-cd ../../
+#!/usr/bin/env bash
+set -euo pipefail
 
-if [ "$1" != "-r" ]; then
-  # Dev
-  cargo build -p bitwarden-wasm --target wasm32-unknown-unknown
-  wasm-bindgen --target bundler --out-dir languages/js/wasm ./target/wasm32-unknown-unknown/debug/bitwarden_wasm.wasm
-  wasm-bindgen --target nodejs --out-dir languages/js/wasm/node ./target/wasm32-unknown-unknown/debug/bitwarden_wasm.wasm
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+REQUIRED_WASM_BINDGEN_VERSION="0.2.105"
+
+pushd "${REPO_ROOT}"
+trap 'popd' EXIT
+
+ensure_wasm_bindgen() {
+	if ! command -v wasm-bindgen >/dev/null 2>&1; then
+		cargo install -f wasm-bindgen-cli --version "${REQUIRED_WASM_BINDGEN_VERSION}"
+		return
+	fi
+
+	current_version="$(wasm-bindgen --version | awk '{print $2}')"
+	if [ "${current_version}" != "${REQUIRED_WASM_BINDGEN_VERSION}" ]; then
+		cargo install -f wasm-bindgen-cli --version "${REQUIRED_WASM_BINDGEN_VERSION}"
+	fi
+}
+
+ensure_wasm_bindgen
+
+PROFILE="debug"
+if [ "${1:-}" = "-r" ]; then
+	PROFILE="release"
+	cargo build -p bitwarden-wasm --target wasm32-unknown-unknown --release
 else
-  # Release
-  cargo build -p bitwarden-wasm --target wasm32-unknown-unknown --release
-  wasm-bindgen --target bundler --out-dir languages/js/wasm ./target/wasm32-unknown-unknown/release/bitwarden_wasm.wasm
-  wasm-bindgen --target nodejs --out-dir languages/js/wasm/node ./target/wasm32-unknown-unknown/release/bitwarden_wasm.wasm
+	cargo build -p bitwarden-wasm --target wasm32-unknown-unknown
 fi
 
-# Optimize size
+WASM_PATH="./target/wasm32-unknown-unknown/${PROFILE}/bitwarden_wasm.wasm"
+
+wasm-bindgen --target bundler --out-dir languages/js/wasm "${WASM_PATH}"
+wasm-bindgen --target nodejs --out-dir languages/js/wasm/node "${WASM_PATH}"
+
 wasm-opt -Os ./languages/js/wasm/bitwarden_wasm_bg.wasm -o ./languages/js/wasm/bitwarden_wasm_bg.wasm
 wasm-opt -Os ./languages/js/wasm/node/bitwarden_wasm_bg.wasm -o ./languages/js/wasm/node/bitwarden_wasm_bg.wasm
-
-# Transpile to JS
-wasm2js ./languages/js/wasm/bitwarden_wasm_bg.wasm -o ./languages/js/wasm/bitwarden_wasm_bg.wasm.js
-npx terser ./languages/js/wasm/bitwarden_wasm_bg.wasm.js -o ./languages/js/wasm/bitwarden_wasm_bg.wasm.js

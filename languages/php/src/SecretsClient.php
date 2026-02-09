@@ -118,8 +118,7 @@ class SecretsClient
      */
     public function run_secret_command($secretsCommand): stdClass
     {
-        $command = new Command(passwordLogin: null, apiKeyLogin: null, loginAccessToken: null, getUserApiKey: null,
-            fingerprint: null, sync: null, secrets: $secretsCommand, projects: null, generators: null);
+        $command = new Command(loginAccessToken: null, secrets: $secretsCommand, projects: null, generators: null, debug: null);
         return $this->commandRunner->run($command);
     }
 }

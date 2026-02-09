@@ -32,10 +32,10 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          - os: macos-13
+          - os: macos-15
             target: x86_64-apple-darwin
 
-          - os: macos-13
+          - os: macos-15
             target: aarch64-apple-darwin
 
           - os: windows-2022
@@ -46,11 +46,14 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
 
       - name: Install dependencies linux
         if: runner.os == 'Linux'
         run: |
+          sudo apt-get update
           sudo apt-get install -y nlohmann-json3-dev
           sudo apt-get install -y libboost-all-dev
 
@@ -126,7 +129,7 @@ jobs:
 
           mkdir build
           cd build
-          cmake .. -DNLOHMANN=$DNLOHMANN_PATH -DBOOST=$DBOOST_PATH -DTARGET=$DTARGET
+          cmake .. -DNLOHMANN="$DNLOHMANN_PATH" -DBOOST="$DBOOST_PATH" -DTARGET="$DTARGET"
           cmake --build .
 
       - name: Build windows
@@ -152,12 +155,12 @@ jobs:
             cp libBitwardenClient.* artifacts
           fi
           if [[ '${{ runner.os }}' == 'Windows' ]]; then
-            cp */BitwardenClient.* artifacts
+            cp ./*/BitwardenClient.* artifacts
             cp ../include/bitwarden_c.{lib,dll.lib,dll} artifacts
           fi
 
       - name: Upload C++ package for ${{ matrix.settings.target }}
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: libbitwarden_cpp-${{ matrix.settings.target }}
           path: languages/cpp/build/artifacts

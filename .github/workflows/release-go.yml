@@ -28,7 +28,9 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
 
       - name: Branch check
         if: ${{ inputs.release_type != 'Dry Run' }}
@@ -44,7 +46,7 @@ jobs:
         id: version
         run: |
           VERSION=$(cat languages/go/.version | grep -Eo "[0-9]+\.[0-9]+\.[0-9]+")
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
   repo-sync:
     name: Push changed files to SDK Go repo
@@ -61,9 +63,10 @@ jobs:
 
     steps:
       - name: Checkout SDK repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: sdk
+          persist-credentials: false
 
       - name: Log in to Azure
         uses: bitwarden/gh-actions/azure-login@main
@@ -83,12 +86,13 @@ jobs:
         uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Checkout SDK-Go repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           repository: bitwarden/sdk-go
           path: sdk-go
           ref: main
           token: ${{ steps.retrieve-secrets.outputs.github-pat-bitwarden-devops-bot-repo-scope }}
+          persist-credentials: true
 
       - name: Setup Git
         working-directory: sdk-go
@@ -187,15 +191,15 @@ jobs:
         working-directory: sdk-go
         run: |
           # Check if tag exists, set output then exit 0 if true.
-          if git log v${{ env._PKG_VERSION }} >/dev/null 2>&1; then
+          if git log "v${_PKG_VERSION}" >/dev/null 2>&1; then
             echo "==================================="
-            echo "[!] Tag v${{ env._PKG_VERSION }} already exists"
+            echo "[!] Tag v${_PKG_VERSION} already exists"
             echo "==================================="
             exit 1
           fi
 
-          git tag v${{ env._PKG_VERSION }}
-          git push origin v${{ env._PKG_VERSION }}
+          git tag "v${_PKG_VERSION}"
+          git push origin "v${_PKG_VERSION}"
 
   github-release:
     name: GitHub Release
@@ -277,17 +281,17 @@ jobs:
           artifacts=("x86_64-apple-darwin" "aarch64-apple-darwin" "x86_64-unknown-linux-musl" "aarch64-unknown-linux-musl" "x86_64-pc-windows-gnu")
           for value in "${artifacts[@]}"
           do
-            unzip libbitwarden_c_files-$value.zip -d libbitwarden_c_files-$value
-            cd libbitwarden_c_files-$value
-            zip -Rj ../libbitwarden_c_files-$value-$_PKG_VERSION.zip 'libbitwarden_c.*'
+            unzip "libbitwarden_c_files-$value.zip" -d "libbitwarden_c_files-$value"
+            cd "libbitwarden_c_files-$value"
+            zip -Rj "../libbitwarden_c_files-$value-$_PKG_VERSION.zip" 'libbitwarden_c.*'
             cd ..
           done
 
-          ls ./libbitwarden_c_files-x86_64-apple-darwin-$_PKG_VERSION.zip -lRa
+          ls "./libbitwarden_c_files-x86_64-apple-darwin-$_PKG_VERSION.zip" -lRa
 
       - name: Create release
         if: ${{ inputs.release_type != 'Dry Run' }}
-        uses: ncipollo/release-action@2c591bcc8ecdcd2db72b97d6147f871fcd833ba5 # v1.14.0
+        uses: ncipollo/release-action@b7eabc95ff50cbeeedec83973935c8f306dfcd0b # v1.20.0
         with:
           tag: v${{ env._PKG_VERSION }}
           name: v${{ env._PKG_VERSION }}

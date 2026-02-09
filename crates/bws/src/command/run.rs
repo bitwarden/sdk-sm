@@ -5,20 +5,20 @@ use std::{
 };
 
 use bitwarden::{
+    Client, OrganizationId,
     secrets_manager::{
-        secrets::{SecretIdentifiersByProjectRequest, SecretIdentifiersRequest, SecretsGetRequest},
         ClientSecretsExt,
+        secrets::{SecretIdentifiersByProjectRequest, SecretIdentifiersRequest, SecretsGetRequest},
     },
-    Client,
 };
-use color_eyre::eyre::{bail, Result};
+use color_eyre::eyre::{Result, bail};
 use itertools::Itertools;
 use uuid::Uuid;
 use which::which;
 
 use crate::{
-    util::{is_valid_posix_name, uuid_to_posix},
     ACCESS_TOKEN_KEY_VAR_NAME,
+    util::{is_valid_posix_name, uuid_to_posix},
 };
 
 // Essential environment variables that should be preserved even when `--no-inherit-env` is used
@@ -26,7 +26,7 @@ const WINDOWS_ESSENTIAL_VARS: &[&str] = &["SystemRoot", "ComSpec", "windir"];
 
 pub(crate) async fn run(
     client: Client,
-    organization_id: Uuid,
+    organization_id: OrganizationId,
     project_id: Option<Uuid>,
     uuids_as_keynames: bool,
     no_inherit_env: bool,
@@ -67,7 +67,9 @@ pub(crate) async fn run(
     } else {
         client
             .secrets()
-            .list(&SecretIdentifiersRequest { organization_id })
+            .list(&SecretIdentifiersRequest {
+                organization_id: organization_id.into(),
+            })
             .await?
     };
 
@@ -80,7 +82,10 @@ pub(crate) async fn run(
 
     if !uuids_as_keynames {
         if let Some(duplicate) = secrets.iter().map(|s| &s.key).duplicates().next() {
-            bail!("Multiple secrets with name: '{}'. Use --uuids-as-keynames or use unique names for secrets", duplicate);
+            bail!(
+                "Multiple secrets with name: '{}'. Use --uuids-as-keynames or use unique names for secrets",
+                duplicate
+            );
         }
     }
 

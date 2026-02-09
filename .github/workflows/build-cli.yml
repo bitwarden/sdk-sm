@@ -22,13 +22,15 @@ jobs:
       sign: ${{ steps.sign.outputs.sign }}
     steps:
       - name: Checkout repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
 
       - name: Get Package Version
         id: retrieve-version
         run: |
           VERSION=$(grep -o '^version = ".*"' crates/bws/Cargo.toml | grep -Eo "[0-9]+\.[0-9]+\.[0-9]+")
-          echo "package_version=$VERSION" >> $GITHUB_OUTPUT
+          echo "package_version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Sign if repo is owned by Bitwarden
         id: sign
@@ -36,9 +38,9 @@ jobs:
           REPO_OWNER: ${{ github.repository_owner }}
         run: |
           if [[ $REPO_OWNER == bitwarden ]]; then
-            echo "sign=true" >> $GITHUB_OUTPUT
+            echo "sign=true" >> "$GITHUB_OUTPUT"
           fi
-          echo "sign=false" >> $GITHUB_OUTPUT
+          echo "sign=false" >> "$GITHUB_OUTPUT"
 
   build-windows:
     name: Building CLI for - ${{ matrix.settings.os }} - ${{ matrix.settings.target }}
@@ -60,16 +62,18 @@ jobs:
             target: aarch64-pc-windows-msvc
     steps:
       - name: Checkout repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
 
       - name: Install rust
-        uses: dtolnay/rust-toolchain@6d653acede28d24f02e3cd41383119e8b1b35921 # stable
+        uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561 # stable
         with:
           toolchain: stable
           targets: ${{ matrix.settings.target }}
 
       - name: Cache cargo registry
-        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+        uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
         with:
           key: ${{ matrix.settings.target }}-cargo-${{ matrix.settings.os }}
 
@@ -115,11 +119,11 @@ jobs:
           SIGNING_CERT_NAME: ${{ steps.retrieve-secrets-windows.outputs.code-signing-cert-name }}
         run: |
           azuresigntool sign -v \
-            -kvu $SIGNING_VAULT_URL \
-            -kvi $SIGNING_CLIENT_ID \
-            -kvt $SIGNING_TENANT_ID \
-            -kvs $SIGNING_CLIENT_SECRET \
-            -kvc $SIGNING_CERT_NAME \
+            -kvu "$SIGNING_VAULT_URL" \
+            -kvi "$SIGNING_CLIENT_ID" \
+            -kvt "$SIGNING_TENANT_ID" \
+            -kvs "$SIGNING_CLIENT_SECRET" \
+            -kvc "$SIGNING_CERT_NAME" \
             -fd sha256 \
             -du https://bitwarden.com \
             -tr http://timestamp.digicert.com \
@@ -130,7 +134,7 @@ jobs:
         run: 7z a ./bws-${{ matrix.settings.target }}-%_PACKAGE_VERSION%.zip ./target/${{ matrix.settings.target }}/release/bws.exe
 
       - name: Upload artifact
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: bws-${{ matrix.settings.target }}-${{ env._PACKAGE_VERSION }}.zip
           path: ./bws-${{ matrix.settings.target }}-${{ env._PACKAGE_VERSION }}.zip
@@ -149,24 +153,26 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          - os: macos-13
+          - os: macos-15
             target: x86_64-apple-darwin
 
-          - os: macos-13
+          - os: macos-15
             target: aarch64-apple-darwin
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
 
       - name: Install rust
-        uses: dtolnay/rust-toolchain@6d653acede28d24f02e3cd41383119e8b1b35921 # stable
+        uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561 # stable
         with:
           toolchain: stable
           targets: ${{ matrix.settings.target }}
 
       - name: Cache cargo registry
-        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+        uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
         with:
           key: ${{ matrix.settings.target }}-cargo-${{ matrix.settings.os }}
 
@@ -207,7 +213,7 @@ jobs:
         env:
           DECRYPT_FILE_PASSWORD: ${{ steps.get-kv-secrets.outputs.DECRYPT-FILE-PASSWORD }}
         run: |
-          mkdir -p $HOME/secrets
+          mkdir -p "$HOME/secrets"
 
           gpg --quiet --batch --yes --decrypt --passphrase="$DECRYPT_FILE_PASSWORD" \
             --output "$HOME/secrets/devid-app-cert.p12" \
@@ -218,17 +224,17 @@ jobs:
           KEYCHAIN_PASSWORD: ${{ steps.get-kv-secrets.outputs.KEYCHAIN-PASSWORD }}
           DEVID_CERT_PASSWORD: ${{ steps.get-kv-secrets.outputs.DEVID-CERT-PASSWORD }}
         run: |
-          security create-keychain -p $KEYCHAIN_PASSWORD build.keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
           security default-keychain -s build.keychain
-          security unlock-keychain -p $KEYCHAIN_PASSWORD build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
           security set-keychain-settings -lut 1200 build.keychain
 
-          ls $HOME/secrets
+          ls "$HOME/secrets"
 
-          security import "$HOME/secrets/devid-app-cert.p12" -k build.keychain -P $DEVID_CERT_PASSWORD \
+          security import "$HOME/secrets/devid-app-cert.p12" -k build.keychain -P "$DEVID_CERT_PASSWORD" \
             -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/productbuild
 
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k $KEYCHAIN_PASSWORD build.keychain
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
 
       - name: Sign macos
         env:
@@ -246,15 +252,15 @@ jobs:
           xcrun notarytool store-credentials "notarytool-profile" --apple-id "$MACOS_NOTARIZATION_APPLE_ID" --team-id "$MACOS_NOTARIZATION_TEAM_ID" --password "$MACOS_NOTARIZATION_PWD"
 
           echo "Creating notarization archive"
-          zip -j ./bws-${{ matrix.settings.target }}-${{ env._PACKAGE_VERSION }}.zip ./target/${{ matrix.settings.target }}/release/bws
+          zip -j "./bws-${{ matrix.settings.target }}-${_PACKAGE_VERSION}.zip" ./target/${{ matrix.settings.target }}/release/bws
 
-          codesign --sign "$MACOS_CERTIFICATE_NAME" --verbose=3 --force --options=runtime --timestamp ./bws-${{ matrix.settings.target }}-${{ env._PACKAGE_VERSION }}.zip
+          codesign --sign "$MACOS_CERTIFICATE_NAME" --verbose=3 --force --options=runtime --timestamp "./bws-${{ matrix.settings.target }}-${_PACKAGE_VERSION}.zip"
 
           echo "Notarize app"
-          xcrun notarytool submit ./bws-${{ matrix.settings.target }}-${{ env._PACKAGE_VERSION }}.zip --keychain-profile "notarytool-profile" --wait
+          xcrun notarytool submit "./bws-${{ matrix.settings.target }}-${_PACKAGE_VERSION}.zip" --keychain-profile "notarytool-profile" --wait
 
       - name: Upload artifact
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: bws-${{ matrix.settings.target }}-${{ env._PACKAGE_VERSION }}.zip
           path: ./bws-${{ matrix.settings.target }}-${{ env._PACKAGE_VERSION }}.zip
@@ -285,21 +291,23 @@ jobs:
             target: aarch64-unknown-linux-gnu
     steps:
       - name: Checkout repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
 
       - name: Install rust
-        uses: dtolnay/rust-toolchain@6d653acede28d24f02e3cd41383119e8b1b35921 # stable
+        uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561 # stable
         with:
           toolchain: stable
           targets: ${{ matrix.settings.target }}
 
       - name: Set up Zig
-        uses: mlugg/setup-zig@8d6198c65fb0feaa111df26e6b467fea8345e46f # v2.0.5
+        uses: mlugg/setup-zig@fa65c4058643678a4e4a9a60513944a7d8d35440 # v2.1.0
         with:
           version: 0.15.1
 
       - name: Cache cargo registry
-        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+        uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
         with:
           key: ${{ matrix.settings.target }}-cargo-${{ matrix.settings.os }}
 
@@ -312,10 +320,10 @@ jobs:
         run: cargo zigbuild -p bws --release --target=${{ matrix.settings.target }}
 
       - name: Zip linux
-        run: zip -j ./bws-${{ matrix.settings.target }}-${{ env._PACKAGE_VERSION }}.zip ./target/${{ matrix.settings.target }}/release/bws
+        run: zip -j "./bws-${{ matrix.settings.target }}-${_PACKAGE_VERSION}.zip" ./target/${{ matrix.settings.target }}/release/bws
 
       - name: Upload artifact
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: bws-${{ matrix.settings.target }}-${{ env._PACKAGE_VERSION }}.zip
           path: ./bws-${{ matrix.settings.target }}-${{ env._PACKAGE_VERSION }}.zip
@@ -323,7 +331,7 @@ jobs:
 
   macos-universal-binary:
     name: Generate universal macOS binary
-    runs-on: macos-13
+    runs-on: macos-15
     needs:
       - setup
       - build-macos
@@ -334,7 +342,9 @@ jobs:
       _PACKAGE_VERSION: ${{ needs.setup.outputs.package_version }}
     steps:
       - name: Checkout repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
 
       - name: Download x86_64-apple-darwin artifact
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
@@ -348,8 +358,8 @@ jobs:
 
       - name: Unzip artifacts
         run: |
-          unzip bws-x86_64-apple-darwin-${{ env._PACKAGE_VERSION }}.zip -d ./bws-x86_64-apple-darwin
-          unzip bws-aarch64-apple-darwin-${{ env._PACKAGE_VERSION }}.zip -d ./bws-aarch64-apple-darwin
+          unzip "bws-x86_64-apple-darwin-${_PACKAGE_VERSION}.zip" -d ./bws-x86_64-apple-darwin
+          unzip "bws-aarch64-apple-darwin-${_PACKAGE_VERSION}.zip" -d ./bws-aarch64-apple-darwin
 
       - name: Create universal package with lipo
         run: |
@@ -389,7 +399,7 @@ jobs:
         env:
           DECRYPT_FILE_PASSWORD: ${{ steps.get-kv-secrets.outputs.DECRYPT-FILE-PASSWORD }}
         run: |
-          mkdir -p $HOME/secrets
+          mkdir -p "$HOME/secrets"
 
           gpg --quiet --batch --yes --decrypt --passphrase="$DECRYPT_FILE_PASSWORD" \
             --output "$HOME/secrets/devid-app-cert.p12" \
@@ -400,15 +410,15 @@ jobs:
           KEYCHAIN_PASSWORD: ${{ steps.get-kv-secrets.outputs.KEYCHAIN-PASSWORD }}
           DEVID_CERT_PASSWORD: ${{ steps.get-kv-secrets.outputs.DEVID-CERT-PASSWORD }}
         run: |
-          security create-keychain -p $KEYCHAIN_PASSWORD build.keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
           security default-keychain -s build.keychain
-          security unlock-keychain -p $KEYCHAIN_PASSWORD build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
           security set-keychain-settings -lut 1200 build.keychain
 
-          security import "$HOME/secrets/devid-app-cert.p12" -k build.keychain -P $DEVID_CERT_PASSWORD \
+          security import "$HOME/secrets/devid-app-cert.p12" -k build.keychain -P "$DEVID_CERT_PASSWORD" \
             -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/productbuild
 
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k $KEYCHAIN_PASSWORD build.keychain
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
 
       - name: Sign binary
         env:
@@ -427,15 +437,15 @@ jobs:
           xcrun notarytool store-credentials "notarytool-profile" --apple-id "$MACOS_NOTARIZATION_APPLE_ID" --team-id "$MACOS_NOTARIZATION_TEAM_ID" --password "$MACOS_NOTARIZATION_PWD"
 
           echo "Creating notarization archive"
-          zip -j ./bws-macos-universal-${{ env._PACKAGE_VERSION }}.zip ./bws-macos-universal/bws
+          zip -j "./bws-macos-universal-${_PACKAGE_VERSION}.zip" ./bws-macos-universal/bws
 
-          codesign --sign "$MACOS_CERTIFICATE_NAME" --verbose=3 --force --options=runtime --timestamp  ./bws-macos-universal-${{ env._PACKAGE_VERSION }}.zip
+          codesign --sign "$MACOS_CERTIFICATE_NAME" --verbose=3 --force --options=runtime --timestamp  "./bws-macos-universal-${_PACKAGE_VERSION}.zip"
 
           echo "Notarize app"
-          xcrun notarytool submit ./bws-macos-universal-${{ env._PACKAGE_VERSION }}.zip --keychain-profile "notarytool-profile" --wait
+          xcrun notarytool submit "./bws-macos-universal-${_PACKAGE_VERSION}.zip" --keychain-profile "notarytool-profile" --wait
 
       - name: Upload artifact
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: bws-macos-universal-${{ env._PACKAGE_VERSION }}.zip
           path: ./bws-macos-universal-${{ env._PACKAGE_VERSION }}.zip
@@ -450,15 +460,17 @@ jobs:
       contents: read
     steps:
       - name: Checkout repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
 
       - name: Install rust
-        uses: dtolnay/rust-toolchain@6d653acede28d24f02e3cd41383119e8b1b35921 # stable
+        uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561 # stable
         with:
           toolchain: stable
 
       - name: Cache cargo registry
-        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+        uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
         with:
           key: cargo-cli-about
 
@@ -469,10 +481,10 @@ jobs:
         working-directory: ./crates/bws
         run: |
           cargo about generate ../../about.hbs > THIRDPARTY.html
-          sed -i.bak 's/\$NAME\$/Bitwarden Secrets Manager CLI/g' THIRDPARTY.html
+          sed -i.bak "s/\$NAME\$/Bitwarden Secrets Manager CLI/g" THIRDPARTY.html
 
       - name: Upload artifact
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: THIRDPARTY.html
           path: ./crates/bws/THIRDPARTY.html
@@ -486,15 +498,17 @@ jobs:
       contents: read
     steps:
       - name: Checkout repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
 
       - name: Install rust
-        uses: dtolnay/rust-toolchain@6d653acede28d24f02e3cd41383119e8b1b35921 # stable
+        uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561 # stable
         with:
           toolchain: stable
 
       - name: Cache cargo registry
-        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+        uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
         with:
           key: cargo-cli-manpage
 
@@ -502,10 +516,10 @@ jobs:
         run: |
           cargo check -p bws --message-format json > build.json
           OUT_DIR=$(jq -r --slurp '.[] | select (.reason == "build-script-executed") | select(.package_id|contains("crates/bws")) .out_dir' build.json)
-          mv $OUT_DIR/manpages .
+          mv "$OUT_DIR/manpages" .
 
       - name: Upload artifact
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: manpages
           path: ./manpages/*

@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[schemars(rename = "Response_for_{T}")]
 pub struct Response<T: Serialize + JsonSchema> {
     /// Whether or not the SDK request succeeded.
     pub success: bool,

@@ -18,8 +18,14 @@ crates/bws/Cargo.toml
 crates/bws/scripts/install.ps1
 crates/bws/scripts/install.sh
 
-## Docker files have shared ownership ##
+## Docker-related files
 **/Dockerfile @bitwarden/team-appsec @bitwarden/dept-bre
 **/*.Dockerfile @bitwarden/team-appsec @bitwarden/dept-bre
 **/.dockerignore @bitwarden/team-appsec @bitwarden/dept-bre
+**/docker-compose.yml @bitwarden/team-appsec @bitwarden/dept-bre
 **/entrypoint.sh @bitwarden/team-appsec @bitwarden/dept-bre
+
+# Claude related files
+.claude/ @bitwarden/team-ai-sme
+.github/workflows/respond.yml @bitwarden/team-ai-sme
+.github/workflows/review-code.yml @bitwarden/team-ai-sme

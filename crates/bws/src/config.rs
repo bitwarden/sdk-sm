@@ -4,11 +4,11 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use color_eyre::eyre::{bail, Result};
+use color_eyre::eyre::{Result, bail};
 use directories::BaseDirs;
 use serde::{Deserialize, Serialize};
 
-use crate::cli::{ProfileKey, DEFAULT_CONFIG_DIRECTORY, DEFAULT_CONFIG_FILENAME};
+use crate::cli::{DEFAULT_CONFIG_DIRECTORY, DEFAULT_CONFIG_FILENAME, ProfileKey};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub(crate) struct Config {
@@ -17,15 +17,35 @@ pub(crate) struct Config {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub(crate) struct Profile {
+    #[serde(deserialize_with = "deserialize_trimmed_url", default)]
     pub server_base: Option<String>,
+    #[serde(deserialize_with = "deserialize_trimmed_url", default)]
     pub server_api: Option<String>,
+    #[serde(deserialize_with = "deserialize_trimmed_url", default)]
     pub server_identity: Option<String>,
     pub state_dir: Option<String>,
     pub state_opt_out: Option<String>,
 }
 
+fn deserialize_trimmed_url<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let opt_string: Option<String> = Option::deserialize(deserializer)?;
+    Ok(opt_string.map(|s| s.trim_end_matches('/').to_string()))
+}
+
 impl ProfileKey {
     fn update_profile_value(&self, p: &mut Profile, value: String) {
+        let value = if matches!(
+            self,
+            ProfileKey::server_base | ProfileKey::server_api | ProfileKey::server_identity
+        ) {
+            value.trim_end_matches('/').to_string()
+        } else {
+            value
+        };
+
         match self {
             ProfileKey::server_base => p.server_base = Some(value),
             ProfileKey::server_api => p.server_api = Some(value),
@@ -90,7 +110,12 @@ pub(crate) fn update_profile(
     let mut config = load_config(config_file, false)?;
 
     let p = config.profiles.entry(profile).or_default();
-    name.update_profile_value(p, value);
+
+    if value.starts_with("http://") || value.starts_with("https://") {
+        name.update_profile_value(p, value.trim_end_matches('/').to_string());
+    } else {
+        name.update_profile_value(p, value);
+    }
 
     write_config(config, config_file)?;
     Ok(())
@@ -123,6 +148,7 @@ impl Profile {
             state_opt_out: None,
         })
     }
+
     pub(crate) fn api_url(&self) -> Result<String> {
         if let Some(api) = &self.server_api {
             return Ok(api.clone());
@@ -212,6 +238,66 @@ mod tests {
         assert_eq!(
             "https://bitwarden.com",
             c.unwrap().profiles["default"].server_base.as_ref().unwrap()
+        );
+    }
+
+    #[test]
+    fn config_trims_trailing_forward_slashes_in_urls() {
+        let tmpfile = NamedTempFile::new().unwrap();
+        write!(tmpfile.as_file(), "[profiles.default]").unwrap();
+
+        let _ = update_profile(
+            Some(tmpfile.as_ref()),
+            "default".to_owned(),
+            ProfileKey::server_base,
+            "https://vault.bitwarden.com//////".to_owned(),
+        );
+
+        let _ = update_profile(
+            Some(tmpfile.as_ref()),
+            "default".to_owned(),
+            ProfileKey::server_api,
+            "https://api.bitwarden.com/".to_owned(),
+        );
+
+        let _ = update_profile(
+            Some(tmpfile.as_ref()),
+            "default".to_owned(),
+            ProfileKey::server_identity,
+            "https://identity.bitwarden.com/".to_owned(),
+        );
+
+        let c = load_config(Some(Path::new(tmpfile.as_ref())), true).unwrap();
+        assert_eq!(
+            "https://vault.bitwarden.com",
+            c.profiles["default"].server_base.as_ref().unwrap()
+        );
+        assert_eq!(
+            "https://api.bitwarden.com",
+            c.profiles["default"].server_api.as_ref().unwrap()
+        );
+        assert_eq!(
+            "https://identity.bitwarden.com",
+            c.profiles["default"].server_identity.as_ref().unwrap()
+        );
+    }
+
+    #[test]
+    fn config_does_not_trim_forward_slashes_in_non_url_values() {
+        let tmpfile = NamedTempFile::new().unwrap();
+        write!(tmpfile.as_file(), "[profiles.default]").unwrap();
+
+        let _ = update_profile(
+            Some(tmpfile.as_ref()),
+            "default".to_owned(),
+            ProfileKey::state_dir,
+            "/dev/null/".to_owned(),
+        );
+
+        let c = load_config(Some(Path::new(tmpfile.as_ref())), true).unwrap();
+        assert_eq!(
+            "/dev/null/",
+            c.profiles["default"].state_dir.as_ref().unwrap()
         );
     }
 }

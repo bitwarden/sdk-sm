@@ -316,6 +316,19 @@ def generators():
             # unexpected exception type
             return False
 
+    def test_generator_with_length_greater_than_u8_max_returns_friendly_error():
+        """Test that using a length greater than u8 max (255) raises ValueError"""
+        try:
+            client.generators().generate(length=256)
+            # if we get here, the test failed - no exception was raised
+            return False
+        except ValueError:
+            # expected behavior
+            return True
+        except Exception:
+            # unexpected exception type
+            return False
+
     run_test("generate with default params", test_generator_with_default_params)
     run_test("generate with all params", test_generator_with_all_params)
     run_test(
@@ -329,6 +342,10 @@ def generators():
     run_test(
         "generate with min char sets greater than length",
         test_generator_with_min_char_sets_greater_than_length,
+    )
+    run_test(
+        "generate with length greater than 255 returns friendly error",
+        test_generator_with_length_greater_than_u8_max_returns_friendly_error,
     )
 
 

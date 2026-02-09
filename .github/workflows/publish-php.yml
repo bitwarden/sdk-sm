@@ -26,7 +26,9 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
 
       - name: Branch check
         if: ${{ inputs.release_type != 'Dry Run' }}
@@ -42,7 +44,7 @@ jobs:
         id: version
         run: |
           VERSION=$(cat languages/php/composer.json | grep -Eo '"version": "[0-9]+\.[0-9]+\.[0-9]+"' | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
   setup-php:
     name: Setup PHP
@@ -51,10 +53,12 @@ jobs:
       contents: read
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup PHP with PECL extension
-        uses: shivammathur/setup-php@c541c155eee45413f5b09a52248675b1a2575231 # 2.31.1
+        uses: shivammathur/setup-php@44454db4f0199b8b9685a5d763dc37cbf79108e1 # 2.36.0
         with:
           php-version: "8.0"
           tools: composer
@@ -82,9 +86,10 @@ jobs:
       _PKG_VERSION: ${{ needs.validate.outputs.version }}
     steps:
       - name: Checkout SDK repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: sdk
+          persist-credentials: true
 
       - name: Log in to Azure
         uses: bitwarden/gh-actions/azure-login@main
@@ -104,12 +109,13 @@ jobs:
         uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Checkout SDK-PHP repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           repository: bitwarden/sm-sdk-php
           path: sm-sdk-php
           ref: main
           token: ${{ steps.retrieve-secrets.outputs.github-pat-bitwarden-devops-bot-repo-scope }}
+          persist-credentials: true
 
       - name: Setup Git
         working-directory: sm-sdk-php
@@ -152,15 +158,15 @@ jobs:
         working-directory: sm-sdk-php
         run: |
           # Check if tag exists, set output then exit 0 if true.
-          if git log v${{ env._PKG_VERSION }} >/dev/null 2>&1; then
+          if git log "v${_PKG_VERSION}" >/dev/null 2>&1; then
             echo "==================================="
-            echo "[!] Tag v${{ env._PKG_VERSION }} already exists"
+            echo "[!] Tag v${_PKG_VERSION} already exists"
             echo "==================================="
             exit 1
           fi
 
-          git tag v${{ env._PKG_VERSION }}
-          git push origin v${{ env._PKG_VERSION }}
+          git tag "v${_PKG_VERSION}"
+          git push origin "v${_PKG_VERSION}"
 
   github-release:
     name: GitHub Release
@@ -230,14 +236,14 @@ jobs:
 
       - name: Rename build artifacts
         run: |
-          mv libbitwarden_c_files-x86_64-apple-darwin.zip libbitwarden_c_files-x86_64-apple-darwin-$_PKG_VERSION.zip
-          mv libbitwarden_c_files-aarch64-apple-darwin.zip libbitwarden_c_files-aarch64-apple-darwin-$_PKG_VERSION.zip
-          mv libbitwarden_c_files-x86_64-unknown-linux-gnu.zip libbitwarden_c_files-x86_64-unknown-linux-gnu-$_PKG_VERSION.zip
-          mv libbitwarden_c_files-x86_64-pc-windows-msvc.zip libbitwarden_c_files-x86_64-pc-windows-msvc-$_PKG_VERSION.zip
+          mv libbitwarden_c_files-x86_64-apple-darwin.zip "libbitwarden_c_files-x86_64-apple-darwin-$_PKG_VERSION.zip"
+          mv libbitwarden_c_files-aarch64-apple-darwin.zip "libbitwarden_c_files-aarch64-apple-darwin-$_PKG_VERSION.zip"
+          mv libbitwarden_c_files-x86_64-unknown-linux-gnu.zip "libbitwarden_c_files-x86_64-unknown-linux-gnu-$_PKG_VERSION.zip"
+          mv libbitwarden_c_files-x86_64-pc-windows-msvc.zip "libbitwarden_c_files-x86_64-pc-windows-msvc-$_PKG_VERSION.zip"
 
       - name: Create release
         if: ${{ inputs.release_type != 'Dry Run' }}
-        uses: ncipollo/release-action@2c591bcc8ecdcd2db72b97d6147f871fcd833ba5 # v1.14.0
+        uses: ncipollo/release-action@b7eabc95ff50cbeeedec83973935c8f306dfcd0b # v1.20.0
         with:
           tag: v${{ env._PKG_VERSION }}
           name: v${{ env._PKG_VERSION }}
@@ -282,16 +288,17 @@ jobs:
         uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Checkout SDK-PHP repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           repository: bitwarden/sm-sdk-php
           path: sm-sdk-php
           ref: main
           token: ${{ steps.retrieve-secrets.outputs.github-pat-bitwarden-devops-bot-repo-scope }}
+          persist-credentials: false
 
       - name: Publish version
         if: ${{ inputs.release_type != 'Dry Run' }}
         env:
           PACKAGIST_KEY: ${{ steps.retrieve-secrets.outputs.packagist-key }}
-        run: curl -XPOST -H'content-type:application/json' 'https://packagist.org/api/update-package?username=bitwarden&apiToken=${{ env.PACKAGIST_KEY }}' -d'{"repository":{"url":"https://packagist.org/packages/bitwarden/sdk-secrets"}}'
+        run: curl -XPOST -H'content-type:application/json' "https://packagist.org/api/update-package?username=bitwarden&apiToken=${PACKAGIST_KEY}" -d'{"repository":{"url":"https://packagist.org/packages/bitwarden/sdk-secrets"}}'
         working-directory: sm-sdk-php

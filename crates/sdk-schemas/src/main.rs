@@ -1,7 +1,7 @@
 use std::{fs::File, io::Write};
 
 use anyhow::Result;
-use schemars::{schema::RootSchema, schema_for, JsonSchema};
+use schemars::{JsonSchema, Schema, schema_for};
 
 /// Creates a json schema file for any type passed in using Schemars. The filename and path of the
 /// generated schema file is derived from the namespace passed into the macro or supplied as the
@@ -68,7 +68,7 @@ macro_rules! write_schema_for {
     };
 }
 
-fn write_schema(schema: RootSchema, dir_path: String, type_name: String) -> Result<()> {
+fn write_schema(schema: Schema, dir_path: String, type_name: String) -> Result<()> {
     let file_name = type_name
         .split("::")
         .last()
@@ -87,7 +87,7 @@ fn write_schema(schema: RootSchema, dir_path: String, type_name: String) -> Resu
 
 use bitwarden_json::response::Response;
 
-#[allow(dead_code)]
+#[expect(dead_code)]
 #[derive(JsonSchema)]
 struct SchemaTypes {
     // Input types for new Client

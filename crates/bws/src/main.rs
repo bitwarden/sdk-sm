@@ -1,12 +1,12 @@
 use std::{path::PathBuf, str::FromStr};
 
 use bitwarden::{
-    auth::{login::AccessTokenLoginRequest, AccessToken},
     ClientSettings,
+    auth::{AccessToken, login::AccessTokenLoginRequest},
 };
 use bitwarden_cli::install_color_eyre;
 use clap::{CommandFactory, Parser};
-use color_eyre::eyre::{bail, Result};
+use color_eyre::eyre::{Result, bail};
 use config::Profile;
 use log::error;
 use render::OutputSettings;
@@ -27,7 +27,6 @@ async fn main() -> Result<()> {
     process_commands().await
 }
 
-#[allow(clippy::comparison_chain)]
 async fn process_commands() -> Result<()> {
     let cli = Cli::parse();
     let color = cli.color;
@@ -94,7 +93,10 @@ async fn process_commands() -> Result<()> {
         ) {
             Ok(state_file) => Some(state_file),
             Err(e) => {
-                eprintln!("Warning: {}\nRetrieving the state file failed. Attempting to continue without using state. Please set \"state_dir\" in your config file to avoid authentication limits.", e);
+                eprintln!(
+                    "Warning: {}\nRetrieving the state file failed. Attempting to continue without using state. Please set \"state_dir\" in your config file to avoid authentication limits.",
+                    e
+                );
                 None
             }
         },

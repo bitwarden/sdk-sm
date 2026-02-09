@@ -49,16 +49,22 @@ jobs:
       deployment_id: ${{ steps.deployment.outputs.deployment_id }}
     steps:
       - name: Log inputs to job summary
+        env:
+          INPUTS: ${{ toJson(inputs) }}
         run: |
-          echo "<details><summary>Job Inputs</summary>" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo '```json' >> $GITHUB_STEP_SUMMARY
-          echo '${{ toJson(inputs) }}' >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "</details>" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "<details><summary>Job Inputs</summary>"
+            echo ""
+            echo '```json'
+            echo "${INPUTS}"
+            echo '```'
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Checkout repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
 
       - name: Branch check
         if: ${{ inputs.release_type != 'Dry Run' }}
@@ -72,19 +78,21 @@ jobs:
 
       - name: Version output
         id: version-output
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          if [[ "${{ inputs.version }}" == "latest" || "${{ inputs.version }}" == "" ]]; then
+          if [[ "${VERSION}" == "latest" || "${VERSION}" == "" ]]; then
             TAG_NAME=$(curl  "https://api.github.com/repos/bitwarden/sdk-sm/releases" | jq -c '.[] | select(.tag_name | contains("bws")) | .tag_name' | head -1)
             echo "TAG_NAME: $TAG_NAME"
-            VERSION=$(echo $TAG_NAME | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | tr -d 'v')
+            VERSION=$(echo "$TAG_NAME" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | tr -d 'v')
             echo "Latest Released Version: $VERSION"
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
             echo "Latest Released Tag name: $TAG_NAME"
-            echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+            echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
           else
-            echo "Release Version: ${{ inputs.version }}"
-            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+            echo "Release Version: ${VERSION}"
+            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Create GitHub deployment
@@ -111,7 +119,9 @@ jobs:
     if: ${{ inputs.publish_cratesio }}
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
 
       - name: Log in to Azure
         uses: bitwarden/gh-actions/azure-login@main
@@ -131,12 +141,12 @@ jobs:
         uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Install rust
-        uses: dtolnay/rust-toolchain@6d653acede28d24f02e3cd41383119e8b1b35921 # stable
+        uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561 # stable
         with:
           toolchain: stable
 
       - name: Cache cargo registry
-        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+        uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
 
       - name: Install cargo-release
         run: cargo install cargo-release
@@ -159,12 +169,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           ref: ${{ env._TAG_NAME }}
+          persist-credentials: false
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -179,17 +190,17 @@ jobs:
           if [[ "${DRY_RUN}" == "true" ]]; then
             REF=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
             IMAGE_TAG=$(echo "${REF}" | sed "s#/#-#g")  # slash safe branch name
-            echo "tags=$_AZ_REGISTRY/bws:${IMAGE_TAG},ghcr.io/bitwarden/bws:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+            echo "tags=$_AZ_REGISTRY/bws:${IMAGE_TAG},ghcr.io/bitwarden/bws:${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
           else
-            echo "tags=$_AZ_REGISTRY/bws:${VERSION},ghcr.io/bitwarden/bws:${VERSION},$_AZ_REGISTRY/bws:latest,ghcr.io/bitwarden/bws:latest" >> $GITHUB_OUTPUT
+            echo "tags=$_AZ_REGISTRY/bws:${VERSION},ghcr.io/bitwarden/bws:${VERSION},$_AZ_REGISTRY/bws:latest,ghcr.io/bitwarden/bws:latest" >> "$GITHUB_OUTPUT"
           fi
 
       ########## Set up Docker ##########
       - name: Set up QEMU emulators
-        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # v3.7.1
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
 
       ########## Login to Docker registries ##########
       - name: Log in to Azure
@@ -200,10 +211,10 @@ jobs:
           client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Login to Azure ACR
-        run: az acr login -n ${_AZ_REGISTRY%.azurecr.io}
+        run: az acr login -n "${_AZ_REGISTRY%.azurecr.io}"
       - name: Build and push Docker image
         id: build-docker
-        uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # v6.9.0
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
           context: .
           file: crates/bws/Dockerfile
@@ -214,30 +225,31 @@ jobs:
           tags: ${{ steps.tag-list.outputs.tags }}
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v3.7.0
+        uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5 # v3.10.1
 
       - name: Sign image with Cosign
         env:
           DIGEST: ${{ steps.build-docker.outputs.digest }}
           TAGS: ${{ steps.tag-list.outputs.tags }}
         run: |
-          IFS="," read -a tags <<< "${TAGS}"
-          images=""
-          for tag in "${tags[@]}"; do
-            images+="${tag}@${DIGEST} "
+          IFS=',' read -r -a tags_array <<< "${TAGS}"
+          images=()
+          for tag in "${tags_array[@]}"; do
+            images+=("${tag}@${DIGEST}")
           done
-          cosign sign --yes ${images}
+          cosign sign --yes ${images[@]}
+          echo "images=${images[*]}" >> "$GITHUB_OUTPUT"
 
       - name: Scan Docker image
         id: container-scan
-        uses: anchore/scan-action@2c901ab7378897c01b8efaa2d0c9bf519cc64b9e # v6.2.0
+        uses: anchore/scan-action@1638637db639e0ade3258b51db49a9a137574c3e # v6.5.1
         with:
           image: ${{ steps.tag-list.outputs.primary_tag }}
           fail-build: false
           output-format: sarif
 
       - name: Upload Grype results to GitHub
-        uses: github/codeql-action/upload-sarif@662472033e021d55d94146f66f6058822b0b39fd # v3.27.0
+        uses: github/codeql-action/upload-sarif@cdefb33c0f6224e58673d9004f47f7cb3e328b89 # v4.31.10
         with:
           sarif_file: ${{ steps.container-scan.outputs.sarif }}
 
@@ -262,7 +274,9 @@ jobs:
       _CONTAINER_NAME: $web
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
 
       - name: Log in to Azure
         uses: bitwarden/gh-actions/azure-login@main
@@ -275,19 +289,19 @@ jobs:
         run: |
           echo "Version: $EXPECTED_VERSION" && \
           az storage blob list \
-          --account-name $_ACCOUNT_NAME \
-          --container-name $_CONTAINER_NAME \
+          --account-name "$_ACCOUNT_NAME" \
+          --container-name "$_CONTAINER_NAME" \
           --query "[].name"
 
       - name: Test upload install scripts
         run: |
           for file in crates/bws/scripts/*; do
-            base=$(basename "$file") 
+            base=$(basename "$file")
             name="${base%.*}-prerelease.${base##*.}"
             echo "Uploading $file as $name"
             az storage blob upload \
-              --account-name $_ACCOUNT_NAME \
-              --container-name $_CONTAINER_NAME \
+              --account-name "$_ACCOUNT_NAME" \
+              --container-name "$_CONTAINER_NAME" \
               --file "$file" \
               --name "$name" \
               --overwrite true
@@ -322,8 +336,8 @@ jobs:
           release_name="${base%.*}.${base##*.}"
           echo "Copying $prerelease_name to $release_name in Azure Blob Storage"
           az storage blob copy start \
-            --account-name $_ACCOUNT_NAME \
-            --destination-container $_CONTAINER_NAME \
+            --account-name "$_ACCOUNT_NAME" \
+            --destination-container "$_CONTAINER_NAME" \
             --destination-blob "$release_name" \
             --source-uri "https://${_ACCOUNT_NAME}.blob.core.windows.net/${_CONTAINER_NAME}/${prerelease_name}"
           done

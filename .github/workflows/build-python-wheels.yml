@@ -8,11 +8,30 @@ on:
       - "rc"
       - "hotfix-rc"
   workflow_dispatch:
+    inputs:
+      dev_version:
+        description: "Create a dev build (e.g., .dev1 suffix)"
+        default: false
+        type: boolean
+  workflow_call:
+    inputs:
+      dev_version:
+        description: "Create a dev build (e.g., .dev1 suffix)"
+        required: true
+        type: boolean
+    outputs:
+      package_version:
+        description: "The package version (with optional .devX suffix)"
+        value: ${{ jobs.setup.outputs.package_version }}
 
 defaults:
   run:
     shell: bash
     working-directory: languages/python
+
+env:
+  _VERSION_FILE: ../../crates/bitwarden-py/Cargo.toml
+  _TEST_PYPI_REPOSITORY_URL: https://test.pypi.org/pypi/bitwarden-sdk/json
 
 permissions:
   contents: read
@@ -24,17 +43,59 @@ jobs:
 
   setup:
     name: Setup
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       package_version: ${{ steps.retrieve-version.outputs.package_version }}
+      package_version_cargo: ${{ steps.retrieve-version.outputs.package_version_cargo }}
     steps:
       - name: Checkout repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
 
       - name: Get Package Version
         id: retrieve-version
+        env:
+          USE_DEV_VERSION: ${{ inputs.dev_version }}
         run: |
-          VERSION="$(grep -o '^version = ".*"' ../../crates/bitwarden-py/Cargo.toml | grep -Eo "[0-9]+\.[0-9]+\.[0-9]+")"
+          VERSION="$(grep -o '^version = ".*"' "$_VERSION_FILE" | grep -Eo "[0-9]+\.[0-9]+\.[0-9]+")"
+
+          if [ -z "$VERSION" ]; then
+            echo "==================================="
+            echo "[!] Could not determine package version from $_VERSION_FILE"
+            echo "==================================="
+            exit 1
+          fi
+
+          if [ "$USE_DEV_VERSION" = "true" ]; then
+            latest_dev_num=0
+
+            # Get all versions from PyPI that match the current package version with dev suffix
+            dev_versions=$(curl -s "$_TEST_PYPI_REPOSITORY_URL" | \
+              jq -r --arg version "$VERSION" \
+              '.releases | keys[] | select(test("^" + $version + "\\.dev[0-9]+$"))' || true)
+
+            if [ -n "$dev_versions" ]; then
+              # Extract dev numbers and find the latest
+              latest_dev_num=$(echo "$dev_versions" | \
+                sed -n "s/^${VERSION}\.dev\([0-9]\+\)$/\1/p" | \
+                sort -n | \
+                tail -1)
+            else
+              echo "Failed to retrieve current dev_versions from PyPi."
+              exit 1
+            fi
+
+            # Increment dev number
+            new_dev_num=$((latest_dev_num + 1))
+            dev_version_suffix=".dev${new_dev_num}"
+
+            echo "package_version_cargo=${VERSION}-dev${new_dev_num}" >> $GITHUB_OUTPUT
+
+            VERSION="${VERSION}${dev_version_suffix}"
+          fi
+
+          echo "Package version: $VERSION"
           echo "package_version=$VERSION" >> $GITHUB_OUTPUT
 
   build:
@@ -49,48 +110,77 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          - os: macos-13
+          - os: macos-15
             target: x86_64-apple-darwin
             python-version: "3.9"
+            maturin-build-args: ""
 
-          - os: macos-13
+          - os: macos-15
             target: aarch64-apple-darwin
             python-version: "3.9"
+            maturin-build-args: ""
 
           - os: windows-2022
             target: x86_64-pc-windows-msvc
             python-version: "3.9"
+            maturin-build-args: ""
 
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
             python-version: "3.9"
+            maturin-build-args: "--zig"
 
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             target: aarch64-unknown-linux-gnu
             python-version: "3.9"
+            maturin-build-args: "--zig"
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+
+      - name: Add dev version suffix
+        if: ${{ inputs.dev_version }}
+        env:
+          PACKAGE_VERSION_CARGO: ${{ needs.setup.outputs.package_version_cargo }}
+        run: |
+          echo "Updating version files with: $_PACKAGE_VERSION"
+
+          inplace_arg="-i"
+          # Use sed with cross-platform compatibility (macOS and Linux)
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            inplace_arg="-i ''"
+          fi
+
+          sed $inplace_arg "s/^version = \"[0-9]\.[0-9]\.[0-9]\"/version = \"$PACKAGE_VERSION_CARGO\"/" "$_VERSION_FILE"
+          sed $inplace_arg "s/__version__ = \"[0-9]\.[0-9]\.[0-9]\"/__version__ = \"$_PACKAGE_VERSION\"/" bitwarden_sdk/__init__.py
+          git diff
 
       - name: Setup Python
-        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.3.0
+        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
         with:
           python-version: ${{ matrix.settings.python-version }}
 
       - name: Setup Node
-        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
         with:
-          node-version: 18
+          node-version: 22
 
       - name: Install rust
-        uses: dtolnay/rust-toolchain@6d653acede28d24f02e3cd41383119e8b1b35921 # stable
+        uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561 # stable
         with:
           toolchain: stable
           targets: ${{ matrix.settings.target }}
 
+      - name: Set up Zig
+        uses: mlugg/setup-zig@fa65c4058643678a4e4a9a60513944a7d8d35440 # v2.1.0
+        with:
+          version: 0.15.1
+
       - name: Cache cargo registry
-        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+        uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
         with:
           key: ${{ matrix.settings.target }}-cargo-${{ matrix.settings.os }}
 
@@ -102,32 +192,30 @@ jobs:
 
       - name: Build wheels
         if: ${{ matrix.settings.target != 'x86_64-unknown-linux-gnu' }}
-        uses: PyO3/maturin-action@ea5bac0f1ccd0ab11c805e2b804bfcb65dac2eab # v1.45.0
+        uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380 # v1.49.4
         with:
           target: ${{ matrix.settings.target }}
-          args: --release --interpreter python${{ matrix.settings.python-version }}
+          args: --release --interpreter python${{ matrix.settings.python-version }} ${{ matrix.settings.maturin-build-args }}
           sccache: true
-          manylinux: "2_28" # https://github.com/pola-rs/polars/pull/12211
-          working-directory: ${{ github.workspace }}/languages/python
+          working-directory: languages/python
 
       - name: Build wheels (Linux - x86_64)
         if: ${{ matrix.settings.target == 'x86_64-unknown-linux-gnu' }}
-        uses: PyO3/maturin-action@ea5bac0f1ccd0ab11c805e2b804bfcb65dac2eab # v1.45.0
+        uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380 # v1.49.4
         with:
           target: ${{ matrix.settings.target }}
-          args: --release --sdist --interpreter python${{ matrix.settings.python-version }}
-          manylinux: "2_28" # https://github.com/pola-rs/polars/pull/12211
-          working-directory: ${{ github.workspace }}/languages/python
+          args: --release --sdist --interpreter python${{ matrix.settings.python-version }} ${{ matrix.settings.maturin-build-args }}
+          working-directory: languages/python
 
       - name: Upload wheels
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: bitwarden_sdk-${{ env._PACKAGE_VERSION }}-${{ matrix.settings.target }}
           path: ${{ github.workspace }}/target/wheels/bitwarden_sdk*.whl
 
       - name: Upload sdists
         if: ${{ matrix.settings.target == 'x86_64-unknown-linux-gnu' }} # we only need one sdist
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: bitwarden_sdk-${{ env._PACKAGE_VERSION }}-sdist
           path: ${{ github.workspace }}/target/wheels/bitwarden_sdk-*.tar.gz

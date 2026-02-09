@@ -25,7 +25,9 @@ jobs:
       release_version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout repo
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
 
       - name: Branch check
         if: ${{ inputs.release_type != 'Dry Run' }}
@@ -41,7 +43,7 @@ jobs:
         id: version
         run: |
           VERSION=$(grep -o '^version = ".*"' crates/bws/Cargo.toml | grep -Eo "[0-9]+\.[0-9]+\.[0-9]+")
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Download all Release artifacts
         uses: bitwarden/gh-actions/download-artifacts@main
@@ -59,7 +61,7 @@ jobs:
 
       - name: Create release
         if: ${{ inputs.release_type != 'Dry Run' }}
-        uses: ncipollo/release-action@2c591bcc8ecdcd2db72b97d6147f871fcd833ba5 # v1.14.0
+        uses: ncipollo/release-action@b7eabc95ff50cbeeedec83973935c8f306dfcd0b # v1.20.0
         env:
           PKG_VERSION: ${{ steps.version.outputs.version }}
         with:
@@ -68,6 +70,8 @@ jobs:
             packages/bws-macos-universal-${{ env.PKG_VERSION }}.zip,
             packages/bws-x86_64-pc-windows-msvc-${{ env.PKG_VERSION }}.zip,
             packages/bws-aarch64-pc-windows-msvc-${{ env.PKG_VERSION }}.zip,
+            packages/bws-x86_64-unknown-linux-musl-${{ env.PKG_VERSION }}.zip,
+            packages/bws-aarch64-unknown-linux-musl-${{ env.PKG_VERSION }}.zip,
             packages/bws-x86_64-unknown-linux-gnu-${{ env.PKG_VERSION }}.zip,
             packages/bws-aarch64-unknown-linux-gnu-${{ env.PKG_VERSION }}.zip,
             packages/THIRDPARTY.html,

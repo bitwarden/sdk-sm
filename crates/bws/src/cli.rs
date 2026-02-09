@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use bitwarden_cli::Color;
-use clap::{ArgGroup, Parser, Subcommand, ValueEnum};
+use clap::{ArgGroup, Parser, Subcommand, ValueEnum, builder::ValueParser};
 use clap_complete::Shell;
 use uuid::Uuid;
 
@@ -14,7 +14,7 @@ pub(crate) const UUIDS_AS_KEYNAMES_VAR_NAME: &str = "BWS_UUIDS_AS_KEYNAMES";
 pub(crate) const DEFAULT_CONFIG_FILENAME: &str = "config";
 pub(crate) const DEFAULT_CONFIG_DIRECTORY: &str = ".config/bws";
 
-#[allow(non_camel_case_types)]
+#[expect(non_camel_case_types)]
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
 pub(crate) enum ProfileKey {
     server_base,
@@ -25,7 +25,7 @@ pub(crate) enum ProfileKey {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
-#[allow(clippy::upper_case_acronyms)]
+#[expect(clippy::upper_case_acronyms)]
 pub(crate) enum Output {
     JSON,
     YAML,
@@ -63,8 +63,16 @@ pub(crate) struct Cli {
     #[arg(short = 'p', long, global = true, env = PROFILE_KEY_VAR_NAME, help="Profile to use from the config file")]
     pub(crate) profile: Option<String>,
 
-    #[arg(short = 'u', long, global = true, env = SERVER_URL_KEY_VAR_NAME, help="Override the server URL from the config file")]
+    #[arg(short = 'u', long, global = true, env = SERVER_URL_KEY_VAR_NAME, help="Override the server URL from the config file", value_parser = ValueParser::new(url_parser) )]
     pub(crate) server_url: Option<String>,
+}
+
+fn url_parser(value: &str) -> Result<String, String> {
+    if value.starts_with("http://") || value.starts_with("https://") {
+        Ok(value.trim_end_matches('/').into())
+    } else {
+        Err(format!("'{value}' is not a valid URL"))
+    }
 }
 
 #[derive(Subcommand, Debug)]

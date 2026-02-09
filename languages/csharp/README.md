@@ -1,6 +1,7 @@
 # Bitwarden Secrets Manager SDK
 
-.NET bindings for interacting with the [Bitwarden Secrets Manager]. This is a beta release and might be missing some functionality.
+.NET bindings for interacting with the [Bitwarden Secrets Manager]. This is a beta release and might
+be missing some functionality.
 
 ## Create access token
 
@@ -54,6 +55,7 @@ var secretResponse = bitwardenClient.Secrets.Create(organizationId, key, value, 
 ```
 
 ### Update secret
+
 ```csharp
 var secretId = secretResponse.Id;
 secretResponse = bitwardenClient.Secrets.Get(secretId);

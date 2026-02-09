@@ -34,15 +34,20 @@ module BitwardenSDKSecrets
         api_url: bitwarden_settings.api_url,
         identity_url: bitwarden_settings.identity_url,
         user_agent: 'Bitwarden RUBY-SDK',
-        device_type: nil
+        device_type: nil,
+        bitwarden_client_version: nil
       )
 
       @bitwarden = BitwardenLib
       @handle = @bitwarden.init(client_settings.to_dynamic.compact.to_json)
       @command_runner = CommandRunner.new(@bitwarden, @handle)
-      @projects = ProjectsClient.new(@command_runner)
-      @secrets = SecretsClient.new(@command_runner)
+      @projects = ProjectsClient.new(@command_runner, self)
+      @secrets = SecretsClient.new(@command_runner, self)
       @auth = AuthClient.new(@command_runner)
+    end
+
+    def get_access_token_organization
+      @bitwarden.get_access_token_organization(@handle)
     end
 
     def free_mem

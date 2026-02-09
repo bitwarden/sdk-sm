@@ -8,6 +8,7 @@ import (
 
 type BitwardenClientInterface interface {
 	AccessTokenLogin(accessToken string, stateFile *string) error
+	GetAccessTokenOrganization() (string, error)
 	Projects() ProjectsInterface
 	Secrets() SecretsInterface
 	Generators() GeneratorsInterface
@@ -45,14 +46,16 @@ func NewBitwardenClient(apiURL *string, identityURL *string) (BitwardenClientInt
 	}
 	runner := NewCommandRunner(client, lib)
 
-	return &BitwardenClient{
+	bwClient := &BitwardenClient{
 		lib:           lib,
 		client:        client,
 		commandRunner: runner,
-		projects:      NewProjects(runner),
-		secrets:       NewSecrets(runner),
 		generators:    NewGenerators(runner),
-	}, nil
+	}
+	bwClient.projects = NewProjects(runner, bwClient)
+	bwClient.secrets = NewSecrets(runner, bwClient)
+
+	return bwClient, nil
 }
 
 func (c *BitwardenClient) AccessTokenLogin(accessToken string, stateFile *string) error {
@@ -78,6 +81,10 @@ func (c *BitwardenClient) Secrets() SecretsInterface {
 
 func (c *BitwardenClient) Generators() GeneratorsInterface {
 	return c.generators
+}
+
+func (c *BitwardenClient) GetAccessTokenOrganization() (string, error) {
+	return c.lib.GetAccessTokenOrganization(c.client)
 }
 
 func (c *BitwardenClient) Close() {

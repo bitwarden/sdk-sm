@@ -17,6 +17,7 @@ typedef void* ClientPtr;
 extern char* run_command(const char *command, ClientPtr client);
 extern ClientPtr init(const char *clientSettings);
 extern void free_mem(ClientPtr client);
+extern char* get_access_token_organization(ClientPtr client);
 */
 import "C"
 
@@ -28,6 +29,7 @@ type BitwardenLibrary interface {
 	Init(clientSettings string) (ClientPointer, error)
 	FreeMem(client ClientPointer)
 	RunCommand(command string, client ClientPointer) (string, error)
+	GetAccessTokenOrganization(client ClientPointer) (string, error)
 }
 
 type BitwardenLibraryImpl struct{}
@@ -52,6 +54,15 @@ func (b *BitwardenLibraryImpl) RunCommand(command string, client ClientPointer) 
 	cstr := C.run_command(C.CString(command), client.Pointer)
 	if cstr == nil {
 		return "", fmt.Errorf("run command failed")
+	}
+	defer C.free(unsafe.Pointer(cstr))
+	return C.GoString(cstr), nil
+}
+
+func (b *BitwardenLibraryImpl) GetAccessTokenOrganization(client ClientPointer) (string, error) {
+	cstr := C.get_access_token_organization(client.Pointer)
+	if cstr == nil {
+		return "", nil // Return empty string when no organization is found
 	}
 	defer C.free(unsafe.Pointer(cstr))
 	return C.GoString(cstr), nil

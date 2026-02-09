@@ -7,8 +7,12 @@ import (
 	"os"
 
 	sdk "github.com/bitwarden/sdk-go"
-	"github.com/gofrs/uuid"
 )
+
+/*
+// silence warnings about mismatched macOS deployment targets between Rust and Go builds
+#cgo LDFLAGS: -w
+*/
 
 func main() {
 	// Configuring the URLS is optional, set them to nil to use the default values
@@ -18,7 +22,6 @@ func main() {
 	bitwardenClient, _ := sdk.NewBitwardenClient(&apiURL, &identityURL)
 
 	accessToken := os.Getenv("ACCESS_TOKEN")
-	organizationIDStr := os.Getenv("ORGANIZATION_ID")
 	projectName := os.Getenv("PROJECT_NAME")
 
 	// Configuring the stateFile is optional, pass nil
@@ -34,12 +37,7 @@ func main() {
 		panic(err)
 	}
 
-	organizationID, err := uuid.FromString(organizationIDStr)
-	if err != nil {
-		panic(err)
-	}
-
-	project, err := bitwardenClient.Projects().Create(organizationID.String(), projectName)
+	project, err := bitwardenClient.Projects().Create(projectName)
 	if err != nil {
 		panic(err)
 	}
@@ -47,7 +45,7 @@ func main() {
 	projectID := project.ID
 	fmt.Println(projectID)
 
-	if _, err = bitwardenClient.Projects().List(organizationID.String()); err != nil {
+	if _, err = bitwardenClient.Projects().List(); err != nil {
 		panic(err)
 	}
 
@@ -55,7 +53,7 @@ func main() {
 		panic(err)
 	}
 
-	if _, err = bitwardenClient.Projects().Update(projectID, organizationID.String(), projectName+"2"); err != nil {
+	if _, err = bitwardenClient.Projects().Update(projectID, projectName+"2"); err != nil {
 		panic(err)
 	}
 
@@ -63,13 +61,13 @@ func main() {
 	value := "value"
 	note := "note"
 
-	secret, err := bitwardenClient.Secrets().Create(key, value, note, organizationID.String(), []string{projectID})
+	secret, err := bitwardenClient.Secrets().Create(key, value, note, []string{projectID})
 	if err != nil {
 		panic(err)
 	}
 	secretID := secret.ID
 
-	if _, err = bitwardenClient.Secrets().List(organizationID.String()); err != nil {
+	if _, err = bitwardenClient.Secrets().List(); err != nil {
 		panic(err)
 	}
 
@@ -77,7 +75,7 @@ func main() {
 		panic(err)
 	}
 
-	if _, err = bitwardenClient.Secrets().Update(secretID, key, value, note, organizationID.String(), []string{projectID}); err != nil {
+	if _, err = bitwardenClient.Secrets().Update(secretID, key, value, note, []string{projectID}); err != nil {
 		panic(err)
 	}
 
@@ -89,7 +87,7 @@ func main() {
 		panic(err)
 	}
 
-	secretIdentifiers, err := bitwardenClient.Secrets().List(organizationID.String())
+	secretIdentifiers, err := bitwardenClient.Secrets().List()
 	if err != nil {
 		panic(err)
 	}

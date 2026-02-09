@@ -31,5 +31,6 @@ module BitwardenSDKSecrets
     attach_function :init, [:string], :pointer
     attach_function :run_command, %i[string pointer], :string
     attach_function :free_mem, [:pointer], :void
+    attach_function :get_access_token_organization, [:pointer], :string
   end
 end

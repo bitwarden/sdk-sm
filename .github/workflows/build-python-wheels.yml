@@ -70,19 +70,19 @@ jobs:
           if [ "$USE_DEV_VERSION" = "true" ]; then
             latest_dev_num=0
 
-            # Fetch all releases from PyPI
-            echo "Fetching releases from PyPI..."
-            pypi_response=$(curl -sf "$_TEST_PYPI_REPOSITORY_URL")
+            # Fetch all releases from Test PyPI
+            echo "Fetching releases from Test PyPI..."
+            test_pypi_response=$(curl -sf "$_TEST_PYPI_REPOSITORY_URL")
 
-            if [ $? -ne 0 ] || [ -z "$pypi_response" ]; then
+            if [ $? -ne 0 ] || [ -z "$test_pypi_response" ]; then
               echo "==================================="
-              echo "[!] Failed to fetch releases from PyPI"
+              echo "[!] Failed to fetch releases from Test PyPI"
               echo "==================================="
               exit 1
             fi
 
             # Get all versions that match the current package version with dev suffix
-            dev_versions=$(echo "$pypi_response" | \
+            dev_versions=$(echo "$test_pypi_response" | \
               jq -r --arg version "$VERSION" \
               '.releases | keys[] | select(test("^" + $version + "\\.dev[0-9]+$"))' || true)
 

@@ -8,6 +8,7 @@ on:
       - "rc"
       - "hotfix-rc"
   workflow_dispatch:
+  workflow_call:
 
 defaults:
   run:

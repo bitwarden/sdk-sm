@@ -6,9 +6,14 @@ on:
     branches:
       - "main"
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
+
+concurrency:
+  group: build-ruby-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:

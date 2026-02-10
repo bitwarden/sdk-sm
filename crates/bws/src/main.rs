@@ -58,6 +58,31 @@ async fn process_commands() -> Result<()> {
                 cli.config_file,
             );
         }
+        Commands::Generate {
+            include_lowercase,
+            include_uppercase,
+            include_numbers,
+            length,
+            include_special,
+            include_ambiguous,
+            min_lowercase,
+            min_uppercase,
+            min_number,
+            min_special,
+        } => {
+            return command::generate::generate_secret(
+                include_lowercase,
+                include_uppercase,
+                include_numbers,
+                length,
+                include_special,
+                include_ambiguous,
+                min_lowercase,
+                min_uppercase,
+                min_number,
+                min_special,
+            );
+        }
         _ => (),
     }
 
@@ -155,7 +180,7 @@ async fn process_commands() -> Result<()> {
             std::process::exit(exit_code);
         }
 
-        Commands::Config { .. } | Commands::Completions { .. } => {
+        Commands::Config { .. } | Commands::Completions { .. } | Commands::Generate { .. } => {
             unreachable!()
         }
     }

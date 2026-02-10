@@ -11,9 +11,20 @@ permissions:
   contents: read
 
 jobs:
+  generate-schemas:
+    name: Generate schemas
+    uses: ./.github/workflows/generate_schemas.yml
+
+  build-rust:
+    name: Build Rust
+    uses: ./.github/workflows/build-rust-cross-platform.yml
+
   build:
     name: Build Ruby
     runs-on: ubuntu-22.04
+    needs:
+      - generate-schemas
+      - build-rust
     steps:
       - name: Checkout Repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -25,49 +36,34 @@ jobs:
         with:
           ruby-version: 3.4.7
 
-      - name: Download artifacts
-        uses: bitwarden/gh-actions/download-artifacts@main
+      - name: Download schemas artifact
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
-          workflow: generate_schemas.yml
+          name: schemas.rb
           path: languages/ruby/bitwarden_sdk_secrets/lib
-          workflow_conclusion: success
-          branch: ${{ github.ref_name }}
-          artifacts: schemas.rb
 
       - name: Download x86_64-apple-darwin artifact
-        uses: bitwarden/gh-actions/download-artifacts@main
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
-          workflow: build-rust-cross-platform.yml
+          name: libbitwarden_c_files-x86_64-apple-darwin
           path: temp/macos-x64
-          workflow_conclusion: success
-          branch: ${{ github.ref_name }}
-          artifacts: libbitwarden_c_files-x86_64-apple-darwin
 
       - name: Download aarch64-apple-darwin artifact
-        uses: bitwarden/gh-actions/download-artifacts@main
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
-          workflow: build-rust-cross-platform.yml
-          workflow_conclusion: success
-          branch: ${{ github.ref_name }}
-          artifacts: libbitwarden_c_files-aarch64-apple-darwin
+          name: libbitwarden_c_files-aarch64-apple-darwin
           path: temp/macos-arm64
 
       - name: Download x86_64-unknown-linux-gnu artifact
-        uses: bitwarden/gh-actions/download-artifacts@main
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
-          workflow: build-rust-cross-platform.yml
-          workflow_conclusion: success
-          branch: ${{ github.ref_name }}
-          artifacts: libbitwarden_c_files-x86_64-unknown-linux-gnu
+          name: libbitwarden_c_files-x86_64-unknown-linux-gnu
           path: temp/linux-x64
 
       - name: Download x86_64-pc-windows-msvc artifact
-        uses: bitwarden/gh-actions/download-artifacts@main
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
-          workflow: build-rust-cross-platform.yml
-          workflow_conclusion: success
-          branch: ${{ github.ref_name }}
-          artifacts: libbitwarden_c_files-x86_64-pc-windows-msvc
+          name: libbitwarden_c_files-x86_64-pc-windows-msvc
           path: temp/windows-x64
 
       - name: Copy lib files

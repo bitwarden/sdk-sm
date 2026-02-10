@@ -1,12 +1,6 @@
 name: Build C++ SDK
 
 on:
-  push:
-    branches:
-      - main
-      - rc
-      - hotfix-rc
-  pull_request:
   workflow_dispatch:
   workflow_call:
 

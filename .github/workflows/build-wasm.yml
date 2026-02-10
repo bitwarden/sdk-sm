@@ -1,12 +1,6 @@
 name: Build @bitwarden/sdk-wasm
 
 on:
-  pull_request:
-  push:
-    branches:
-      - "main"
-      - "rc"
-      - "hotfix-rc"
   workflow_dispatch:
   workflow_call:
 

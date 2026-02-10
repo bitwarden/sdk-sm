@@ -11,11 +11,11 @@ permissions:
   contents: read
 
 jobs:
-  generate_schemas:
+  generate-schemas:
     name: Generate schemas
     uses: ./.github/workflows/generate_schemas.yml
 
-  build_rust:
+  build-rust:
     name: Build Rust
     uses: ./.github/workflows/build-rust-cross-platform.yml
 

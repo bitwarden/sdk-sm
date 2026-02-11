@@ -1,6 +1,6 @@
 [package]
 name = "bws"
-version = "1.0.0"
+version = "2.0.0"
 description = """
 Bitwarden Secrets Manager CLI
 """
@@ -38,7 +38,7 @@ serde = "1.0.196"
 serde_json = "1.0.113"
 serde_yaml = "0.9"
 supports-color = "3.0.0"
-thiserror = "2.0.0"
+thiserror = "2.0.18"
 tokio = { workspace = true, features = ["rt-multi-thread"] }
 toml = "0.9.0"
 uuid = { version = "1.7.0", features = ["serde"] }

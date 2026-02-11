@@ -4,7 +4,7 @@
 # An installer for the bws command line utility. #
 ##################################################
 
-DEFAULT_BWS_VERSION="1.0.0"
+DEFAULT_BWS_VERSION="2.0.0"
 BWS_VERSION="${BWS_VERSION:-$DEFAULT_BWS_VERSION}"
 
 main() {

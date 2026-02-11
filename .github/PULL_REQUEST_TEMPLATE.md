@@ -8,14 +8,12 @@
 
 ## 🚨 Breaking Changes
 
-<!-- Does this PR introduce any breaking changes? If so, please describe the impact and migration path for clients.
-
-If you're unsure, the automated TypeScript compatibility check will run when you open/update this PR and provide feedback.
+<!-- If this PR introduces a breaking change for any downstream consumer, call it out clearly.
 
 For breaking changes:
-1. Describe what changed in the client interface
+1. Describe what changed in the public interface
 2. Explain why the change was necessary
-3. Provide migration steps for client developers
-4. Link to any paired client PRs if needed
+3. Provide migration steps for consumers
+4. Link to any paired consumer PRs if needed
 
 Otherwise, you can remove this section. -->

@@ -27,7 +27,7 @@ Follow the installation instructions [here](./INSTRUCTIONS.md).
 To initialize the client, you need to import the SDK and create a new `BitwardenClient` instance.
 
 ```go
-import "github.com/bitwarden/sdk-go"
+import "github.com/bitwarden/sdk-go/v2"
 
 bitwardenClient, _ := sdk.NewBitwardenClient(&apiURL, &identityURL)
 ```

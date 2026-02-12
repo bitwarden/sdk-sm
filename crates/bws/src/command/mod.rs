@@ -4,7 +4,7 @@ pub(crate) mod secret;
 
 use std::{path::PathBuf, str::FromStr};
 
-use bitwarden::auth::AccessToken;
+use bitwarden::secrets_manager::AccessToken;
 use clap::CommandFactory;
 use clap_complete::Shell;
 use color_eyre::eyre::{Result, bail};

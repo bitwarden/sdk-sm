@@ -162,8 +162,8 @@ jobs:
               # Update all .go, .mod, and .md files
               find ./languages/go -type f \( -name "*.go" -o -name "*.mod" -o -name "*.md" \) \
                 -exec sed -i -e "s|github\.com/bitwarden/sdk-go/|github.com/bitwarden/sdk-go/v${NEW_MAJOR}/|g" \
-                             -e "s|github\.com/bitwarden/sdk-go\([^/]\)|github.com/bitwarden/sdk-go/v${NEW_MAJOR}\1|g" \
-                             -e "s|github\.com/bitwarden/sdk-go$|github.com/bitwarden/sdk-go/v${NEW_MAJOR}|g" {} +
+                             -e "s|github\.com/bitwarden/sdk-go$|github.com/bitwarden/sdk-go/v${NEW_MAJOR}|g" \
+                             -e "s|github\.com/bitwarden/sdk-go\([^/]\)|github.com/bitwarden/sdk-go/v${NEW_MAJOR}\1|g" {} +
             else
               # Standard case: v2+ -> v3+
               echo "Updating version suffix from v${CURRENT_MAJOR} to v${NEW_MAJOR}"

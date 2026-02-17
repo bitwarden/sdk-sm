@@ -156,23 +156,26 @@ jobs:
             echo "Major version bump detected: v$CURRENT_MAJOR -> v$NEW_MAJOR"
 
             # Special handling for v0/v1 -> v2+ transition (Go modules v0 and v1 don't use version suffix)
-            if [ "$CURRENT_MAJOR" = "0" ] || [ "$CURRENT_MAJOR" = "1" ]; then
+            if ([ "$CURRENT_MAJOR" = "0" ] || [ "$CURRENT_MAJOR" = "1" ]) && [ "$NEW_MAJOR" -ge "2" ]; then
               echo "Transitioning from v${CURRENT_MAJOR} (no suffix) to v${NEW_MAJOR} (with suffix)"
 
-              # Generic update: add version suffix to all .go, .mod, and .md files in languages/go
-              # Multiple patterns needed: paths with slashes, non-slash chars, and end-of-line
+              # Update all .go, .mod, and .md files
               find ./languages/go -type f \( -name "*.go" -o -name "*.mod" -o -name "*.md" \) \
                 -exec sed -i -e "s|github\.com/bitwarden/sdk-go/|github.com/bitwarden/sdk-go/v${NEW_MAJOR}/|g" \
                              -e "s|github\.com/bitwarden/sdk-go\([^/]\)|github.com/bitwarden/sdk-go/v${NEW_MAJOR}\1|g" \
                              -e "s|github\.com/bitwarden/sdk-go$|github.com/bitwarden/sdk-go/v${NEW_MAJOR}|g" {} +
             else
-              # Standard case: v2+ -> v3+ (replace version suffix)
+              # Standard case: v2+ -> v3+
               echo "Updating version suffix from v${CURRENT_MAJOR} to v${NEW_MAJOR}"
 
-              # Generic update: replace version suffix in all files in languages/go
+              # Update all .go, .mod, and .md files
               find ./languages/go -type f \( -name "*.go" -o -name "*.mod" -o -name "*.md" \) \
                 -exec sed -i "s|github\.com/bitwarden/sdk-go/v${CURRENT_MAJOR}|github.com/bitwarden/sdk-go/v${NEW_MAJOR}|g" {} +
             fi
+
+            # Special handling for example/go.mod: update version number in require statement
+            echo "Updating version number in example/go.mod require statement"
+            sed -i "s|\(github\.com/bitwarden/sdk-go[^[:space:]]*\) v[0-9]\+\.[0-9]\+\.[0-9]\+\(-00010101000000-000000000000\)|\1 v${_VERSION}\2|g" ./languages/go/example/go.mod
           fi
 
           # Always update the version file (for major, minor, and patch bumps)

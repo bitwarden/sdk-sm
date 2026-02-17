@@ -142,7 +142,41 @@ jobs:
       ### go sdk
       - name: Bump go-sdk Version
         if: ${{ inputs.project == 'go-sdk' }}
-        run: sed -i "s/[0-9]\+\.[0-9]\+\.[0-9]\+/${_VERSION}/" ./languages/go/.version
+        run: |
+          # Extract current and new major versions
+          CURRENT_VERSION=$(cat ./languages/go/.version | grep -Eo "[0-9]+\.[0-9]+\.[0-9]+")
+          CURRENT_MAJOR=$(echo "$CURRENT_VERSION" | cut -d. -f1)
+          NEW_MAJOR=$(echo "${_VERSION}" | cut -d. -f1)
+
+          echo "Current version: $CURRENT_VERSION (major: $CURRENT_MAJOR)"
+          echo "New version: ${_VERSION} (major: $NEW_MAJOR)"
+
+          # Check if this is a major version bump
+          if [ "$CURRENT_MAJOR" != "$NEW_MAJOR" ]; then
+            echo "Major version bump detected: v$CURRENT_MAJOR -> v$NEW_MAJOR"
+
+            # Special handling for v0/v1 -> v2+ transition (Go modules v0 and v1 don't use version suffix)
+            if [ "$CURRENT_MAJOR" = "0" ] || [ "$CURRENT_MAJOR" = "1" ]; then
+              echo "Transitioning from v${CURRENT_MAJOR} (no suffix) to v${NEW_MAJOR} (with suffix)"
+
+              # Generic update: add version suffix to all .go, .mod, and .md files in languages/go
+              # Multiple patterns needed: paths with slashes, non-slash chars, and end-of-line
+              find ./languages/go -type f \( -name "*.go" -o -name "*.mod" -o -name "*.md" \) \
+                -exec sed -i -e "s|github\.com/bitwarden/sdk-go/|github.com/bitwarden/sdk-go/v${NEW_MAJOR}/|g" \
+                             -e "s|github\.com/bitwarden/sdk-go\([^/]\)|github.com/bitwarden/sdk-go/v${NEW_MAJOR}\1|g" \
+                             -e "s|github\.com/bitwarden/sdk-go$|github.com/bitwarden/sdk-go/v${NEW_MAJOR}|g" {} +
+            else
+              # Standard case: v2+ -> v3+ (replace version suffix)
+              echo "Updating version suffix from v${CURRENT_MAJOR} to v${NEW_MAJOR}"
+
+              # Generic update: replace version suffix in all files in languages/go
+              find ./languages/go -type f \( -name "*.go" -o -name "*.mod" -o -name "*.md" \) \
+                -exec sed -i "s|github\.com/bitwarden/sdk-go/v${CURRENT_MAJOR}|github.com/bitwarden/sdk-go/v${NEW_MAJOR}|g" {} +
+            fi
+          fi
+
+          # Always update the version file (for major, minor, and patch bumps)
+          sed -i "s/[0-9]\+\.[0-9]\+\.[0-9]\+/${_VERSION}/" ./languages/go/.version
 
       ### dotnet sdk
       - name: Bump dotnet-sdk Version

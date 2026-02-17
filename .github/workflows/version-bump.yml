@@ -175,7 +175,7 @@ jobs:
 
             # Special handling for example/go.mod: update version number in require statement
             echo "Updating version number in example/go.mod require statement"
-            sed -i "s|\(github\.com/bitwarden/sdk-go[^[:space:]]*\) v[0-9]\+\.[0-9]\+\.[0-9]\+\(-00010101000000-000000000000\)|\1 v${_VERSION}\2|g" ./languages/go/example/go.mod
+            sed -i "s|\(github\.com/bitwarden/sdk-go[^[:space:]]*\) v[0-9]\+\.[0-9]\+\.[0-9]\+\(.*\)|\1 v${_VERSION}\2|g" ./languages/go/example/go.mod
           fi
 
           # Always update the version file (for major, minor, and patch bumps)

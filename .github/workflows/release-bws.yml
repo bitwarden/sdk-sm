@@ -51,7 +51,7 @@ jobs:
           workflow: build-cli.yml
           path: packages
           workflow_conclusion: success
-          branch: ${{ github.ref_name }}
+          branch: main
 
       - name: Generate SHA256 checksums
         env:

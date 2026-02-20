@@ -54,7 +54,7 @@ jobs:
           branch: ${{ github.ref_name }}
 
       - name: Get checksum files
-        uses: bitwarden/gh-actions/get-checksum@main
+        uses: bitwarden/gh-actions/get-checksum@bre-1560/fix-release-bwsl-cli-script
         with:
           packages_dir: "packages"
           file_path: "packages/bws-sha256-checksums-${{ steps.version.outputs.version }}.txt"

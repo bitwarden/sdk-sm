@@ -53,11 +53,14 @@ jobs:
           workflow_conclusion: success
           branch: ${{ github.ref_name }}
 
-      - name: Get checksum files
-        uses: bitwarden/gh-actions/get-checksum@main
-        with:
-          packages_dir: "packages"
-          file_path: "packages/bws-sha256-checksums-${{ steps.version.outputs.version }}.txt"
+      - name: Generate SHA256 checksums
+        env:
+          PKG_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          cd packages
+          sha256sum *.zip > bws-sha256-checksums-${PKG_VERSION}.txt
+          echo "Generated checksums:"
+          cat bws-sha256-checksums-${PKG_VERSION}.txt
 
       - name: Create release
         if: ${{ inputs.release_type != 'Dry Run' }}

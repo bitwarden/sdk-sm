@@ -51,7 +51,7 @@ go env
 #### Adding the Module
 
 ```shell
-go get github.com/bitwarden/sdk-go
+go get github.com/bitwarden/sdk-go/v2
 ```
 
 #### Build
@@ -101,7 +101,7 @@ go env
 #### Adding the Module
 
 ```shell
-go get github.com/bitwarden/sdk-go
+go get github.com/bitwarden/sdk-go/v2
 ```
 
 #### Build
@@ -148,7 +148,7 @@ go env
 #### Adding the Module
 
 ```shell
-go get github.com/bitwarden/sdk-go
+go get github.com/bitwarden/sdk-go/v2
 ```
 
 #### Build

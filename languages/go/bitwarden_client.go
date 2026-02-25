@@ -3,7 +3,7 @@ package sdk
 import (
 	"encoding/json"
 
-	"github.com/bitwarden/sdk-go/internal/cinterface"
+	"github.com/bitwarden/sdk-go/v2/internal/cinterface"
 )
 
 type BitwardenClientInterface interface {
@@ -64,7 +64,7 @@ func (c *BitwardenClient) AccessTokenLogin(accessToken string, stateFile *string
 		return err
 	}
 
-	var response APIKeyLoginResponse
+	var response AccessTokenLoginResponse
 	return checkSuccessAndError(responseStr, &response)
 }
 

@@ -5,9 +5,9 @@ use std::{
 };
 
 use bitwarden::{
-    Client, OrganizationId,
+    OrganizationId,
     secrets_manager::{
-        ClientSecretsExt,
+        SecretsManagerClient,
         secrets::{SecretIdentifiersByProjectRequest, SecretIdentifiersRequest, SecretsGetRequest},
     },
 };
@@ -25,7 +25,7 @@ use crate::{
 const WINDOWS_ESSENTIAL_VARS: &[&str] = &["SystemRoot", "ComSpec", "windir"];
 
 pub(crate) async fn run(
-    client: Client,
+    client: SecretsManagerClient,
     organization_id: OrganizationId,
     project_id: Option<Uuid>,
     uuids_as_keynames: bool,

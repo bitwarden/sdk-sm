@@ -1,4 +1,8 @@
-use bitwarden::secrets_manager::{projects::ProjectResponse, secrets::SecretResponse};
+use bitwarden::secrets_manager::{
+    access_policies::{AccessPoliciesResponse, GrantedPoliciesResponse, PotentialGranteesResponse},
+    projects::ProjectResponse,
+    secrets::SecretResponse,
+};
 use bitwarden_cli::Color;
 use chrono::{DateTime, Utc};
 use comfy_table::Table;
@@ -150,5 +154,96 @@ impl TableSerialize<4> for SecretResponse {
             self.value.clone(),
             format_date(&self.creation_date),
         ]]
+    }
+}
+
+fn permission_label(read: bool, write: bool, manage: bool) -> &'static str {
+    if manage {
+        "manage"
+    } else if write {
+        "write"
+    } else if read {
+        "read"
+    } else {
+        "none"
+    }
+}
+
+/// Flatten all three policy lists into a unified 4-column table.
+impl TableSerialize<4> for AccessPoliciesResponse {
+    fn get_headers() -> [&'static str; 4] {
+        ["Type", "ID", "Name", "Permission"]
+    }
+
+    fn get_values(&self) -> Vec<[String; 4]> {
+        let mut rows = Vec::new();
+
+        for p in &self.user_access_policies {
+            rows.push([
+                "User".to_string(),
+                p.organization_user_id.to_string(),
+                p.organization_user_name.clone().unwrap_or_default(),
+                permission_label(p.policy.read, p.policy.write, p.policy.manage).to_string(),
+            ]);
+        }
+
+        for p in &self.group_access_policies {
+            rows.push([
+                "Group".to_string(),
+                p.group_id.to_string(),
+                p.group_name.clone().unwrap_or_default(),
+                permission_label(p.policy.read, p.policy.write, p.policy.manage).to_string(),
+            ]);
+        }
+
+        for p in &self.service_account_access_policies {
+            rows.push([
+                "MachineAccount".to_string(),
+                p.service_account_id.to_string(),
+                p.service_account_name.clone().unwrap_or_default(),
+                permission_label(p.policy.read, p.policy.write, p.policy.manage).to_string(),
+            ]);
+        }
+
+        rows
+    }
+}
+
+impl TableSerialize<3> for GrantedPoliciesResponse {
+    fn get_headers() -> [&'static str; 3] {
+        ["Project ID", "Project Name", "Permission"]
+    }
+
+    fn get_values(&self) -> Vec<[String; 3]> {
+        self.granted_project_policies
+            .iter()
+            .map(|p| {
+                [
+                    p.project_id.to_string(),
+                    p.project_name.clone().unwrap_or_default(),
+                    permission_label(p.policy.read, p.policy.write, p.policy.manage).to_string(),
+                ]
+            })
+            .collect()
+    }
+}
+
+impl TableSerialize<4> for PotentialGranteesResponse {
+    fn get_headers() -> [&'static str; 4] {
+        ["ID", "Name", "Type", "Email"]
+    }
+
+    fn get_values(&self) -> Vec<[String; 4]> {
+        self.data
+            .iter()
+            .map(|g| {
+                [
+                    g.id.to_string(),
+                    g.name.clone().unwrap_or_default(),
+                    g.r#type.clone().unwrap_or_default(),
+                    g.email.clone().unwrap_or_default(),
+                ]
+            })
+            .collect()
     }
 }

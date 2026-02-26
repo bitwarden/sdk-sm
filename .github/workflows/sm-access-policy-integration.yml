@@ -1,0 +1,73 @@
+name: SM Access Policy Integration Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      sm_base_url:
+        description: "Bitwarden server base URL"
+        required: false
+        default: "http://localhost:8080"
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: read
+
+jobs:
+  wiremock-tests:
+    name: Wiremock tests (always)
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install rust
+        uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561 # stable
+        with:
+          toolchain: stable
+
+      - name: Cache cargo registry
+        uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
+
+      - name: Run access policy wiremock tests
+        run: cargo test -p bitwarden --test access_policies
+
+  integration-tests:
+    name: Integration tests (opt-in)
+    runs-on: ubuntu-22.04
+    if: ${{ vars.SM_INTEGRATION_TESTS == '1' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install rust
+        uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561 # stable
+        with:
+          toolchain: stable
+
+      - name: Cache cargo registry
+        uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
+
+      - name: Run integration tests
+        env:
+          SM_INTEGRATION_TESTS: "1"
+          SM_BASE_URL: ${{ inputs.sm_base_url || vars.SM_BASE_URL || 'http://localhost:8080' }}
+          SM_ORG_ID: ${{ secrets.SM_ORG_ID }}
+          PROJECT_ID_MANAGE: ${{ secrets.PROJECT_ID_MANAGE }}
+          PROJECT_ID_WRITE_ONLY: ${{ secrets.PROJECT_ID_WRITE_ONLY }}
+          PROJECT_ID_LOCKOUT: ${{ secrets.PROJECT_ID_LOCKOUT }}
+          SECRET_ID_MANAGE: ${{ secrets.SECRET_ID_MANAGE }}
+          SA_READ_ONLY_TOKEN: ${{ secrets.SA_READ_ONLY_TOKEN }}
+          SA_WRITE_ONLY_TOKEN: ${{ secrets.SA_WRITE_ONLY_TOKEN }}
+          SA_MANAGE_TOKEN: ${{ secrets.SA_MANAGE_TOKEN }}
+          SA_MANAGE_NON_CREATOR_TOKEN: ${{ secrets.SA_MANAGE_NON_CREATOR_TOKEN }}
+          GRANTEE_USER_ID: ${{ secrets.GRANTEE_USER_ID }}
+          GRANTEE_GROUP_ID: ${{ secrets.GRANTEE_GROUP_ID }}
+          GRANTEE_SA_ID: ${{ secrets.GRANTEE_SA_ID }}
+        run: >
+          cargo test -p bitwarden --test access_policies -- --ignored

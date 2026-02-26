@@ -52,7 +52,7 @@ pub mod auth {
                     He87NwC8i-hLBhugIvLTiDj-Sk9HvMth6zaD0ebxd56wDjq8-CMG_WcgusDqNzKFHqWNDHBXt8MLeTgZAR2rQMIMFZqFgsJlRflbig8YewmNUA9wAU74\
                     TfxLY1foO7Xpg49vceB7C-PlvGi1VtX6F2i0tc_67lA5kWXnnKBPBUyspoIrmAUCwfms5nTTqA9xXAojMhRHAos_OdM".to_string(),
             expires_in: 3600, // 1 hour
-            refresh_token: Some("fake_refresh_token_67890".to_string()),
+            refresh_token: None,
             token_type: "Bearer".to_string(),
             scope: "api.secrets".to_string(),
             encrypted_payload: "2.E9fE8+M/VWMfhhim1KlCbQ==|eLsHR484S/tJbIkM6spnG/HP65tj9A6Tba7kAAvUp+rYuQmGLixiOCfMsqt5OvBctDfvvr/Aes\
@@ -172,7 +172,6 @@ pub mod secrets {
         info!("Getting secrets with ids: {}, {}", id1, id2);
 
         let mut secrets: Vec<SecretResponse> = payload.ids.iter().map(|_| SecretResponse {
-            // FERRIS, the crab
             id: id1,
             organization_id: org_id,
             project_id: Some(uuid::Uuid::new_v4()),
@@ -184,7 +183,6 @@ pub mod secrets {
         }).collect::<Vec<_>>();
 
         secrets.push(SecretResponse {
-            // TUX, the penguin
             id: id2,
             organization_id: org_id,
             project_id: Some(uuid::Uuid::new_v4()),
@@ -215,7 +213,7 @@ pub mod secrets {
         info!("Syncing secrets for organization: {}", org_id);
 
         if let Some(date) = params.last_synced_date {
-            if date < chrono::Utc::now() {
+            if date >= chrono::Utc::now() {
                 return Json(SecretsSyncResponse {
                     has_changes: false,
                     secrets: None,
@@ -330,6 +328,102 @@ pub mod projects {
     }
 }
 
+pub mod access_policies {
+    use super::*;
+
+    pub async fn get_project_people_access_policies(Path(id): Path<Uuid>) -> Json<Value> {
+        info!("Getting project people access policies for project: {}", id);
+        Json(json!({
+            "userAccessPolicies": [],
+            "groupAccessPolicies": []
+        }))
+    }
+
+    pub async fn put_project_people_access_policies(
+        Path(id): Path<Uuid>,
+        Json(_payload): Json<Value>,
+    ) -> Json<Value> {
+        info!("Updating project people access policies for project: {}", id);
+        Json(json!({
+            "userAccessPolicies": [],
+            "groupAccessPolicies": []
+        }))
+    }
+
+    pub async fn get_project_service_accounts_access_policies(
+        Path(id): Path<Uuid>,
+    ) -> Json<Value> {
+        info!("Getting project SA access policies for project: {}", id);
+        Json(json!({
+            "serviceAccountAccessPolicies": []
+        }))
+    }
+
+    pub async fn put_project_service_accounts_access_policies(
+        Path(id): Path<Uuid>,
+        Json(_payload): Json<Value>,
+    ) -> Json<Value> {
+        info!("Updating project SA access policies for project: {}", id);
+        Json(json!({
+            "serviceAccountAccessPolicies": []
+        }))
+    }
+
+    pub async fn get_secret_access_policies(Path(id): Path<Uuid>) -> Json<Value> {
+        info!("Getting secret access policies for secret: {}", id);
+        Json(json!({
+            "userAccessPolicies": [],
+            "groupAccessPolicies": [],
+            "serviceAccountAccessPolicies": []
+        }))
+    }
+
+    pub async fn put_secret_access_policies(
+        Path(id): Path<Uuid>,
+        Json(_payload): Json<Value>,
+    ) -> (axum::http::StatusCode, Json<Value>) {
+        info!("PUT secret access policies for secret: {} (not implemented)", id);
+        (
+            axum::http::StatusCode::NOT_IMPLEMENTED,
+            Json(json!({
+                "error": "put_secret access policies not yet implemented"
+            })),
+        )
+    }
+
+    pub async fn get_service_account_granted_policies(Path(id): Path<Uuid>) -> Json<Value> {
+        info!("Getting SA granted policies for service account: {}", id);
+        Json(json!({
+            "grantedProjectPolicies": []
+        }))
+    }
+
+    pub async fn put_service_account_granted_policies(
+        Path(id): Path<Uuid>,
+        Json(_payload): Json<Value>,
+    ) -> Json<Value> {
+        info!("Updating SA granted policies for service account: {}", id);
+        Json(json!({
+            "grantedProjectPolicies": []
+        }))
+    }
+
+    pub async fn get_people_potential_grantees(Path(org_id): Path<Uuid>) -> Json<Value> {
+        info!("Getting people potential grantees for org: {}", org_id);
+        Json(json!({ "data": [] }))
+    }
+
+    pub async fn get_project_potential_grantees(Path(org_id): Path<Uuid>) -> Json<Value> {
+        info!("Getting project potential grantees for org: {}", org_id);
+        Json(json!({ "data": [] }))
+    }
+
+    pub async fn get_service_accounts_potential_grantees(Path(org_id): Path<Uuid>) -> Json<Value> {
+        info!("Getting SA potential grantees for org: {}", org_id);
+        Json(json!({ "data": [] }))
+    }
+}
+
 pub mod misc {
     use axum::response::Json;
 
@@ -348,7 +442,6 @@ pub mod misc {
     }
 
     pub async fn help() -> Json<Value> {
-        // TODO: put something nice here
         info!("Help endpoint was hit, returning fake API documentation.");
 
         Json(json!({

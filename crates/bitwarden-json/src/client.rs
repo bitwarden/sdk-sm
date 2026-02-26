@@ -1,8 +1,13 @@
 #[cfg(feature = "secrets")]
-use bitwarden::secrets_manager::{ClientSettings, SecretsManagerClient};
+use bitwarden::{
+    generators::GeneratorClientsExt,
+    secrets_manager::{
+        ClientSettings, ProjectsClientExt, SecretsClientExt, SecretsManagerClient,
+    },
+};
 
 #[cfg(feature = "secrets")]
-use crate::command::{GeneratorsCommand, ProjectsCommand, SecretsCommand};
+use crate::command::{AccessPoliciesCommand, GeneratorsCommand, ProjectsCommand, SecretsCommand};
 use crate::{
     command::Command,
     response::{Response, ResponseIntoString},
@@ -76,6 +81,31 @@ impl Client {
             },
 
             #[cfg(feature = "secrets")]
+            Command::AccessPolicies(cmd) => {
+                use bitwarden::secrets_manager::AccessPoliciesClientExt;
+                match cmd {
+                    AccessPoliciesCommand::GetProjectPolicies(req) => {
+                        client.access_policies().get_project_policies(&req).await.into_string()
+                    }
+                    AccessPoliciesCommand::PutProjectPolicies(req) => {
+                        client.access_policies().put_project_policies(&req).await.into_string()
+                    }
+                    AccessPoliciesCommand::GetSecretPolicies(req) => {
+                        client.access_policies().get_secret_policies(&req).await.into_string()
+                    }
+                    AccessPoliciesCommand::GetGrantedPolicies(req) => {
+                        client.access_policies().get_granted_policies(&req).await.into_string()
+                    }
+                    AccessPoliciesCommand::PutGrantedPolicies(req) => {
+                        client.access_policies().put_granted_policies(&req).await.into_string()
+                    }
+                    AccessPoliciesCommand::GetPotentialGrantees(req) => {
+                        client.access_policies().get_potential_grantees(&req).await.into_string()
+                    }
+                }
+            }
+
+            #[cfg(feature = "secrets")]
             Command::Generators(cmd) => match cmd {
                 GeneratorsCommand::GeneratePassword(req) => {
                     client.generator().password(req).into_string()
@@ -92,11 +122,11 @@ impl Client {
                         use tokio::time::sleep;
                         let duration = std::time::Duration::from_millis(duration_millis);
                         sleep(duration).await;
-                        println!("After wait #1");
+                        log::debug!("After wait #1");
                         sleep(duration).await;
-                        println!("After wait #2");
+                        log::debug!("After wait #2");
                         sleep(duration).await;
-                        println!("After wait #3");
+                        log::debug!("After wait #3");
                         Ok::<i32, Error>(42).into_string()
                     }
                     DebugCommand::ErrorTest {} => {

@@ -2,6 +2,7 @@ use bitwarden::{
     OrganizationId,
     secrets_manager::{
         SecretsManagerClient,
+        access_policies::GetSecretAccessPoliciesRequest,
         secrets::{
             SecretCreateRequest, SecretGetRequest, SecretIdentifiersByProjectRequest,
             SecretIdentifiersRequest, SecretPutRequest, SecretResponse, SecretsDeleteRequest,
@@ -86,6 +87,29 @@ pub(crate) async fn process_command(
             .await
         }
         SecretCommand::Delete { secret_ids } => delete(client, secret_ids).await,
+        SecretCommand::Access { secret_id } => access(client, secret_id, output_settings).await,
+        SecretCommand::SetAccess {
+            secret_id,
+            user,
+            group,
+            ma,
+            clear_users,
+            clear_groups,
+            clear_ma,
+        } => {
+            set_access(
+                client,
+                secret_id,
+                user,
+                group,
+                ma,
+                clear_users,
+                clear_groups,
+                clear_ma,
+                output_settings,
+            )
+            .await
+        }
     }
 }
 
@@ -226,4 +250,32 @@ pub(crate) async fn delete(client: SecretsManagerClient, secret_ids: Vec<Uuid>) 
     }
 
     Ok(())
+}
+
+pub(crate) async fn access(
+    client: SecretsManagerClient,
+    secret_id: Uuid,
+    output_settings: OutputSettings,
+) -> Result<()> {
+    let response = client
+        .access_policies()
+        .get_secret_policies(&GetSecretAccessPoliciesRequest { secret_id })
+        .await?;
+    serialize_response(response, output_settings);
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(crate) async fn set_access(
+    _client: SecretsManagerClient,
+    _secret_id: Uuid,
+    _user: Vec<String>,
+    _group: Vec<String>,
+    _ma: Vec<String>,
+    _clear_users: bool,
+    _clear_groups: bool,
+    _clear_ma: bool,
+    _output_settings: OutputSettings,
+) -> Result<()> {
+    bail!("Setting secret access policies is not yet available. The underlying API endpoint is pending implementation in the SDK.")
 }

@@ -3,6 +3,11 @@ use bitwarden::{
     generators::PasswordGeneratorRequest,
     secrets_manager::{
         AccessTokenLoginRequest,
+        access_policies::{
+            GetGrantedPoliciesRequest, GetPotentialGranteesRequest,
+            GetProjectAccessPoliciesRequest, GetSecretAccessPoliciesRequest,
+            PutGrantedPoliciesRequest, PutProjectAccessPoliciesRequest,
+        },
         projects::{
             ProjectCreateRequest, ProjectGetRequest, ProjectPutRequest, ProjectsDeleteRequest,
             ProjectsListRequest,
@@ -31,6 +36,8 @@ pub enum Command {
     Secrets(SecretsCommand),
     #[cfg(feature = "secrets")]
     Projects(ProjectsCommand),
+    #[cfg(feature = "secrets")]
+    AccessPolicies(AccessPoliciesCommand),
     #[cfg(feature = "secrets")]
     Generators(GeneratorsCommand),
     #[cfg(debug_assertions)]
@@ -145,6 +152,24 @@ pub enum ProjectsCommand {
     ///
     /// Returns: [ProjectsDeleteResponse](bitwarden::secrets_manager::projects::ProjectsDeleteResponse)
     Delete(ProjectsDeleteRequest),
+}
+
+#[cfg(feature = "secrets")]
+#[derive(Serialize, Deserialize, JsonSchema, Debug)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub enum AccessPoliciesCommand {
+    /// Get access policies for a project (people + service accounts)
+    GetProjectPolicies(GetProjectAccessPoliciesRequest),
+    /// Replace access policies for a project (full replace — PUT semantics)
+    PutProjectPolicies(PutProjectAccessPoliciesRequest),
+    /// Get access policies for a secret
+    GetSecretPolicies(GetSecretAccessPoliciesRequest),
+    /// Get granted policies for a service account
+    GetGrantedPolicies(GetGrantedPoliciesRequest),
+    /// Replace granted policies for a service account (full replace — PUT semantics)
+    PutGrantedPolicies(PutGrantedPoliciesRequest),
+    /// Get potential grantees for a resource type
+    GetPotentialGrantees(GetPotentialGranteesRequest),
 }
 
 #[cfg(feature = "secrets")]

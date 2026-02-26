@@ -33,7 +33,7 @@ jobs:
           persist-credentials: false
 
       - name: Download Java schemas artifact
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: sdk-schemas-java
           path: languages/java/src/main/java/bit/sdk/schema/
@@ -45,25 +45,25 @@ jobs:
           java-version: 17
 
       - name: Download x86_64-apple-darwin files
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: libbitwarden_c_files-x86_64-apple-darwin
           path: languages/java/src/main/resources/darwin-x86-64
 
       - name: Download aarch64-apple-darwin files
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: libbitwarden_c_files-aarch64-apple-darwin
           path: languages/java/src/main/resources/darwin-aarch64
 
       - name: Download x86_64-unknown-linux-gnu files
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: libbitwarden_c_files-x86_64-unknown-linux-gnu
           path: languages/java/src/main/resources/linux-x86-64
 
       - name: Download x86_64-pc-windows-msvc files
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: libbitwarden_c_files-x86_64-pc-windows-msvc
           path: languages/java/src/main/resources/win32-x86-64
@@ -73,21 +73,21 @@ jobs:
         working-directory: languages/java
 
       - name: Upload Java SDK Build
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: build
           path: ${{ github.workspace }}/languages/java/build
           if-no-files-found: error
 
       - name: Upload Java SDK Build
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: resources
           path: ${{ github.workspace }}/languages/java/src/main/resources
           if-no-files-found: error
 
       - name: Upload Java SDK Build
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: schemas
           path: languages/java/src/main/java/bit/sdk/schema

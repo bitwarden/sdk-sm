@@ -33,6 +33,9 @@ allow-attributes = "deny"
 unused_async = "deny"
 unwrap_used = "deny"
 
+[workspace.lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(wasm_bindgen_unstable_test_coverage)'] }
+
 # Compile all dependencies with some optimizations when building this crate on debug
 # This slows down clean builds by about 50%, but the resulting binaries can be orders of magnitude faster
 # As clean builds won't occur very often, this won't slow down the development process

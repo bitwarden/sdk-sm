@@ -24,6 +24,8 @@ type ClientPointer struct {
 	Pointer C.ClientPtr
 }
 
+// make the git diff work
+
 type BitwardenLibrary interface {
 	Init(clientSettings string) (ClientPointer, error)
 	FreeMem(client ClientPointer)

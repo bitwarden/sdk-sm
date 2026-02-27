@@ -34,7 +34,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@8aeb6ff8030dd539317f8e1769a044873b56ea71 # v1.268.0
         with:
-          ruby-version: 3.4.7
+          ruby-version: 4.0.1
 
       - name: Download schemas artifact
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0

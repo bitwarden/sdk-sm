@@ -2,6 +2,8 @@ name: Release Go SDK
 run-name: Release Go SDK ${{ inputs.release_type }}
 
 on:
+  # If automatically called, this is an automated release
+  workflow_call:
   workflow_dispatch:
     inputs:
       release_type:
@@ -10,6 +12,7 @@ on:
         default: "Release"
         type: choice
         options:
+          - CI
           - Release
           - Dry Run
 
@@ -33,7 +36,7 @@ jobs:
           persist-credentials: false
 
       - name: Branch check
-        if: ${{ inputs.release_type != 'Dry Run' }}
+        if: ${{ inputs.release_type == 'Release' }}
         run: |
           if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
             echo "==================================="
@@ -44,8 +47,13 @@ jobs:
 
       - name: Get version
         id: version
+        env:
+          _CI_TAG: ${{ inputs.release_type == 'CI' && github.run_number || '' }}
         run: |
           VERSION=$(cat languages/go/.version | grep -Eo "[0-9]+\.[0-9]+\.[0-9]+")
+          if [ "$_CI_TAG" != "" ]; then
+            VERSION="$VERSION-ci.${_CI_TAG}"
+          fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
   repo-sync:
@@ -105,7 +113,7 @@ jobs:
         with:
           workflow: build-rust-cross-platform.yml
           workflow_conclusion: success
-          branch: ${{ inputs.release_type == 'Dry Run' && 'main' ||  github.ref_name }}
+          branch: ${{ inputs.release_type != 'Release' && 'main' || github.ref_name }}
           artifacts: libbitwarden_c_files-x86_64-apple-darwin
           skip_unpack: true
 
@@ -114,7 +122,7 @@ jobs:
         with:
           workflow: build-rust-cross-platform.yml
           workflow_conclusion: success
-          branch: ${{ inputs.release_type == 'Dry Run' && 'main' ||  github.ref_name }}
+          branch: ${{ inputs.release_type != 'Release' && 'main' || github.ref_name }}
           artifacts: libbitwarden_c_files-aarch64-apple-darwin
           skip_unpack: true
 
@@ -123,7 +131,7 @@ jobs:
         with:
           workflow: build-rust-cross-platform.yml
           workflow_conclusion: success
-          branch: ${{ inputs.release_type == 'Dry Run' && 'main' ||  github.ref_name }}
+          branch: ${{ inputs.release_type != 'Release' && 'main' || github.ref_name }}
           artifacts: libbitwarden_c_files-x86_64-unknown-linux-musl
           skip_unpack: true
 
@@ -132,7 +140,7 @@ jobs:
         with:
           workflow: build-rust-cross-platform.yml
           workflow_conclusion: success
-          branch: ${{ inputs.release_type == 'Dry Run' && 'main' ||  github.ref_name }}
+          branch: ${{ inputs.release_type != 'Release' && 'main' || github.ref_name }}
           artifacts: libbitwarden_c_files-aarch64-unknown-linux-musl
           skip_unpack: true
 
@@ -141,7 +149,7 @@ jobs:
         with:
           workflow: build-rust-cross-platform.yml
           workflow_conclusion: success
-          branch: ${{ inputs.release_type == 'Dry Run' && 'main' ||  github.ref_name }}
+          branch: ${{ inputs.release_type != 'Release' && 'main' || github.ref_name }}
           artifacts: libbitwarden_c_files-x86_64-pc-windows-gnu
           skip_unpack: true
 
@@ -167,23 +175,28 @@ jobs:
           workflow: generate_schemas.yml
           path: sdk-go
           workflow_conclusion: success
-          branch: ${{ inputs.release_type == 'Dry Run' && 'main' ||  github.ref_name }}
+          branch: ${{ inputs.release_type != 'Release' && 'main' || github.ref_name }}
           artifacts: schemas.go
 
       - name: Push changes
         working-directory: sdk-go
         run: |
-          git add .
-          git commit -m "Update Go SDK to ${{ github.sha }}"
-
-          if [[ "${{ inputs.release_type }}" == "Dry Run" ]]; then
-            echo "==================================="
-            echo "[!] Dry Run - Skipping push"
-            echo "==================================="
-            git ls-files -m
-            exit 0
+          if git diff --exit-code >/dev/null 2>&1; then
+            echo "There are no commitable changes to the Go SDK, skipping commiting or creating a release."
+            exit 1
           else
-            git push origin main
+            git add .
+            git commit -m "Update Go SDK to ${{ github.sha }}"
+
+            if [[ "${{ inputs.release_type }}" == "Dry Run" ]]; then
+              echo "==================================="
+              echo "[!] Dry Run - Skipping push"
+              echo "==================================="
+              git ls-files -m
+              exit 0
+            else
+              git push origin main
+            fi
           fi
 
       - name: Create release tag on SDK Go repo
@@ -236,7 +249,7 @@ jobs:
         with:
           workflow: build-rust-cross-platform.yml
           workflow_conclusion: success
-          branch: ${{ inputs.release_type == 'Dry Run' && 'main' ||  github.ref_name }}
+          branch: ${{ inputs.release_type != 'Release' && 'main' || github.ref_name }}
           artifacts: libbitwarden_c_files-x86_64-apple-darwin
           skip_unpack: true
 
@@ -245,7 +258,7 @@ jobs:
         with:
           workflow: build-rust-cross-platform.yml
           workflow_conclusion: success
-          branch: ${{ inputs.release_type == 'Dry Run' && 'main' ||  github.ref_name }}
+          branch: ${{ inputs.release_type != 'Release' && 'main' || github.ref_name }}
           artifacts: libbitwarden_c_files-aarch64-apple-darwin
           skip_unpack: true
 
@@ -254,7 +267,7 @@ jobs:
         with:
           workflow: build-rust-cross-platform.yml
           workflow_conclusion: success
-          branch: ${{ inputs.release_type == 'Dry Run' && 'main' ||  github.ref_name }}
+          branch: ${{ inputs.release_type != 'Release' && 'main' || github.ref_name }}
           artifacts: libbitwarden_c_files-x86_64-unknown-linux-musl
           skip_unpack: true
 
@@ -263,7 +276,7 @@ jobs:
         with:
           workflow: build-rust-cross-platform.yml
           workflow_conclusion: success
-          branch: ${{ inputs.release_type == 'Dry Run' && 'main' ||  github.ref_name }}
+          branch: ${{ inputs.release_type != 'Release' && 'main' || github.ref_name }}
           artifacts: libbitwarden_c_files-aarch64-unknown-linux-musl
           skip_unpack: true
 
@@ -272,7 +285,7 @@ jobs:
         with:
           workflow: build-rust-cross-platform.yml
           workflow_conclusion: success
-          branch: ${{ inputs.release_type == 'Dry Run' && 'main' ||  github.ref_name }}
+          branch: ${{ inputs.release_type != 'Release' && 'main' || github.ref_name }}
           artifacts: libbitwarden_c_files-x86_64-pc-windows-gnu
           skip_unpack: true
 
@@ -295,11 +308,12 @@ jobs:
         with:
           tag: v${{ env._PKG_VERSION }}
           name: v${{ env._PKG_VERSION }}
-          body: "<insert release notes here>"
+          body: ${{ inputs.release_type == 'Release' && '<insert release notes here>' || 'This is a CI release used for internal testing. Please do not use.' }}
           token: ${{ steps.retrieve-secrets.outputs.github-pat-bitwarden-devops-bot-repo-scope }}
           draft: true
           repo: sdk-go
           owner: bitwarden
+          prerelease: ${{ inputs.release_type == 'CI' }}
           artifacts: "libbitwarden_c_files-x86_64-apple-darwin-${{ env._PKG_VERSION }}.zip,
             libbitwarden_c_files-aarch64-apple-darwin-${{ env._PKG_VERSION }}.zip,
             libbitwarden_c_files-x86_64-unknown-linux-musl-${{ env._PKG_VERSION }}.zip,

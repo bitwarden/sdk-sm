@@ -3,12 +3,6 @@ name: Build Rust Cross Platform
 on:
   workflow_call:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-      - rc
-      - hotfix-rc
-  pull_request:
 
 permissions:
   contents: read

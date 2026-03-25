@@ -17,6 +17,8 @@ mod render;
 mod state;
 mod util;
 
+use bitwarden::secrets_manager::access_policies::{GetPotentialGranteesRequest, GranteeType};
+
 use crate::cli::*;
 
 #[tokio::main(flavor = "current_thread")]
@@ -132,6 +134,28 @@ async fn process_commands() -> Result<()> {
             command::secret::process_command(cmd, client, organization_id, output_settings).await
         }
 
+        Commands::MachineAccount { cmd } => {
+            command::machine_account::process_command(cmd, client, organization_id, output_settings)
+                .await
+        }
+
+        Commands::ListGrantees { r#type } => {
+            let grantee_type = match r#type {
+                GranteeTypeArg::People => GranteeType::People,
+                GranteeTypeArg::MachineAccounts => GranteeType::ServiceAccounts,
+                GranteeTypeArg::Projects => GranteeType::Projects,
+            };
+            let response = client
+                .access_policies()
+                .get_potential_grantees(&GetPotentialGranteesRequest {
+                    organization_id: organization_id.into(),
+                    grantee_type,
+                })
+                .await?;
+            render::serialize_response(response, output_settings);
+            Ok(())
+        }
+
         Commands::Run {
             command,
             shell,
@@ -157,6 +181,7 @@ async fn process_commands() -> Result<()> {
         Commands::Config { .. } | Commands::Completions { .. } => {
             unreachable!()
         }
+
     }
 }
 

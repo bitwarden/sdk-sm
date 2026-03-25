@@ -2,6 +2,7 @@ use bitwarden::{
     OrganizationId,
     secrets_manager::{
         SecretsManagerClient,
+        access_policies::{GetProjectAccessPoliciesRequest, PutProjectAccessPoliciesRequest},
         projects::{
             ProjectCreateRequest, ProjectGetRequest, ProjectPutRequest, ProjectsDeleteRequest,
             ProjectsListRequest,
@@ -13,6 +14,7 @@ use uuid::Uuid;
 
 use crate::{
     ProjectCommand,
+    command::access_policy_helpers::resolve_policy_option,
     render::{OutputSettings, serialize_response},
 };
 
@@ -32,6 +34,29 @@ pub(crate) async fn process_command(
             edit(client, organization_id, project_id, name, output_settings).await
         }
         ProjectCommand::Delete { project_ids } => delete(client, project_ids).await,
+        ProjectCommand::Access { project_id } => access(client, project_id, output_settings).await,
+        ProjectCommand::SetAccess {
+            project_id,
+            user,
+            group,
+            ma,
+            clear_users,
+            clear_groups,
+            clear_ma,
+        } => {
+            set_access(
+                client,
+                project_id,
+                user,
+                group,
+                ma,
+                clear_users,
+                clear_groups,
+                clear_ma,
+                output_settings,
+            )
+            .await
+        }
     }
 }
 
@@ -139,5 +164,47 @@ pub(crate) async fn delete(client: SecretsManagerClient, project_ids: Vec<Uuid>)
         bail!("Errors when attempting to delete projects.");
     }
 
+    Ok(())
+}
+
+pub(crate) async fn access(
+    client: SecretsManagerClient,
+    project_id: Uuid,
+    output_settings: OutputSettings,
+) -> Result<()> {
+    let response = client
+        .access_policies()
+        .get_project_policies(&GetProjectAccessPoliciesRequest { project_id })
+        .await?;
+    serialize_response(response, output_settings);
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(crate) async fn set_access(
+    client: SecretsManagerClient,
+    project_id: Uuid,
+    user: Vec<String>,
+    group: Vec<String>,
+    ma: Vec<String>,
+    clear_users: bool,
+    clear_groups: bool,
+    clear_ma: bool,
+    output_settings: OutputSettings,
+) -> Result<()> {
+    let user_access_policies = resolve_policy_option(&user, clear_users)?;
+    let group_access_policies = resolve_policy_option(&group, clear_groups)?;
+    let service_account_access_policies = resolve_policy_option(&ma, clear_ma)?;
+
+    let response = client
+        .access_policies()
+        .put_project_policies(&PutProjectAccessPoliciesRequest {
+            project_id,
+            user_access_policies,
+            group_access_policies,
+            service_account_access_policies,
+        })
+        .await?;
+    serialize_response(response, output_settings);
     Ok(())
 }

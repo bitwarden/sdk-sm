@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use bitwarden_cli::Color;
-use clap::{ArgGroup, Parser, Subcommand, ValueEnum, builder::ValueParser};
+use clap::{ArgAction, ArgGroup, Parser, Subcommand, ValueEnum, builder::ValueParser};
 use clap_complete::Shell;
 use uuid::Uuid;
 
@@ -99,6 +99,17 @@ pub(crate) enum Commands {
         #[command(subcommand)]
         cmd: SecretCommand,
     },
+    #[command(long_about = "Commands available on Machine Accounts")]
+    MachineAccount {
+        #[command(subcommand)]
+        cmd: MachineAccountCommand,
+    },
+    #[command(long_about = "List potential grantees in the organization")]
+    ListGrantees {
+        /// Type of grantees to list
+        #[arg(long, value_enum)]
+        r#type: GranteeTypeArg,
+    },
     #[command(long_about = "Run a command with secrets injected")]
     Run {
         #[arg(help = "The command to run")]
@@ -155,6 +166,38 @@ pub(crate) enum SecretCommand {
     List {
         project_id: Option<Uuid>,
     },
+    /// View access policies for a secret
+    Access {
+        secret_id: Uuid,
+    },
+    /// Set access policies for a secret
+    SetAccess {
+        secret_id: Uuid,
+
+        /// Grant user access: --user <UUID> <read|write|manage> (repeatable)
+        #[arg(long, num_args = 2, action = ArgAction::Append, value_names = ["UUID", "PERMISSION"])]
+        user: Vec<String>,
+
+        /// Grant group access: --group <UUID> <read|write|manage> (repeatable)
+        #[arg(long, num_args = 2, action = ArgAction::Append, value_names = ["UUID", "PERMISSION"])]
+        group: Vec<String>,
+
+        /// Grant machine account access: --ma <UUID> <read|write|manage> (repeatable)
+        #[arg(long, num_args = 2, action = ArgAction::Append, value_names = ["UUID", "PERMISSION"])]
+        ma: Vec<String>,
+
+        /// Remove all user policies
+        #[arg(long)]
+        clear_users: bool,
+
+        /// Remove all group policies
+        #[arg(long)]
+        clear_groups: bool,
+
+        /// Remove all machine account policies
+        #[arg(long)]
+        clear_ma: bool,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -174,4 +217,63 @@ pub(crate) enum ProjectCommand {
         project_id: Uuid,
     },
     List,
+    /// View access policies for a project
+    Access {
+        project_id: Uuid,
+    },
+    /// Set access policies for a project
+    SetAccess {
+        project_id: Uuid,
+
+        /// Grant user access: --user <UUID> <read|write|manage> (repeatable)
+        #[arg(long, num_args = 2, action = ArgAction::Append, value_names = ["UUID", "PERMISSION"])]
+        user: Vec<String>,
+
+        /// Grant group access: --group <UUID> <read|write|manage> (repeatable)
+        #[arg(long, num_args = 2, action = ArgAction::Append, value_names = ["UUID", "PERMISSION"])]
+        group: Vec<String>,
+
+        /// Grant machine account access: --ma <UUID> <read|write|manage> (repeatable)
+        #[arg(long, num_args = 2, action = ArgAction::Append, value_names = ["UUID", "PERMISSION"])]
+        ma: Vec<String>,
+
+        /// Remove all user policies
+        #[arg(long)]
+        clear_users: bool,
+
+        /// Remove all group policies
+        #[arg(long)]
+        clear_groups: bool,
+
+        /// Remove all machine account policies
+        #[arg(long)]
+        clear_ma: bool,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub(crate) enum MachineAccountCommand {
+    /// View granted project policies for a machine account
+    Access {
+        machine_account_id: Uuid,
+    },
+
+    /// Set granted project policies for a machine account (full replacement)
+    SetAccess {
+        machine_account_id: Uuid,
+
+        /// Grant project access: --project <UUID> <read|write|manage> (repeatable)
+        #[arg(long, num_args = 2, action = ArgAction::Append, value_names = ["UUID", "PERMISSION"])]
+        project: Vec<String>,
+    },
+}
+
+#[derive(Copy, Clone, ValueEnum, Debug)]
+pub(crate) enum GranteeTypeArg {
+    /// Human users and groups
+    People,
+    /// Machine accounts
+    MachineAccounts,
+    /// Projects
+    Projects,
 }

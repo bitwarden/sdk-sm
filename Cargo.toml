@@ -58,3 +58,21 @@ lto = "off"
 # Stripping the binary reduces the size by ~30%, but the stacktraces won't be usable anymore.
 # This is fine as long as we don't have any unhandled panics, but let's keep it disabled for now
 # strip = true
+
+# Override sdk-internal git dependencies with local paths for development.
+# Remove this section when changes are merged upstream and the rev is updated.
+[patch."https://github.com/bitwarden/sdk-internal"]
+bitwarden-api-api = { path = "../sdk-internal/crates/bitwarden-api-api" }
+bitwarden-api-identity = { path = "../sdk-internal/crates/bitwarden-api-identity" }
+bitwarden-cli = { path = "../sdk-internal/crates/bitwarden-cli" }
+bitwarden-core = { path = "../sdk-internal/crates/bitwarden-core" }
+bitwarden-crypto = { path = "../sdk-internal/crates/bitwarden-crypto" }
+bitwarden-encoding = { path = "../sdk-internal/crates/bitwarden-encoding" }
+bitwarden-error = { path = "../sdk-internal/crates/bitwarden-error" }
+bitwarden-error-macro = { path = "../sdk-internal/crates/bitwarden-error-macro" }
+bitwarden-generators = { path = "../sdk-internal/crates/bitwarden-generators" }
+bitwarden-sm = { path = "../sdk-internal/bitwarden_license/bitwarden-sm" }
+bitwarden-state = { path = "../sdk-internal/crates/bitwarden-state" }
+bitwarden-threading = { path = "../sdk-internal/crates/bitwarden-threading" }
+bitwarden-uuid = { path = "../sdk-internal/crates/bitwarden-uuid" }
+bitwarden-uuid-macro = { path = "../sdk-internal/crates/bitwarden-uuid-macro" }

@@ -18,7 +18,7 @@ keywords = ["bitwarden"]
 # Define dependencies that are expected to be consistent across all crates
 [workspace.dependencies]
 bitwarden = { path = "crates/bitwarden", version = "=2.0.0" }
-bitwarden-cli = { git = "https://github.com/bitwarden/sdk-internal", rev = "5db739434c74a724d1c6480573f2e9db8dc93dde" }
+bitwarden-cli = { git = "https://github.com/bitwarden/sdk-internal", rev = "73cc150a4109bb3de65dd63269cb91ac355a9b1a" }
 bitwarden-core = { git = "https://github.com/bitwarden/sdk-internal", rev = "5db739434c74a724d1c6480573f2e9db8dc93dde" }
 bitwarden-crypto = { git = "https://github.com/bitwarden/sdk-internal", rev = "5db739434c74a724d1c6480573f2e9db8dc93dde" }
 bitwarden-generators = { git = "https://github.com/bitwarden/sdk-internal", rev = "5db739434c74a724d1c6480573f2e9db8dc93dde" }

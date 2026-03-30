@@ -355,6 +355,7 @@ checksum = "843867be96c8daad0d758b57df9392b6d8d271134fce549de6ce169ff98a92af"
 name = "bitwarden"
 version = "2.0.0"
 dependencies = [
+ "bitwarden-auth",
  "bitwarden-core",
  "bitwarden-generators",
  "bitwarden-sm",
@@ -445,7 +446,10 @@ dependencies = [
  "serde_repr",
  "thiserror 1.0.69",
  "tracing",
+ "tsify",
  "uuid",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]
@@ -648,7 +652,10 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_repr",
+ "tsify",
  "uuid",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]

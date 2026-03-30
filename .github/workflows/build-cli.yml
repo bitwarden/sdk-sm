@@ -11,6 +11,9 @@ defaults:
   run:
     shell: bash
 
+env:
+  _MACOS_CERTIFICATE_NAME: "Developer ID Application: Bitwarden Inc"
+
 jobs:
   setup:
     name: Setup
@@ -195,9 +198,7 @@ jobs:
           keyvault: "bitwarden-ci"
           secrets: "macos-bws-notarization-apple-id,
             macos-bws-notarization-team-id,
-            macos-bws-notarization-password,
-            macos-bws-certificate-name,
-            macos-bws-installer-certificate-name"
+            macos-bws-notarization-password"
 
       - name: Get certificates
         run: |
@@ -224,16 +225,13 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
 
       - name: Sign macos
-        env:
-          MACOS_CERTIFICATE_NAME: ${{ steps.retrieve-secrets-macos.outputs.macos-bws-certificate-name }}
-        run: codesign --sign "$MACOS_CERTIFICATE_NAME" --verbose=3 --force --options=runtime --timestamp  ./target/${{ matrix.settings.target }}/release/bws
+        run: codesign --sign "$_MACOS_CERTIFICATE_NAME" --verbose=3 --force --options=runtime --timestamp  ./target/${{ matrix.settings.target }}/release/bws
 
       - name: Notarize app macos
         env:
           MACOS_NOTARIZATION_APPLE_ID: ${{ steps.retrieve-secrets-macos.outputs.macos-bws-notarization-apple-id }}
           MACOS_NOTARIZATION_TEAM_ID: ${{ steps.retrieve-secrets-macos.outputs.macos-bws-notarization-team-id }}
           MACOS_NOTARIZATION_PWD: ${{ steps.retrieve-secrets-macos.outputs.macos-bws-notarization-password }}
-          MACOS_CERTIFICATE_NAME: ${{ steps.retrieve-secrets-macos.outputs.macos-bws-certificate-name }}
         run: |
           echo "Create keychain profile"
           xcrun notarytool store-credentials "notarytool-profile" --apple-id "$MACOS_NOTARIZATION_APPLE_ID" --team-id "$MACOS_NOTARIZATION_TEAM_ID" --password "$MACOS_NOTARIZATION_PWD"
@@ -241,7 +239,7 @@ jobs:
           echo "Creating notarization archive"
           zip -j "./bws-${{ matrix.settings.target }}-${_PACKAGE_VERSION}.zip" ./target/${{ matrix.settings.target }}/release/bws
 
-          codesign --sign "$MACOS_CERTIFICATE_NAME" --verbose=3 --force --options=runtime --timestamp "./bws-${{ matrix.settings.target }}-${_PACKAGE_VERSION}.zip"
+          codesign --sign "$_MACOS_CERTIFICATE_NAME" --verbose=3 --force --options=runtime --timestamp "./bws-${{ matrix.settings.target }}-${_PACKAGE_VERSION}.zip"
 
           echo "Notarize app"
           xcrun notarytool submit "./bws-${{ matrix.settings.target }}-${_PACKAGE_VERSION}.zip" --keychain-profile "notarytool-profile" --wait
@@ -368,9 +366,7 @@ jobs:
           keyvault: "bitwarden-ci"
           secrets: "macos-bws-notarization-apple-id,
             macos-bws-notarization-team-id,
-            macos-bws-notarization-password,
-            macos-bws-certificate-name,
-            macos-bws-installer-certificate-name"
+            macos-bws-notarization-password"
 
       - name: Get certificates
         run: |
@@ -397,16 +393,13 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
 
       - name: Sign binary
-        env:
-          MACOS_CERTIFICATE_NAME: ${{ steps.retrieve-secrets-macos.outputs.macos-bws-certificate-name }}
-        run: codesign --sign "$MACOS_CERTIFICATE_NAME" --verbose=3 --force --options=runtime --timestamp ./bws-macos-universal/bws
+        run: codesign --sign "$_MACOS_CERTIFICATE_NAME" --verbose=3 --force --options=runtime --timestamp ./bws-macos-universal/bws
 
       - name: Notarize app
         env:
           MACOS_NOTARIZATION_APPLE_ID: ${{ steps.retrieve-secrets-macos.outputs.macos-bws-notarization-apple-id }}
           MACOS_NOTARIZATION_TEAM_ID: ${{ steps.retrieve-secrets-macos.outputs.macos-bws-notarization-team-id }}
           MACOS_NOTARIZATION_PWD: ${{ steps.retrieve-secrets-macos.outputs.macos-bws-notarization-password }}
-          MACOS_CERTIFICATE_NAME: ${{ steps.retrieve-secrets-macos.outputs.macos-bws-certificate-name }}
         run: |
 
           echo "Create keychain profile"
@@ -415,7 +408,7 @@ jobs:
           echo "Creating notarization archive"
           zip -j "./bws-macos-universal-${_PACKAGE_VERSION}.zip" ./bws-macos-universal/bws
 
-          codesign --sign "$MACOS_CERTIFICATE_NAME" --verbose=3 --force --options=runtime --timestamp  "./bws-macos-universal-${_PACKAGE_VERSION}.zip"
+          codesign --sign "$_MACOS_CERTIFICATE_NAME" --verbose=3 --force --options=runtime --timestamp  "./bws-macos-universal-${_PACKAGE_VERSION}.zip"
 
           echo "Notarize app"
           xcrun notarytool submit "./bws-macos-universal-${_PACKAGE_VERSION}.zip" --keychain-profile "notarytool-profile" --wait

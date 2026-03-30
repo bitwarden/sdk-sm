@@ -199,39 +199,26 @@ jobs:
             macos-bws-certificate-name,
             macos-bws-installer-certificate-name"
 
-      - name: Get Azure Key Vault secrets
-        id: get-kv-secrets
-        uses: bitwarden/gh-actions/get-keyvault-secrets@main
-        with:
-          keyvault: gh-sdk-sm
-          secrets: "DECRYPT-FILE-PASSWORD, KEYCHAIN-PASSWORD, DEVID-CERT-PASSWORD"
+      - name: Get certificates
+        run: |
+          mkdir -p "$HOME/certificates"
+          az keyvault secret show --id https://bitwarden-ci.vault.azure.net/certificates/devid-app-cert |
+            jq -r .value | base64 -d > "$HOME/certificates/devid-app-cert.p12"
 
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
 
-      - name: Decrypt secrets
-        env:
-          DECRYPT_FILE_PASSWORD: ${{ steps.get-kv-secrets.outputs.DECRYPT-FILE-PASSWORD }}
-        run: |
-          mkdir -p "$HOME/secrets"
-
-          gpg --quiet --batch --yes --decrypt --passphrase="$DECRYPT_FILE_PASSWORD" \
-            --output "$HOME/secrets/devid-app-cert.p12" \
-            "$GITHUB_WORKSPACE/.github/secrets/devid-app-cert.p12.gpg"
-
       - name: Set up keychain
-        env:
-          KEYCHAIN_PASSWORD: ${{ steps.get-kv-secrets.outputs.KEYCHAIN-PASSWORD }}
-          DEVID_CERT_PASSWORD: ${{ steps.get-kv-secrets.outputs.DEVID-CERT-PASSWORD }}
         run: |
+          KEYCHAIN_PASSWORD=$(openssl rand -hex 32)
+          echo "::add-mask::$KEYCHAIN_PASSWORD"
+
           security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
           security set-keychain-settings -lut 1200 build.keychain
 
-          ls "$HOME/secrets"
-
-          security import "$HOME/secrets/devid-app-cert.p12" -k build.keychain -P "$DEVID_CERT_PASSWORD" \
+          security import "$HOME/certificates/devid-app-cert.p12" -k build.keychain -P "" \
             -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/productbuild
 
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
@@ -385,37 +372,26 @@ jobs:
             macos-bws-certificate-name,
             macos-bws-installer-certificate-name"
 
-      - name: Get Azure Key Vault secrets
-        id: get-kv-secrets
-        uses: bitwarden/gh-actions/get-keyvault-secrets@main
-        with:
-          keyvault: gh-sdk-sm
-          secrets: "DECRYPT-FILE-PASSWORD, KEYCHAIN-PASSWORD, DEVID-CERT-PASSWORD"
+      - name: Get certificates
+        run: |
+          mkdir -p "$HOME/certificates"
+          az keyvault secret show --id https://bitwarden-ci.vault.azure.net/certificates/devid-app-cert |
+            jq -r .value | base64 -d > "$HOME/certificates/devid-app-cert.p12"
 
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
 
-      - name: Decrypt secrets
-        env:
-          DECRYPT_FILE_PASSWORD: ${{ steps.get-kv-secrets.outputs.DECRYPT-FILE-PASSWORD }}
-        run: |
-          mkdir -p "$HOME/secrets"
-
-          gpg --quiet --batch --yes --decrypt --passphrase="$DECRYPT_FILE_PASSWORD" \
-            --output "$HOME/secrets/devid-app-cert.p12" \
-            "$GITHUB_WORKSPACE/.github/secrets/devid-app-cert.p12.gpg"
-
       - name: Set up keychain
-        env:
-          KEYCHAIN_PASSWORD: ${{ steps.get-kv-secrets.outputs.KEYCHAIN-PASSWORD }}
-          DEVID_CERT_PASSWORD: ${{ steps.get-kv-secrets.outputs.DEVID-CERT-PASSWORD }}
         run: |
+          KEYCHAIN_PASSWORD=$(openssl rand -hex 32)
+          echo "::add-mask::$KEYCHAIN_PASSWORD"
+
           security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
           security set-keychain-settings -lut 1200 build.keychain
 
-          security import "$HOME/secrets/devid-app-cert.p12" -k build.keychain -P "$DEVID_CERT_PASSWORD" \
+          security import "$HOME/certificates/devid-app-cert.p12" -k build.keychain -P "" \
             -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/productbuild
 
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain

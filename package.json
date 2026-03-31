@@ -16,7 +16,7 @@
   "scripts": {
     "lint": "prettier --check .",
     "prettier": "prettier --write .",
-    "schemas": "rimraf ./support/schemas && cargo run --bin sdk-schemas --all-features && ts-node ./support/scripts/schemas.ts",
+    "schemas": "rimraf ./support/schemas && cargo run --bin sdk-schemas && ts-node ./support/scripts/schemas.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {

@@ -20,19 +20,22 @@ no-memory-hardening = [
     "bitwarden-core/no-memory-hardening",
 ] # Disable memory hardening features
 secrets = [
+    "dep:bitwarden-auth",
     "dep:bitwarden-sm",
     "dep:bitwarden-generators",
 ] # Secrets manager API
-wasm = [
-    "bitwarden-core/wasm",
-    "bitwarden-generators/wasm",
-] # WASM support
+wasm = [] # WASM support
 
 [dependencies]
 bitwarden-core = { workspace = true }
 bitwarden-generators = { workspace = true, optional = true }
 bitwarden-sm = { workspace = true, optional = true }
 thiserror = "2.0.18"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+bitwarden-auth = { workspace = true, optional = true, features = ["wasm"] }
+bitwarden-core = { workspace = true, features = ["wasm"] }
+bitwarden-generators = { workspace = true, optional = true, features = ["wasm"] }
 
 [dev-dependencies]
 uuid = { version = ">=1.3.3, <2.0", features = ["serde", "v4"] }

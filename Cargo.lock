@@ -355,6 +355,7 @@ checksum = "843867be96c8daad0d758b57df9392b6d8d271134fce549de6ce169ff98a92af"
 name = "bitwarden"
 version = "2.0.0"
 dependencies = [
+ "bitwarden-auth",
  "bitwarden-core",
  "bitwarden-generators",
  "bitwarden-sm",
@@ -365,7 +366,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-api-api"
 version = "2.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=5db739434c74a724d1c6480573f2e9db8dc93dde#5db739434c74a724d1c6480573f2e9db8dc93dde"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=73cc150a4109bb3de65dd63269cb91ac355a9b1a#73cc150a4109bb3de65dd63269cb91ac355a9b1a"
 dependencies = [
  "async-trait",
  "bitwarden-api-base",
@@ -381,10 +382,12 @@ dependencies = [
 [[package]]
 name = "bitwarden-api-base"
 version = "2.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=5db739434c74a724d1c6480573f2e9db8dc93dde#5db739434c74a724d1c6480573f2e9db8dc93dde"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=73cc150a4109bb3de65dd63269cb91ac355a9b1a#73cc150a4109bb3de65dd63269cb91ac355a9b1a"
 dependencies = [
+ "http",
  "reqwest",
  "reqwest-middleware",
+ "serde",
  "serde_json",
  "url",
 ]
@@ -392,7 +395,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-api-identity"
 version = "2.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=5db739434c74a724d1c6480573f2e9db8dc93dde#5db739434c74a724d1c6480573f2e9db8dc93dde"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=73cc150a4109bb3de65dd63269cb91ac355a9b1a#73cc150a4109bb3de65dd63269cb91ac355a9b1a"
 dependencies = [
  "async-trait",
  "bitwarden-api-base",
@@ -408,7 +411,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-api-key-connector"
 version = "2.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=5db739434c74a724d1c6480573f2e9db8dc93dde#5db739434c74a724d1c6480573f2e9db8dc93dde"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=73cc150a4109bb3de65dd63269cb91ac355a9b1a#73cc150a4109bb3de65dd63269cb91ac355a9b1a"
 dependencies = [
  "async-trait",
  "bitwarden-api-base",
@@ -418,6 +421,35 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+]
+
+[[package]]
+name = "bitwarden-auth"
+version = "2.0.0"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=73cc150a4109bb3de65dd63269cb91ac355a9b1a#73cc150a4109bb3de65dd63269cb91ac355a9b1a"
+dependencies = [
+ "async-trait",
+ "bitwarden-api-api",
+ "bitwarden-api-identity",
+ "bitwarden-api-key-connector",
+ "bitwarden-core",
+ "bitwarden-crypto",
+ "bitwarden-encoding",
+ "bitwarden-error",
+ "bitwarden-policies",
+ "chrono",
+ "http",
+ "reqwest",
+ "reqwest-middleware",
+ "serde",
+ "serde_bytes",
+ "serde_repr",
+ "thiserror 2.0.18",
+ "tracing",
+ "tsify",
+ "uuid",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]
@@ -432,7 +464,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-cli"
 version = "2.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=5db739434c74a724d1c6480573f2e9db8dc93dde#5db739434c74a724d1c6480573f2e9db8dc93dde"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=73cc150a4109bb3de65dd63269cb91ac355a9b1a#73cc150a4109bb3de65dd63269cb91ac355a9b1a"
 dependencies = [
  "clap",
  "color-eyre",
@@ -443,13 +475,14 @@ dependencies = [
 [[package]]
 name = "bitwarden-core"
 version = "2.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=5db739434c74a724d1c6480573f2e9db8dc93dde#5db739434c74a724d1c6480573f2e9db8dc93dde"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=73cc150a4109bb3de65dd63269cb91ac355a9b1a#73cc150a4109bb3de65dd63269cb91ac355a9b1a"
 dependencies = [
  "async-trait",
  "bitwarden-api-api",
  "bitwarden-api-base",
  "bitwarden-api-identity",
  "bitwarden-api-key-connector",
+ "bitwarden-core-macro",
  "bitwarden-crypto",
  "bitwarden-encoding",
  "bitwarden-error",
@@ -457,6 +490,7 @@ dependencies = [
  "bitwarden-uuid",
  "chrono",
  "getrandom 0.2.17",
+ "http",
  "rand 0.8.5",
  "reqwest",
  "reqwest-middleware",
@@ -479,12 +513,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitwarden-core-macro"
+version = "2.0.0"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=73cc150a4109bb3de65dd63269cb91ac355a9b1a#73cc150a4109bb3de65dd63269cb91ac355a9b1a"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "bitwarden-crypto"
 version = "2.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=5db739434c74a724d1c6480573f2e9db8dc93dde#5db739434c74a724d1c6480573f2e9db8dc93dde"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=73cc150a4109bb3de65dd63269cb91ac355a9b1a#73cc150a4109bb3de65dd63269cb91ac355a9b1a"
 dependencies = [
  "aes",
  "argon2 0.6.0-rc.2",
+ "bitwarden-api-key-connector",
  "bitwarden-encoding",
  "bitwarden-error",
  "cbc",
@@ -493,6 +538,7 @@ dependencies = [
  "coset",
  "ed25519-dalek",
  "generic-array",
+ "hex",
  "hkdf",
  "hmac",
  "num-bigint",
@@ -522,7 +568,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-encoding"
 version = "2.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=5db739434c74a724d1c6480573f2e9db8dc93dde#5db739434c74a724d1c6480573f2e9db8dc93dde"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=73cc150a4109bb3de65dd63269cb91ac355a9b1a#73cc150a4109bb3de65dd63269cb91ac355a9b1a"
 dependencies = [
  "data-encoding",
  "data-encoding-macro",
@@ -535,7 +581,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-error"
 version = "2.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=5db739434c74a724d1c6480573f2e9db8dc93dde#5db739434c74a724d1c6480573f2e9db8dc93dde"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=73cc150a4109bb3de65dd63269cb91ac355a9b1a#73cc150a4109bb3de65dd63269cb91ac355a9b1a"
 dependencies = [
  "bitwarden-error-macro",
  "js-sys",
@@ -546,7 +592,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-error-macro"
 version = "2.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=5db739434c74a724d1c6480573f2e9db8dc93dde#5db739434c74a724d1c6480573f2e9db8dc93dde"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=73cc150a4109bb3de65dd63269cb91ac355a9b1a#73cc150a4109bb3de65dd63269cb91ac355a9b1a"
 dependencies = [
  "darling 0.20.11",
  "proc-macro2",
@@ -557,7 +603,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-generators"
 version = "2.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=5db739434c74a724d1c6480573f2e9db8dc93dde#5db739434c74a724d1c6480573f2e9db8dc93dde"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=73cc150a4109bb3de65dd63269cb91ac355a9b1a#73cc150a4109bb3de65dd63269cb91ac355a9b1a"
 dependencies = [
  "bitwarden-core",
  "bitwarden-crypto",
@@ -597,12 +643,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitwarden-policies"
+version = "2.0.0"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=73cc150a4109bb3de65dd63269cb91ac355a9b1a#73cc150a4109bb3de65dd63269cb91ac355a9b1a"
+dependencies = [
+ "bitwarden-api-api",
+ "bitwarden-core",
+ "serde",
+ "serde_json",
+ "serde_repr",
+ "tsify",
+ "uuid",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+]
+
+[[package]]
 name = "bitwarden-py"
 version = "2.0.0"
 dependencies = [
  "bitwarden-json",
  "pyo3",
- "pyo3-build-config 0.28.2",
+ "pyo3-build-config",
  "pyo3-log",
  "tokio",
 ]
@@ -610,9 +672,10 @@ dependencies = [
 [[package]]
 name = "bitwarden-sm"
 version = "2.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=5db739434c74a724d1c6480573f2e9db8dc93dde#5db739434c74a724d1c6480573f2e9db8dc93dde"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=73cc150a4109bb3de65dd63269cb91ac355a9b1a#73cc150a4109bb3de65dd63269cb91ac355a9b1a"
 dependencies = [
  "bitwarden-api-api",
+ "bitwarden-auth",
  "bitwarden-core",
  "bitwarden-crypto",
  "bitwarden-generators",
@@ -629,7 +692,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-state"
 version = "2.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=5db739434c74a724d1c6480573f2e9db8dc93dde#5db739434c74a724d1c6480573f2e9db8dc93dde"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=73cc150a4109bb3de65dd63269cb91ac355a9b1a#73cc150a4109bb3de65dd63269cb91ac355a9b1a"
 dependencies = [
  "async-trait",
  "bitwarden-error",
@@ -647,7 +710,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-threading"
 version = "2.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=5db739434c74a724d1c6480573f2e9db8dc93dde#5db739434c74a724d1c6480573f2e9db8dc93dde"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=73cc150a4109bb3de65dd63269cb91ac355a9b1a#73cc150a4109bb3de65dd63269cb91ac355a9b1a"
 dependencies = [
  "bitwarden-error",
  "gloo-timers",
@@ -664,7 +727,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-uuid"
 version = "2.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=5db739434c74a724d1c6480573f2e9db8dc93dde#5db739434c74a724d1c6480573f2e9db8dc93dde"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=73cc150a4109bb3de65dd63269cb91ac355a9b1a#73cc150a4109bb3de65dd63269cb91ac355a9b1a"
 dependencies = [
  "bitwarden-uuid-macro",
 ]
@@ -672,7 +735,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-uuid-macro"
 version = "2.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=5db739434c74a724d1c6480573f2e9db8dc93dde#5db739434c74a724d1c6480573f2e9db8dc93dde"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=73cc150a4109bb3de65dd63269cb91ac355a9b1a#73cc150a4109bb3de65dd63269cb91ac355a9b1a"
 dependencies = [
  "quote",
  "syn",
@@ -809,6 +872,12 @@ name = "bytesize"
 version = "1.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2e93abca9e28e0a1b9877922aacb20576e05d4679ffa78c3d6dc22a26a216659"
+
+[[package]]
+name = "cast"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "37b2a672a2cb129a2e41c10b1224bb368f9f37a2b16b612598138befd7b37eb5"
 
 [[package]]
 name = "cbc"
@@ -2261,15 +2330,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "indoc"
-version = "2.0.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79cf5c93f93228cf8efb3ba362535fb11199ac548a09ce117c9b1adc3030d706"
-dependencies = [
- "rustversion",
-]
-
-[[package]]
 name = "inout"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2396,9 +2456,9 @@ checksum = "8eaf4bc02d17cbdd7ff4c7438cafcdf7fb9a4613313ad11b4f8fefe7d3fa0130"
 
 [[package]]
 name = "js-sys"
-version = "0.3.82"
+version = "0.3.91"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b011eec8cc36da2aab2d5cff675ec18454fad408585853910a202391cf9f8e65"
+checksum = "b49715b7073f385ba4bc528e5747d02e66cb39c6146efb66b781f131f0fb399c"
 dependencies = [
  "once_cell",
  "wasm-bindgen",
@@ -2521,15 +2581,6 @@ name = "memchr"
 version = "2.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8ca58f447f06ed17d5fc4043ce1b10dd205e060fb3ce5b979b8ed8e59ff3f79"
-
-[[package]]
-name = "memoffset"
-version = "0.9.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "488016bfae457b036d996092f6cb448677611ce4449e970ceaf42695203f218a"
-dependencies = [
- "autocfg",
-]
 
 [[package]]
 name = "mime"
@@ -2774,6 +2825,12 @@ name = "once_cell_polyfill"
 version = "1.70.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
+
+[[package]]
+name = "oorandom"
+version = "11.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6790f58c7ff633d8771f42965289203411a5e5c68388703c06e14f24770b41e"
 
 [[package]]
 name = "opaque-debug"
@@ -3056,28 +3113,16 @@ dependencies = [
 
 [[package]]
 name = "pyo3"
-version = "0.27.2"
+version = "0.28.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab53c047fcd1a1d2a8820fe84f05d6be69e9526be40cb03b73f86b6b03e6d87d"
+checksum = "cf85e27e86080aafd5a22eae58a162e133a589551542b3e5cee4beb27e54f8e1"
 dependencies = [
- "indoc",
  "libc",
- "memoffset",
  "once_cell",
  "portable-atomic",
- "pyo3-build-config 0.27.2",
+ "pyo3-build-config",
  "pyo3-ffi",
  "pyo3-macros",
- "unindent",
-]
-
-[[package]]
-name = "pyo3-build-config"
-version = "0.27.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b455933107de8642b4487ed26d912c2d899dec6114884214a0b3bb3be9261ea6"
-dependencies = [
- "target-lexicon",
 ]
 
 [[package]]
@@ -3091,12 +3136,12 @@ dependencies = [
 
 [[package]]
 name = "pyo3-ffi"
-version = "0.27.2"
+version = "0.28.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c85c9cbfaddf651b1221594209aed57e9e5cff63c4d11d1feead529b872a089"
+checksum = "491aa5fc66d8059dd44a75f4580a2962c1862a1c2945359db36f6c2818b748dc"
 dependencies = [
  "libc",
- "pyo3-build-config 0.27.2",
+ "pyo3-build-config",
 ]
 
 [[package]]
@@ -3112,9 +3157,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-macros"
-version = "0.27.2"
+version = "0.28.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a5b10c9bf9888125d917fb4d2ca2d25c8df94c7ab5a52e13313a07e050a3b02"
+checksum = "f5d671734e9d7a43449f8480f8b38115df67bef8d21f76837fa75ee7aaa5e52e"
 dependencies = [
  "proc-macro2",
  "pyo3-macros-backend",
@@ -3124,13 +3169,13 @@ dependencies = [
 
 [[package]]
 name = "pyo3-macros-backend"
-version = "0.27.2"
+version = "0.28.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03b51720d314836e53327f5871d4c0cfb4fb37cc2c4a11cc71907a86342c40f9"
+checksum = "22faaa1ce6c430a1f71658760497291065e6450d7b5dc2bcf254d49f66ee700a"
 dependencies = [
  "heck",
  "proc-macro2",
- "pyo3-build-config 0.27.2",
+ "pyo3-build-config",
  "quote",
  "syn",
 ]
@@ -4526,12 +4571,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
 
 [[package]]
-name = "unindent"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7264e107f553ccae879d21fbea1d6724ac785e8c3bfc762137959b5802826ef3"
-
-[[package]]
 name = "universal-hash"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4682,9 +4721,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen"
-version = "0.2.105"
+version = "0.2.114"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da95793dfc411fbbd93f5be7715b0578ec61fe87cb1a42b12eb625caa5c5ea60"
+checksum = "6532f9a5c1ece3798cb1c2cfdba640b9b3ba884f5db45973a6f442510a87d38e"
 dependencies = [
  "cfg-if",
  "once_cell",
@@ -4697,11 +4736,12 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-futures"
-version = "0.4.55"
+version = "0.4.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "551f88106c6d5e7ccc7cd9a16f312dd3b5d36ea8b4954304657d5dfba115d4a0"
+checksum = "e9c5522b3a28661442748e09d40924dfb9ca614b21c00d3fd135720e48b67db8"
 dependencies = [
  "cfg-if",
+ "futures-util",
  "js-sys",
  "once_cell",
  "wasm-bindgen",
@@ -4710,9 +4750,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-macro"
-version = "0.2.105"
+version = "0.2.114"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04264334509e04a7bf8690f2384ef5265f05143a4bff3889ab7a3269adab59c2"
+checksum = "18a2d50fcf105fb33bb15f00e7a77b772945a2ee45dcf454961fd843e74c18e6"
 dependencies = [
  "quote",
  "wasm-bindgen-macro-support",
@@ -4720,9 +4760,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-macro-support"
-version = "0.2.105"
+version = "0.2.114"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "420bc339d9f322e562942d52e115d57e950d12d88983a14c79b86859ee6c7ebc"
+checksum = "03ce4caeaac547cdf713d280eda22a730824dd11e6b8c3ca9e42247b25c631e3"
 dependencies = [
  "bumpalo",
  "proc-macro2",
@@ -4733,36 +4773,51 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-shared"
-version = "0.2.105"
+version = "0.2.114"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76f218a38c84bcb33c25ec7059b07847d465ce0e0a76b995e134a45adcb6af76"
+checksum = "75a326b8c223ee17883a4251907455a2431acc2791c98c26279376490c378c16"
 dependencies = [
  "unicode-ident",
 ]
 
 [[package]]
 name = "wasm-bindgen-test"
-version = "0.3.55"
+version = "0.3.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfc379bfb624eb59050b509c13e77b4eb53150c350db69628141abce842f2373"
+checksum = "6311c867385cc7d5602463b31825d454d0837a3aba7cdb5e56d5201792a3f7fe"
 dependencies = [
+ "async-trait",
+ "cast",
  "js-sys",
+ "libm",
  "minicov",
+ "nu-ansi-term",
+ "num-traits",
+ "oorandom",
+ "serde",
+ "serde_json",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-bindgen-test-macro",
+ "wasm-bindgen-test-shared",
 ]
 
 [[package]]
 name = "wasm-bindgen-test-macro"
-version = "0.3.55"
+version = "0.3.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "085b2df989e1e6f9620c1311df6c996e83fe16f57792b272ce1e024ac16a90f1"
+checksum = "67008cdde4769831958536b0f11b3bdd0380bde882be17fff9c2f34bb4549abd"
 dependencies = [
  "proc-macro2",
  "quote",
  "syn",
 ]
+
+[[package]]
+name = "wasm-bindgen-test-shared"
+version = "0.2.114"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cfe29135b180b72b04c74aa97b2b4a2ef275161eff9a6c7955ea9eaedc7e1d4e"
 
 [[package]]
 name = "wasm-encoder"
@@ -4800,9 +4855,9 @@ dependencies = [
 
 [[package]]
 name = "web-sys"
-version = "0.3.82"
+version = "0.3.91"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a1f95c0d03a47f4ae1f7a64643a6bb97465d9b740f0fa8f90ea33915c99a9a1"
+checksum = "854ba17bb104abfb26ba36da9729addc7ce7f06f5c0f90f3c391f8461cca21f9"
 dependencies = [
  "js-sys",
  "wasm-bindgen",

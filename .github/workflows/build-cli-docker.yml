@@ -51,13 +51,6 @@ jobs:
       - name: Login to Azure ACR
         run: az acr login -n "${_AZ_REGISTRY%.azurecr.io}"
 
-      - name: Retrieve github PAT secrets
-        id: retrieve-secret-pat
-        uses: bitwarden/gh-actions/get-keyvault-secrets@main
-        with:
-          keyvault: "bitwarden-ci"
-          secrets: "github-pat-bitwarden-devops-bot-repo-scope"
-
       - name: Setup Docker Trust
         if: ${{ env.is_publish_branch == 'true' }}
         uses: bitwarden/gh-actions/setup-docker-trust@main

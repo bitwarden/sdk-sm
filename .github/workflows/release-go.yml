@@ -54,11 +54,11 @@ jobs:
     needs: validate
     permissions:
       actions: read
-      contents: write
+      contents: read #writes go through the app token
       id-token: write
     env:
-      _BOT_EMAIL: 106330231+bitwarden-devops-bot@users.noreply.github.com
-      _BOT_NAME: bitwarden-devops-bot
+      _BOT_NAME: "bw-ghapp[bot]"
+      _BOT_EMAIL: "178206702+bw-ghapp[bot]@users.noreply.github.com"
       _PKG_VERSION: ${{ needs.validate.outputs.version }}
 
     steps:
@@ -76,14 +76,24 @@ jobs:
           client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Retrieve secrets
-        id: retrieve-secrets
+        id: retrieve-secret
         uses: bitwarden/gh-actions/get-keyvault-secrets@main
         with:
-          keyvault: ${{ env._KEY_VAULT }}
-          secrets: "github-pat-bitwarden-devops-bot-repo-scope"
+          keyvault: gh-org-bitwarden
+          secrets: "BW-GHAPP-ID,BW-GHAPP-KEY"
 
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
+
+      - name: Generate GH App token
+        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+        id: app-token
+        with:
+          app-id: ${{ steps.retrieve-secret.outputs.BW-GHAPP-ID }}
+          private-key: ${{ steps.retrieve-secret.outputs.BW-GHAPP-KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: sdk-go
+          permission-contents: write
 
       - name: Checkout SDK-Go repo
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -91,7 +101,7 @@ jobs:
           repository: bitwarden/sdk-go
           path: sdk-go
           ref: main
-          token: ${{ steps.retrieve-secrets.outputs.github-pat-bitwarden-devops-bot-repo-scope }}
+          token: ${{ steps.app-token.outputs.token }}
           persist-credentials: true
 
       - name: Setup Git
@@ -209,7 +219,7 @@ jobs:
       - validate
     permissions:
       actions: read
-      contents: write
+      contents: read #writes go through the app token
       id-token: write
     env:
       _PKG_VERSION: ${{ needs.validate.outputs.version }}
@@ -222,14 +232,24 @@ jobs:
           client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Retrieve secrets
-        id: retrieve-secrets
+        id: retrieve-secret
         uses: bitwarden/gh-actions/get-keyvault-secrets@main
         with:
-          keyvault: ${{ env._KEY_VAULT }}
-          secrets: "github-pat-bitwarden-devops-bot-repo-scope"
+          keyvault: gh-org-bitwarden
+          secrets: "BW-GHAPP-ID,BW-GHAPP-KEY"
 
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
+
+      - name: Generate GH App token
+        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+        id: app-token
+        with:
+          app-id: ${{ steps.retrieve-secret.outputs.BW-GHAPP-ID }}
+          private-key: ${{ steps.retrieve-secret.outputs.BW-GHAPP-KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: sdk-go
+          permission-contents: write
 
       - name: Download x86_64-apple-darwin artifact
         uses: bitwarden/gh-actions/download-artifacts@main
@@ -296,7 +316,7 @@ jobs:
           tag: v${{ env._PKG_VERSION }}
           name: v${{ env._PKG_VERSION }}
           body: "<insert release notes here>"
-          token: ${{ steps.retrieve-secrets.outputs.github-pat-bitwarden-devops-bot-repo-scope }}
+          token: ${{ steps.app-token.outputs.token }}
           draft: true
           repo: sdk-go
           owner: bitwarden

@@ -92,6 +92,7 @@ jobs:
         run: |
           NAME="version_bump_${GITHUB_REF_NAME}_${_PROJECT}_${_VERSION}"
           git switch -c "$NAME"
+          git push -u origin "$NAME"
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
 
       ########################
@@ -206,11 +207,6 @@ jobs:
       # VERSION BUMP SECTION END #
       ############################
 
-      - name: Setup git
-        run: |
-          git config --local user.email "178206702+bw-ghapp[bot]@users.noreply.github.com"
-          git config --local user.name "bw-ghapp[bot]"
-
       - name: Check if version changed
         id: version-changed
         run: |
@@ -229,13 +225,13 @@ jobs:
 
       - name: Commit files
         if: ${{ steps.version-changed.outputs.changes_to_commit == 'TRUE' }}
-        run: git commit -m "Bumped sdk-${_PROJECT} version to ${_VERSION}" -a
-
-      - name: Push changes
-        if: ${{ steps.version-changed.outputs.changes_to_commit == 'TRUE' }}
-        env:
-          PR_BRANCH: ${{ steps.create-branch.outputs.name }}
-        run: git push -u origin "$PR_BRANCH"
+        uses: bitwarden/gh-actions/api-commit@main
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: ${{ steps.create-branch.outputs.name }}
+          message: "Bumped sdk-${{ inputs.project }} version to ${{ inputs.version_number }}"
+          repo: sdk-sm
+          owner: bitwarden
 
       - name: Create Version PR
         if: ${{ steps.version-changed.outputs.changes_to_commit == 'TRUE' }}
@@ -263,12 +259,14 @@ jobs:
           echo "pr_number=${PR_URL##*/}" >> "$GITHUB_OUTPUT"
 
       - name: Approve PR
+        if: ${{ steps.version-changed.outputs.changes_to_commit == 'TRUE' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ steps.create-pr.outputs.pr_number }}
         run: gh pr review "$PR_NUMBER" --approve
 
       - name: Merge PR
+        if: ${{ steps.version-changed.outputs.changes_to_commit == 'TRUE' }}
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_NUMBER: ${{ steps.create-pr.outputs.pr_number }}

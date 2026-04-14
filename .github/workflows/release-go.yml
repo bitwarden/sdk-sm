@@ -57,8 +57,6 @@ jobs:
       contents: read #writes go through the app token
       id-token: write
     env:
-      _BOT_NAME: "bw-ghapp[bot]"
-      _BOT_EMAIL: "178206702+bw-ghapp[bot]@users.noreply.github.com"
       _PKG_VERSION: ${{ needs.validate.outputs.version }}
 
     steps:
@@ -103,12 +101,6 @@ jobs:
           ref: main
           token: ${{ steps.app-token.outputs.token }}
           persist-credentials: true
-
-      - name: Setup Git
-        working-directory: sdk-go
-        run: |
-          git config --local user.email "${{ env._BOT_EMAIL }}"
-          git config --local user.name "${{ env._BOT_NAME }}"
 
       - name: Download x86_64-apple-darwin artifact
         uses: bitwarden/gh-actions/download-artifacts@main
@@ -180,21 +172,24 @@ jobs:
           branch: ${{ inputs.release_type == 'Dry Run' && 'main' ||  github.ref_name }}
           artifacts: schemas.go
 
-      - name: Push changes
+      - name: Dry run output
+        if: ${{ inputs.release_type == 'Dry Run' }}
         working-directory: sdk-go
         run: |
-          git add .
-          git commit -m "Update Go SDK to ${{ github.sha }}"
+          echo "==================================="
+          echo "[!] Dry Run - Skipping push"
+          echo "==================================="
+          git ls-files -m
 
-          if [[ "${{ inputs.release_type }}" == "Dry Run" ]]; then
-            echo "==================================="
-            echo "[!] Dry Run - Skipping push"
-            echo "==================================="
-            git ls-files -m
-            exit 0
-          else
-            git push origin main
-          fi
+      - name: Commit changes
+        if: ${{ inputs.release_type != 'Dry Run' }}
+        uses: bitwarden/gh-actions/api-commit@main
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: main
+          message: "Update Go SDK to ${{ github.sha }}"
+          repo: sdk-go
+          owner: bitwarden
 
       - name: Create release tag on SDK Go repo
         if: ${{ inputs.release_type != 'Dry Run' }}

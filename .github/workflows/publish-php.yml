@@ -81,8 +81,6 @@ jobs:
       contents: read
       id-token: write
     env:
-      _BOT_NAME: "bw-ghapp[bot]"
-      _BOT_EMAIL: "178206702+bw-ghapp[bot]@users.noreply.github.com"
       _PKG_VERSION: ${{ needs.validate.outputs.version }}
     steps:
       - name: Checkout SDK repo
@@ -123,13 +121,7 @@ jobs:
           path: sm-sdk-php
           ref: main
           token: ${{ steps.app-token.outputs.token }}
-          persist-credentials: false
-
-      - name: Setup Git
-        working-directory: sm-sdk-php
-        run: |
-          git config --local user.email "${{ env._BOT_EMAIL }}"
-          git config --local user.name "${{ env._BOT_NAME }}"
+          persist-credentials: true
 
       - name: Update files
         run: |
@@ -145,26 +137,25 @@ jobs:
           find . -name '*' -exec \
             sed -i -e 's/github.com\/bitwarden\/sdk/github.com\/bitwarden\/sm-sdk-php/g' {} \;
 
-      - name: Push changes
+      - name: Dry run output
+        if: ${{ inputs.release_type == 'Dry Run' }}
         working-directory: sm-sdk-php
         run: |
-          git add .
+          echo "==================================="
+          echo "[!] Dry Run - commit was skipped"
+          echo "==================================="
+          git ls-files -m
 
-          if [ -n "$(git status --porcelain)" ]; then
-            git commit -m "Update PHP SDK to ${{ github.sha }}"
-          else
-            echo "No changes to commit"
-          fi
-
-          if [[ "${{ inputs.release_type }}" == "Dry Run" ]]; then
-            echo "==================================="
-            echo "[!] Dry Run - Skipping push"
-            echo "==================================="
-            git ls-files -m
-            exit 0
-          else
-            git push origin main
-          fi
+      - name: Commit changes
+        if: ${{ inputs.release_type != 'Dry Run' }}
+        id: commit
+        uses: bitwarden/gh-actions/api-commit@main
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: main
+          message: "Update PHP SDK to ${{ github.sha }}"
+          repo: sm-sdk-php
+          owner: bitwarden
 
       - name: Create release tag on PHP SDK repo
         if: ${{ inputs.release_type != 'Dry Run' }}
@@ -329,7 +320,7 @@ jobs:
           path: sm-sdk-php
           ref: main
           token: ${{ steps.app-token.outputs.token }}
-          persist-credentials: true
+          persist-credentials: false
 
       - name: Publish version
         if: ${{ inputs.release_type != 'Dry Run' }}

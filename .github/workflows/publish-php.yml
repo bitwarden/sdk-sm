@@ -113,6 +113,8 @@ jobs:
           app-id: ${{ steps.retrieve-secret.outputs.BW-GHAPP-ID }}
           private-key: ${{ steps.retrieve-secret.outputs.BW-GHAPP-KEY }}
           owner: ${{ github.repository_owner }}
+          repositories: sm-sdk-php
+          permission-contents: write
 
       - name: Checkout SDK-PHP repo
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1

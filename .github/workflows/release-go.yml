@@ -195,6 +195,10 @@ jobs:
         if: ${{ inputs.release_type != 'Dry Run' }}
         working-directory: sdk-go
         run: |
+          # Sync local repo with API-created commit
+          git fetch origin main
+          git checkout FETCH_HEAD
+
           # Check if tag exists, set output then exit 0 if true.
           if git log "v${_PKG_VERSION}" >/dev/null 2>&1; then
             echo "==================================="

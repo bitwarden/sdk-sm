@@ -32,7 +32,7 @@ jobs:
     name: "Bump ${{ inputs.project }} Version to v${{ inputs.version_number }}"
     runs-on: ubuntu-24.04
     permissions:
-      contents: write
+      contents: read #writes go through the app token
       pull-requests: write
       id-token: write
       actions: read
@@ -59,16 +59,25 @@ jobs:
           client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
       - name: Retrieve secrets
-        id: retrieve-secrets
+        id: retrieve-secret
         uses: bitwarden/gh-actions/get-keyvault-secrets@main
         with:
-          keyvault: "bitwarden-ci"
-          secrets: "github-gpg-private-key,
-            github-gpg-private-key-passphrase,
-            github-pat-bitwarden-devops-bot-repo-scope"
+          keyvault: gh-org-bitwarden
+          secrets: "BW-GHAPP-ID,BW-GHAPP-KEY"
 
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
+
+      - name: Generate GH App token
+        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+        id: app-token
+        with:
+          app-id: ${{ steps.retrieve-secret.outputs.BW-GHAPP-ID }}
+          private-key: ${{ steps.retrieve-secret.outputs.BW-GHAPP-KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: sdk-sm
+          permission-contents: write
+          permission-pull-requests: write
 
       - name: Checkout Branch
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -76,24 +85,14 @@ jobs:
           ref: main
           repository: bitwarden/sdk-sm
           persist-credentials: true
-
-      - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7.0.0
-        with:
-          gpg_private_key: ${{ steps.retrieve-secrets.outputs.github-gpg-private-key }}
-          passphrase: ${{ steps.retrieve-secrets.outputs.github-gpg-private-key-passphrase }}
-          git_user_signingkey: true
-          git_commit_gpgsign: true
-
-      - name: Create Version Branch
-        id: branch
-        run: git switch -c "sdk-${_PROJECT}_version_bump_${_VERSION}"
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Create Version Branch
         id: create-branch
         run: |
           NAME="version_bump_${GITHUB_REF_NAME}_${_PROJECT}_${_VERSION}"
           git switch -c "$NAME"
+          git push -u origin "$NAME"
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
 
       ########################
@@ -208,11 +207,6 @@ jobs:
       # VERSION BUMP SECTION END #
       ############################
 
-      - name: Setup git
-        run: |
-          git config --local user.email "106330231+bitwarden-devops-bot@users.noreply.github.com"
-          git config --local user.name "bitwarden-devops-bot"
-
       - name: Check if version changed
         id: version-changed
         run: |
@@ -231,19 +225,19 @@ jobs:
 
       - name: Commit files
         if: ${{ steps.version-changed.outputs.changes_to_commit == 'TRUE' }}
-        run: git commit -m "Bumped sdk-${_PROJECT} version to ${_VERSION}" -a
-
-      - name: Push changes
-        if: ${{ steps.version-changed.outputs.changes_to_commit == 'TRUE' }}
-        env:
-          PR_BRANCH: ${{ steps.create-branch.outputs.name }}
-        run: git push -u origin "$PR_BRANCH"
+        uses: bitwarden/gh-actions/api-commit@main
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: ${{ steps.create-branch.outputs.name }}
+          message: "Bumped sdk-${{ inputs.project }} version to ${{ inputs.version_number }}"
+          repo: sdk-sm
+          owner: bitwarden
 
       - name: Create Version PR
         if: ${{ steps.version-changed.outputs.changes_to_commit == 'TRUE' }}
         id: create-pr
         env:
-          GH_TOKEN: ${{ steps.retrieve-secrets.outputs.github-pat-bitwarden-devops-bot-repo-scope }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_BRANCH: ${{ steps.create-branch.outputs.name }}
           TITLE: "Bump ${{ inputs.project }} version to ${{ inputs.version_number }}"
         run: |
@@ -265,14 +259,16 @@ jobs:
           echo "pr_number=${PR_URL##*/}" >> "$GITHUB_OUTPUT"
 
       - name: Approve PR
+        if: ${{ steps.version-changed.outputs.changes_to_commit == 'TRUE' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ steps.create-pr.outputs.pr_number }}
         run: gh pr review "$PR_NUMBER" --approve
 
       - name: Merge PR
+        if: ${{ steps.version-changed.outputs.changes_to_commit == 'TRUE' }}
         env:
-          GH_TOKEN: ${{ steps.retrieve-secrets.outputs.github-pat-bitwarden-devops-bot-repo-scope }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_NUMBER: ${{ steps.create-pr.outputs.pr_number }}
         run: gh pr merge "$PR_NUMBER" --squash --auto --delete-branch
 

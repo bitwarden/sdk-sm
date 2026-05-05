@@ -39,8 +39,6 @@ jobs:
     env:
       _VERSION: ${{ inputs.version_number }}
       _PROJECT: ${{ inputs.project }}
-      _BOT_NAME: "bw-ghapp[bot]"
-      _BOT_EMAIL: "178206702+bw-ghapp[bot]@users.noreply.github.com"
     steps:
       - name: Install rust
         uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
@@ -88,11 +86,6 @@ jobs:
           repository: bitwarden/sdk-sm
           persist-credentials: true
           token: ${{ steps.app-token.outputs.token }}
-
-      - name: Configure git
-        run: |
-          git config user.name  "$_BOT_NAME"
-          git config user.email "$_BOT_EMAIL"
 
       - name: Create Version Branch
         id: create-branch
@@ -232,13 +225,13 @@ jobs:
 
       - name: Commit files
         if: ${{ steps.version-changed.outputs.changes_to_commit == 'TRUE' }}
-        env:
-          BRANCH: ${{ steps.create-branch.outputs.name }}
-          MESSAGE: "Bumped sdk-${{ inputs.project }} version to ${{ inputs.version_number }}"
-        run: |
-          git add -A
-          git commit -m "$MESSAGE"
-          git push origin "$BRANCH"
+        uses: bitwarden/gh-actions/api-commit@main
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: ${{ steps.create-branch.outputs.name }}
+          message: "Bumped sdk-${{ inputs.project }} version to ${{ inputs.version_number }}"
+          repo: sdk-sm
+          owner: bitwarden
 
       - name: Create Version PR
         if: ${{ steps.version-changed.outputs.changes_to_commit == 'TRUE' }}

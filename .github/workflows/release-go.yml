@@ -58,6 +58,8 @@ jobs:
       id-token: write
     env:
       _PKG_VERSION: ${{ needs.validate.outputs.version }}
+      _BOT_NAME: "bw-ghapp[bot]"
+      _BOT_EMAIL: "178206702+bw-ghapp[bot]@users.noreply.github.com"
 
     steps:
       - name: Checkout SDK repo
@@ -183,21 +185,25 @@ jobs:
 
       - name: Commit changes
         if: ${{ inputs.release_type != 'Dry Run' }}
-        uses: bitwarden/gh-actions/api-commit@main
-        with:
-          token: ${{ steps.app-token.outputs.token }}
-          branch: main
-          message: "Update Go SDK to ${{ github.sha }}"
-          repo: sdk-go
-          owner: bitwarden
+        working-directory: sdk-go
+        env:
+          MESSAGE: "Update Go SDK to ${{ github.sha }}"
+        run: |
+          git config user.name  "$_BOT_NAME"
+          git config user.email "$_BOT_EMAIL"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "$MESSAGE"
+          git push origin main
 
       - name: Create release tag on SDK Go repo
         if: ${{ inputs.release_type != 'Dry Run' }}
         working-directory: sdk-go
         run: |
-          # Sync local repo with API-created commit
-          git fetch origin main
-          git checkout FETCH_HEAD
+          # Local repo already has the commit we just pushed; no fetch/checkout needed.
 
           # Check if tag exists, set output then exit 0 if true.
           if git log "v${_PKG_VERSION}" >/dev/null 2>&1; then

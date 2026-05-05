@@ -82,6 +82,8 @@ jobs:
       id-token: write
     env:
       _PKG_VERSION: ${{ needs.validate.outputs.version }}
+      _BOT_NAME: "bw-ghapp[bot]"
+      _BOT_EMAIL: "178206702+bw-ghapp[bot]@users.noreply.github.com"
     steps:
       - name: Checkout SDK repo
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -151,21 +153,25 @@ jobs:
       - name: Commit changes
         if: ${{ inputs.release_type != 'Dry Run' }}
         id: commit
-        uses: bitwarden/gh-actions/api-commit@main
-        with:
-          token: ${{ steps.app-token.outputs.token }}
-          branch: main
-          message: "Update PHP SDK to ${{ github.sha }}"
-          repo: sm-sdk-php
-          owner: bitwarden
+        working-directory: sm-sdk-php
+        env:
+          MESSAGE: "Update PHP SDK to ${{ github.sha }}"
+        run: |
+          git config user.name  "$_BOT_NAME"
+          git config user.email "$_BOT_EMAIL"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "$MESSAGE"
+          git push origin main
 
       - name: Create release tag on PHP SDK repo
         if: ${{ inputs.release_type != 'Dry Run' }}
         working-directory: sm-sdk-php
         run: |
-          # Sync local repo with API-created commit
-          git fetch origin main
-          git checkout FETCH_HEAD
+          # Local repo already has the commit we just pushed; no fetch/checkout needed.
 
           # Check if tag exists, set output then exit 0 if true.
           if git log "v${_PKG_VERSION}" >/dev/null 2>&1; then

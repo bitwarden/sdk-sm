@@ -199,7 +199,7 @@ jobs:
 
       - name: Commit files
         if: ${{ steps.version-changed.outputs.changes_to_commit == 'TRUE' }}
-        env: 
+        env:
           PROJECT: ${{ inputs.project }}
           VERSION: ${{ inputs.version_number }}
           BRANCH: ${{ steps.create-branch.outputs.name }}

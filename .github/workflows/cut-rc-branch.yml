@@ -4,7 +4,6 @@ on:
   workflow_dispatch:
 
 jobs:
-
   cut_rc:
     name: Cut RC branch
     permissions:

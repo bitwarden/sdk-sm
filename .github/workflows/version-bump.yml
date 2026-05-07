@@ -211,6 +211,7 @@ jobs:
         if: ${{ steps.version-changed.outputs.changes_to_commit == 'TRUE' }}
         id: create-pr
         env:
+          GH_TOKEN: ${{ github.token }}
           PR_BRANCH: ${{ steps.create-branch.outputs.name }}
           TITLE: "Bump ${{ inputs.project }} version to ${{ inputs.version_number }}"
         run: |

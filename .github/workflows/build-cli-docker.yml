@@ -97,7 +97,7 @@ jobs:
         id: container-scan
         uses: anchore/scan-action@1638637db639e0ade3258b51db49a9a137574c3e # v6.5.1
         with:
-          image: ${{ steps.tag-list.outputs.primary_tag }}
+          image: ${{ steps.tag-list.outputs.tags }}
           fail-build: false
           output-format: sarif
 

@@ -1,0 +1,32 @@
+{
+  "testFramework": {
+    "name": "SDK Test Framework POC",
+    "version": "1.0.0"
+  },
+  "configuration": {
+    "TEST_MODE": "fake-server",
+    "SDK_SOURCE": "local",
+    "BUILD_SDK": true,
+    "AUTO_START_FAKE_SERVER": true,
+    "FAKE_SERVER_PORT": 4000,
+    "PYTHON_VERSION": "3.13",
+    "ENABLED_LANGUAGES": ["python", "go"]
+  },
+  "timeouts": {
+    "DEFAULT_TIMEOUT_MS": 300000,
+    "BUILD_TIMEOUT_MS": 500000
+  },
+  "retries": {
+    "RETRY_ATTEMPTS": 2,
+    "RETRY_DELAY_MS": 1000
+  },
+  "testOperations": [
+    "auth",
+    "create_secret",
+    "list_secrets",
+    "get_secret",
+    "delete_secret",
+    "sync_no_date",
+    "sync_with_date"
+  ]
+}

@@ -1,0 +1,37 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.0.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{4853563E-EC0D-4B52-9C13-F0CC84421C4E}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+		ADDING_LANGUAGES.md = ADDING_LANGUAGES.md
+		ADDING_INTEGRATIONS.md = ADDING_INTEGRATIONS.md
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SdkTestFramework", "SdkTestFramework\SdkTestFramework.csproj", "{D6E763AC-04C3-4F60-97B9-1143BA3F2F13}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SdkTestFramework.Tests", "SdkTestFramework.Tests\SdkTestFramework.Tests.csproj", "{33601BD6-13C9-4FBF-8899-71D10B95AF0E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D6E763AC-04C3-4F60-97B9-1143BA3F2F13}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D6E763AC-04C3-4F60-97B9-1143BA3F2F13}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D6E763AC-04C3-4F60-97B9-1143BA3F2F13}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D6E763AC-04C3-4F60-97B9-1143BA3F2F13}.Release|Any CPU.Build.0 = Release|Any CPU
+		{33601BD6-13C9-4FBF-8899-71D10B95AF0E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{33601BD6-13C9-4FBF-8899-71D10B95AF0E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{33601BD6-13C9-4FBF-8899-71D10B95AF0E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{33601BD6-13C9-4FBF-8899-71D10B95AF0E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A7B6C7D8-E9F0-4DAE-B123-45678ABCDEF0}
+	EndGlobalSection
+EndGlobal

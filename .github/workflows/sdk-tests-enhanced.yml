@@ -1,0 +1,456 @@
+name: SDK Integration Tests (Enhanced)
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        description: 'Test execution mode'
+        required: true
+        default: 'fake-server'
+        type: choice
+        options:
+          - fake-server
+          - real-server
+      sdk_source:
+        description: 'SDK source for testing'
+        required: true
+        default: 'local-build'
+        type: choice
+        options:
+          - local-build
+          - latest-main
+      test_languages:
+        description: 'Languages to test (comma-separated or "all")'
+        required: false
+        default: 'python,go'
+        type: string
+      verbose:
+        description: 'Enable verbose output'
+        required: false
+        default: false
+        type: boolean
+
+  push:
+    branches:
+      - main
+      - 'test/**'
+    paths:
+      - 'languages/**'
+      - 'tests/**'
+      - 'scripts/**'
+      - '.github/workflows/sdk-tests-enhanced.yml'
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'languages/**'
+      - 'tests/**'
+      - 'scripts/**'
+      - '.github/workflows/sdk-tests-enhanced.yml'
+
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+env:
+  PYTHON_VERSION: '3.12'
+  GO_VERSION: '1.23'
+  NODE_VERSION: '20'
+  RUST_VERSION: 'stable'
+  FAKE_SERVER_PORT: 4000
+
+jobs:
+  # Determine which languages to test
+  setup:
+    name: Setup Test Matrix
+    runs-on: ubuntu-latest
+    outputs:
+      languages: ${{ steps.set-languages.outputs.languages }}
+      test_mode: ${{ steps.set-config.outputs.test_mode }}
+      sdk_source: ${{ steps.set-config.outputs.sdk_source }}
+
+    steps:
+      - name: Set test configuration
+        id: set-config
+        run: |
+          echo "test_mode=${{ github.event.inputs.test_mode || 'fake-server' }}" >> $GITHUB_OUTPUT
+          echo "sdk_source=${{ github.event.inputs.sdk_source || 'local-build' }}" >> $GITHUB_OUTPUT
+
+      - name: Determine languages to test
+        id: set-languages
+        run: |
+          LANGUAGES="${{ github.event.inputs.test_languages || 'python,go' }}"
+
+          # Handle "all" case
+          if [[ "$LANGUAGES" == "all" ]]; then
+            LANGUAGES="python,go"
+            # Add more languages as they become available
+            # LANGUAGES="python,go,java,csharp,js,ruby,php"
+          fi
+
+          # Convert to JSON array
+          JSON_ARRAY=$(echo "$LANGUAGES" | tr ',' '\n' | jq -R . | jq -s .)
+          echo "languages=$JSON_ARRAY" >> $GITHUB_OUTPUT
+
+  # Run tests for each language on each platform
+  test:
+    name: Test ${{ matrix.language }} on ${{ matrix.os }}
+    needs: setup
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        language: ${{ fromJson(needs.setup.outputs.languages) }}
+        exclude:
+          # Exclude Windows for languages with known issues
+          - os: windows-latest
+            language: go
+
+    steps:
+      # Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Setup language-specific requirements
+      - name: Setup Python
+        if: matrix.language == 'python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Setup Go
+        if: matrix.language == 'go'
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      # Setup common requirements
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      # Cache management
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Cache Python dependencies
+        if: matrix.language == 'python'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('languages/python/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Cache Go modules
+        if: matrix.language == 'go'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('languages/go/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      # Install Python-specific tools
+      - name: Install Python build tools
+        if: matrix.language == 'python'
+        run: |
+          python -m pip install --upgrade pip
+          pip install uv maturin
+
+      # Generate schemas
+      - name: Generate schemas
+        run: |
+          npm install
+          npm run schemas
+
+      # Build SDK (if not using latest-main)
+      - name: Build SDK locally
+        if: needs.setup.outputs.sdk_source == 'local-build'
+        run: |
+          if [[ "${{ matrix.language }}" == "python" ]]; then
+            cargo build --release
+          elif [[ "${{ matrix.language }}" == "go" ]]; then
+            cargo build -p bitwarden-c --release
+          fi
+        shell: bash
+
+      # Build SDK from main branch
+      - name: Build SDK from main
+        if: needs.setup.outputs.sdk_source == 'latest-main'
+        run: |
+          chmod +x scripts/build-from-main.sh
+          ./scripts/build-from-main.sh ${{ matrix.language }} ${{ github.event.inputs.verbose && '--verbose' || '' }}
+        shell: bash
+
+      # Start fake-server
+      - name: Start fake-server
+        if: needs.setup.outputs.test_mode == 'fake-server'
+        run: |
+          cargo build -p fake-server
+          nohup cargo run -p fake-server > fake-server.log 2>&1 &
+          echo $! > fake-server.pid
+
+          # Wait for server to start
+          for i in {1..30}; do
+            if curl -s http://localhost:${{ env.FAKE_SERVER_PORT }}/health > /dev/null; then
+              echo "✅ Fake server is running"
+              break
+            fi
+            echo "Waiting for fake server to start... ($i/30)"
+            sleep 2
+          done
+
+          if ! curl -s http://localhost:${{ env.FAKE_SERVER_PORT }}/health > /dev/null; then
+            echo "❌ Failed to start fake server"
+            cat fake-server.log
+            exit 1
+          fi
+        shell: bash
+
+      # Set up environment variables
+      - name: Setup environment variables
+        run: |
+          # Use GitHub secrets for authentication
+          # For fake server, use TEST_ prefixed secrets; for real server, use regular secrets
+          if [[ "${{ needs.setup.outputs.test_mode }}" == "real-server" ]]; then
+            export ACCESS_TOKEN="${{ secrets.ACCESS_TOKEN }}"
+            export ORGANIZATION_ID="${{ secrets.ORGANIZATION_ID }}"
+            export API_URL="${{ secrets.API_URL }}"
+            export IDENTITY_URL="${{ secrets.IDENTITY_URL }}"
+          else
+            export ACCESS_TOKEN="${{ secrets.TEST_ACCESS_TOKEN }}"
+            export ORGANIZATION_ID="${{ secrets.TEST_ORGANIZATION_ID }}"
+            export API_URL="http://localhost:${{ env.FAKE_SERVER_PORT }}"
+            export IDENTITY_URL="http://localhost:${{ env.FAKE_SERVER_PORT }}/identity"
+          fi
+
+          export STATE_FILE="${{ runner.temp }}/sdk-state.json"
+          export TEST_MODE="${{ needs.setup.outputs.test_mode }}"
+          export SDK_SOURCE="${{ needs.setup.outputs.sdk_source }}"
+
+          # Platform-specific environment variables
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            export DYLD_LIBRARY_PATH="${{ github.workspace }}/target/release"
+            export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+          fi
+
+          # Export all for subsequent steps
+          echo "ACCESS_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
+          echo "ORGANIZATION_ID=$ORGANIZATION_ID" >> $GITHUB_ENV
+          echo "API_URL=$API_URL" >> $GITHUB_ENV
+          echo "IDENTITY_URL=$IDENTITY_URL" >> $GITHUB_ENV
+          echo "STATE_FILE=$STATE_FILE" >> $GITHUB_ENV
+          echo "TEST_MODE=$TEST_MODE" >> $GITHUB_ENV
+          echo "SDK_SOURCE=$SDK_SOURCE" >> $GITHUB_ENV
+        shell: bash
+
+      # Run language-specific tests
+      - name: Run ${{ matrix.language }} tests
+        id: run-tests
+        run: |
+          cd languages/${{ matrix.language }}
+
+          # Prepare test command
+          TEST_CMD="./test.sh --json --output-file ${{ runner.temp }}/test-results-${{ matrix.language }}.json"
+
+          if [[ "${{ github.event.inputs.verbose }}" == "true" ]]; then
+            TEST_CMD="$TEST_CMD --verbose"
+          fi
+
+          if [[ "${{ needs.setup.outputs.sdk_source }}" == "latest-main" ]]; then
+            TEST_CMD="$TEST_CMD --no-build"
+          fi
+
+          echo "Running: $TEST_CMD"
+          eval "$TEST_CMD"
+        shell: bash
+        continue-on-error: true
+
+      # Stop fake-server
+      - name: Stop fake-server
+        if: needs.setup.outputs.test_mode == 'fake-server' && always()
+        run: |
+          if [[ -f fake-server.pid ]]; then
+            kill $(cat fake-server.pid) || true
+            rm fake-server.pid
+          fi
+        shell: bash
+
+      # Upload test results
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.language }}-${{ matrix.os }}
+          path: |
+            ${{ runner.temp }}/test-results-*.json
+            fake-server.log
+          retention-days: 30
+
+      # Generate test summary
+      - name: Generate test summary
+        if: always()
+        run: |
+          echo "## 📊 Test Results: ${{ matrix.language }} on ${{ matrix.os }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          RESULTS_FILE="${{ runner.temp }}/test-results-${{ matrix.language }}.json"
+
+          if [[ -f "$RESULTS_FILE" ]]; then
+            # Parse JSON and create markdown summary
+            python -c "
+import json
+import sys
+
+with open('$RESULTS_FILE', 'r') as f:
+    result = json.load(f)
+
+summary = result.get('test_results', {}).get('summary', {})
+
+print(f\"### Summary\")
+print(f\"- **Total Tests**: {summary.get('total', 0)}\")
+print(f\"- **Passed**: {summary.get('passed', 0)} ✅\")
+print(f\"- **Failed**: {summary.get('failed', 0)} ❌\")
+print(f\"- **Errored**: {summary.get('errored', 0)} 💥\")
+print(f\"- **Skipped**: {summary.get('skipped', 0)} ⏭️\")
+print(f\"- **Duration**: {summary.get('duration_ms', 0)}ms\")
+print(f\"- **Status**: {'✅ PASSED' if summary.get('status') == 'passed' else '❌ FAILED'}\")
+print()
+
+# Show failed tests if any
+failed_tests = result.get('test_results', {}).get('failed_tests', [])
+if failed_tests:
+    print(f\"### Failed Tests\")
+    for test in failed_tests:
+        error_msg = test.get('error', {}).get('message', 'Unknown error')
+        print(f\"- **{test.get('display_name', test.get('name'))}**: {error_msg}\")
+    print()
+
+# Show environment info
+env_info = result.get('environment', {})
+if env_info:
+    print(f\"### Environment\")
+    print(f\"- **SDK Version**: {result.get('sdk_version', 'unknown')}\")
+    print(f\"- **OS**: {env_info.get('os', {}).get('platform', 'unknown')}\")
+    print(f\"- **Architecture**: {env_info.get('arch', 'unknown')}\")
+    print(f\"- **Runtime**: {env_info.get('runtime', {}).get('name', 'unknown')} {env_info.get('runtime', {}).get('version', '')}\")
+    print(f\"- **Test Mode**: {env_info.get('server', {}).get('type', 'unknown')}\")
+    print(f\"- **SDK Source**: {env_info.get('sdk', {}).get('source', 'unknown')}\")
+" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ No test results found" >> $GITHUB_STEP_SUMMARY
+          fi
+        shell: bash
+
+  # Aggregate results from all tests
+  aggregate:
+    name: Aggregate Test Results
+    needs: [setup, test]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Download all test results
+        uses: actions/download-artifact@v4
+        with:
+          path: test-artifacts
+          pattern: test-results-*
+
+      - name: Aggregate results
+        run: |
+          python scripts/aggregate-test-results.py test-artifacts > aggregate-results.json
+
+      - name: Upload aggregated results
+        uses: actions/upload-artifact@v4
+        with:
+          name: aggregate-test-results
+          path: aggregate-results.json
+          retention-days: 30
+
+      - name: Generate final summary
+        run: |
+          echo "# 🎯 SDK Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          python -c "
+import json
+import sys
+import glob
+
+# Load aggregate results
+with open('aggregate-results.json', 'r') as f:
+    aggregate = json.load(f)
+
+print(f\"## Overall Statistics\")
+print(f\"- **Total Test Runs**: {aggregate.get('total_runs', 0)}\")
+print(f\"- **Successful Runs**: {aggregate.get('successful_runs', 0)}\")
+print(f\"- **Failed Runs**: {aggregate.get('failed_runs', 0)}\")
+print(f\"- **Overall Success Rate**: {aggregate.get('success_rate', 0):.1f}%\")
+print()
+
+# Per-language summary
+print(f\"## Language Results\")
+for lang, stats in aggregate.get('by_language', {}).items():
+    status = '✅' if stats.get('all_passed') else '❌'
+    print(f\"### {lang.capitalize()} {status}\")
+    print(f\"- Platforms tested: {', '.join(stats.get('platforms', []))}\")
+    print(f\"- Total tests: {stats.get('total_tests', 0)}\")
+    print(f\"- Passed: {stats.get('passed', 0)}\")
+    print(f\"- Failed: {stats.get('failed', 0)}\")
+    print()
+
+# Configuration
+print(f\"## Test Configuration\")
+print(f\"- **Test Mode**: {aggregate.get('test_mode', 'unknown')}\")
+print(f\"- **SDK Source**: {aggregate.get('sdk_source', 'unknown')}\")
+print(f\"- **Languages Tested**: {', '.join(aggregate.get('languages', []))}\")
+print(f\"- **Platforms**: {', '.join(aggregate.get('platforms', []))}\")
+" >> $GITHUB_STEP_SUMMARY
+
+      # Set job status based on results
+      - name: Check overall status
+        run: |
+          python -c "
+import json
+import sys
+
+with open('aggregate-results.json', 'r') as f:
+    aggregate = json.load(f)
+
+if aggregate.get('all_passed', False):
+    print('✅ All tests passed!')
+    sys.exit(0)
+else:
+    print('❌ Some tests failed')
+    sys.exit(1)
+"

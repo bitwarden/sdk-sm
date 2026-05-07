@@ -5,14 +5,40 @@ set -euo pipefail
 export REPO_ROOT="$(git rev-parse --show-toplevel)"
 TMP_DIR="$(mktemp -d)"
 
-# This access token is only used for testing purposes with the fake server
-export ORGANIZATION_ID="f4e44a7f-1190-432a-9d4a-af96013127cb" # this must match the JWT returned by fake-server::routes.rs
-export ACCESS_TOKEN="0.ec2c1d46-6a4b-4751-a310-af9601317f2d.C2IgxjjLF7qSshsbwe8JGcbM075YXw:X8vbvA0bduihIDe/qrzIQQ=="
+# Load environment variables from SDKTestFramework's .env (single source of truth)
+SDK_TEST_ENV="$REPO_ROOT/tests/SdkTestFramework.Tests/Configuration/.env"
+if [ -f "$SDK_TEST_ENV" ]; then
+	source "$SDK_TEST_ENV"
+else
+	echo "Error: .env file not found at $SDK_TEST_ENV"
+	echo "Please create a .env file in the SDKTestFramework Configuration directory"
+	echo "You can copy from .env.example in the same directory"
+	exit 1
+fi
+
+# Verify required variables are set
+if [ -z "$ORGANIZATION_ID" ] || [ -z "$ACCESS_TOKEN" ]; then
+	echo "Error: Required environment variables are missing"
+	echo "Please check your .env file configuration"
+	exit 1
+fi
+
+# Auto-set platform-specific variables
+if [[ "$(uname -s)" == "Darwin" ]]; then
+	# macOS specific settings
+	export DYLD_LIBRARY_PATH="${DYLD_LIBRARY_PATH:-$REPO_ROOT/target/debug}"
+	export OBJC_DISABLE_INITIALIZE_FORK_SAFETY="${OBJC_DISABLE_INITIALIZE_FORK_SAFETY:-YES}"
+elif [[ "$(uname -s)" == "Linux" ]]; then
+	# Linux specific settings
+	export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:-$REPO_ROOT/target/debug}"
+fi
 
 export SERVER_URL="http://localhost:${SM_FAKE_SERVER_PORT:-3000}"
 export API_URL="${SERVER_URL}/api"
 export IDENTITY_URL="${SERVER_URL}/identity"
-export STATE_FILE="${TMP_DIR}/state"
+
+# Auto-set STATE_FILE if not provided
+export STATE_FILE="${STATE_FILE:-${TMP_DIR}/bitwarden-state.json}"
 
 # force a debug build of bws (HTTP is blocked in release builds of the CLI).
 export BWS_ACCESS_TOKEN="$ACCESS_TOKEN"

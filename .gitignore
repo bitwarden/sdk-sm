@@ -26,6 +26,10 @@ bld/
 .idea
 xcuserdata/
 
+# Environment files
+*.env
+**/*.env
+
 # Added by cargo
 #
 # already existing elements were commented out

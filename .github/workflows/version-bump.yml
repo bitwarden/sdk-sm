@@ -59,7 +59,6 @@ jobs:
         with:
           ref: main
           persist-credentials: true
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Version Branch
         id: create-branch

@@ -3,10 +3,9 @@ run-name: Build Python Wheels (Dev)
 
 on:
   workflow_dispatch:
-  # NOTE: Push trigger disabled until we verify the new workflow works
-  # push:
-  #   branches:
-  #     - "main"
+  push:
+    branches:
+      - "main"
 
 concurrency:
   group: build-python-dev

@@ -1,6 +1,5 @@
-﻿using System;
+using System;
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json.Linq;
 
 namespace Bitwarden.Sdk;
@@ -45,8 +44,13 @@ public sealed partial class BitwardenClient
         return ParseResult(result).Value<int>();
     }
 
-    private JToken ParseResult(JToken result)
+    private static JToken ParseResult(JToken? result)
     {
+        if (result is null)
+        {
+            throw new BitwardenException("Missing response from debug command.");
+        }
+
         // Expecting: { "success": true|false, "data": ..., "errorMessage": "..." }
         if (result is JObject obj && obj.Value<bool?>("success") == true)
         {

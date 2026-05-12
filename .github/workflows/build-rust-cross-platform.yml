@@ -28,6 +28,8 @@ jobs:
           - os: windows-2022
             target: x86_64-pc-windows-msvc
           - os: windows-2022
+            target: i686-pc-windows-msvc
+          - os: windows-2022
             target: x86_64-pc-windows-gnu
           # caution: updating the linux runner OS version for GNU
           #   targets will likely break libbitwarden_c for older OS versions.
@@ -89,12 +91,14 @@ jobs:
         run: cargo build -p bitwarden-c --target ${{ matrix.settings.target }} --release
 
       - name: Upload Artifact
+        if: ${{ matrix.settings.target != 'x86_64-pc-windows-gnu' }}
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: libbitwarden_c_files-${{ matrix.settings.target }}
           path: target/${{ matrix.settings.target }}/release/*bitwarden_c*
 
       - name: Upload Artifact
+        if: ${{ matrix.settings.target == 'x86_64-pc-windows-gnu' }}
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: libbitwarden_c_files-${{ matrix.settings.target }}

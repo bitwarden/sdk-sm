@@ -25,7 +25,7 @@ jobs:
       release_version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout repo
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
 
@@ -53,15 +53,18 @@ jobs:
           workflow_conclusion: success
           branch: ${{ github.ref_name }}
 
-      - name: Get checksum files
-        uses: bitwarden/gh-actions/get-checksum@main
-        with:
-          packages_dir: "packages"
-          file_path: "packages/bws-sha256-checksums-${{ steps.version.outputs.version }}.txt"
+      - name: Generate SHA256 checksums
+        env:
+          PKG_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          cd packages
+          sha256sum *.zip > bws-sha256-checksums-${PKG_VERSION}.txt
+          echo "Generated checksums:"
+          cat bws-sha256-checksums-${PKG_VERSION}.txt
 
       - name: Create release
         if: ${{ inputs.release_type != 'Dry Run' }}
-        uses: ncipollo/release-action@2c591bcc8ecdcd2db72b97d6147f871fcd833ba5 # v1.14.0
+        uses: ncipollo/release-action@b7eabc95ff50cbeeedec83973935c8f306dfcd0b # v1.20.0
         env:
           PKG_VERSION: ${{ steps.version.outputs.version }}
         with:
@@ -70,6 +73,8 @@ jobs:
             packages/bws-macos-universal-${{ env.PKG_VERSION }}.zip,
             packages/bws-x86_64-pc-windows-msvc-${{ env.PKG_VERSION }}.zip,
             packages/bws-aarch64-pc-windows-msvc-${{ env.PKG_VERSION }}.zip,
+            packages/bws-x86_64-unknown-linux-musl-${{ env.PKG_VERSION }}.zip,
+            packages/bws-aarch64-unknown-linux-musl-${{ env.PKG_VERSION }}.zip,
             packages/bws-x86_64-unknown-linux-gnu-${{ env.PKG_VERSION }}.zip,
             packages/bws-aarch64-unknown-linux-gnu-${{ env.PKG_VERSION }}.zip,
             packages/THIRDPARTY.html,

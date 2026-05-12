@@ -1,6 +1,7 @@
 # Bitwarden Secrets Manager SDK
 
-C++ bindings for interacting with the [Bitwarden Secrets Manager]. This is a beta release and might be missing some functionality.
+C++ bindings for interacting with the [Bitwarden Secrets Manager]. This is a beta release and might
+be missing some functionality.
 
 ## Create access token
 
@@ -16,7 +17,6 @@ BitwardenSettings bitwardenSettings;
 bitwardenSettings.set_api_url("<bitwarden-url>");
 bitwardenSettings.set_identity_url("<bitwarden-identity>");
 ```
-
 
 ### Create new Bitwarden client
 

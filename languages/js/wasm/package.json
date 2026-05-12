@@ -9,7 +9,6 @@
     "bitwarden_wasm_bg.js",
     "bitwarden_wasm_bg.wasm",
     "bitwarden_wasm_bg.wasm.d.ts",
-    "bitwarden_wasm_bg.wasm.js",
     "bitwarden_wasm.d.ts",
     "bitwarden_wasm.js",
     "index.js",

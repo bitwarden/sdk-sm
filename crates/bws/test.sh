@@ -9,8 +9,8 @@ run_test() {
   test_command="$2"
 
   if [ "$BUILD_FROM_SOURCE" -eq 1 ]; then
-    ./target/release/bws --version >/dev/null || cargo build --bin bws --quiet --release
-    modified_command=$(echo "$test_command" | sed 's/bws/.\/target\/release\/bws/')
+    ./target/debug/bws --version >/dev/null || cargo build --bin bws --quiet
+    modified_command=$(echo "$test_command" | sed 's/bws/.\/target\/debug\/bws/')
   else
     modified_command="$test_command"
   fi

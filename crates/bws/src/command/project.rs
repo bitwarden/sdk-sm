@@ -1,7 +1,7 @@
 use bitwarden::{
-    Client,
+    OrganizationId,
     secrets_manager::{
-        ClientProjectsExt,
+        SecretsManagerClient,
         projects::{
             ProjectCreateRequest, ProjectGetRequest, ProjectPutRequest, ProjectsDeleteRequest,
             ProjectsListRequest,
@@ -18,8 +18,8 @@ use crate::{
 
 pub(crate) async fn process_command(
     command: ProjectCommand,
-    client: Client,
-    organization_id: Uuid,
+    client: SecretsManagerClient,
+    organization_id: OrganizationId,
     output_settings: OutputSettings,
 ) -> Result<()> {
     match command {
@@ -36,13 +36,15 @@ pub(crate) async fn process_command(
 }
 
 pub(crate) async fn list(
-    client: Client,
-    organization_id: Uuid,
+    client: SecretsManagerClient,
+    organization_id: OrganizationId,
     output_settings: OutputSettings,
 ) -> Result<()> {
     let projects = client
         .projects()
-        .list(&ProjectsListRequest { organization_id })
+        .list(&ProjectsListRequest {
+            organization_id: organization_id.into(),
+        })
         .await?
         .data;
     serialize_response(projects, output_settings);
@@ -51,7 +53,7 @@ pub(crate) async fn list(
 }
 
 pub(crate) async fn get(
-    client: Client,
+    client: SecretsManagerClient,
     project_id: Uuid,
     output_settings: OutputSettings,
 ) -> Result<()> {
@@ -65,15 +67,15 @@ pub(crate) async fn get(
 }
 
 pub(crate) async fn create(
-    client: Client,
-    organization_id: Uuid,
+    client: SecretsManagerClient,
+    organization_id: OrganizationId,
     name: String,
     output_settings: OutputSettings,
 ) -> Result<()> {
     let project = client
         .projects()
         .create(&ProjectCreateRequest {
-            organization_id,
+            organization_id: organization_id.into(),
             name,
         })
         .await?;
@@ -83,8 +85,8 @@ pub(crate) async fn create(
 }
 
 pub(crate) async fn edit(
-    client: Client,
-    organization_id: Uuid,
+    client: SecretsManagerClient,
+    organization_id: OrganizationId,
     project_id: Uuid,
     name: String,
     output_settings: OutputSettings,
@@ -93,7 +95,7 @@ pub(crate) async fn edit(
         .projects()
         .update(&ProjectPutRequest {
             id: project_id,
-            organization_id,
+            organization_id: organization_id.into(),
             name,
         })
         .await?;
@@ -102,7 +104,7 @@ pub(crate) async fn edit(
     Ok(())
 }
 
-pub(crate) async fn delete(client: Client, project_ids: Vec<Uuid>) -> Result<()> {
+pub(crate) async fn delete(client: SecretsManagerClient, project_ids: Vec<Uuid>) -> Result<()> {
     let count = project_ids.len();
 
     let result = client

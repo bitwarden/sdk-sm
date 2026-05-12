@@ -49,7 +49,7 @@ jobs:
       package_version_cargo: ${{ steps.retrieve-version.outputs.package_version_cargo }}
     steps:
       - name: Checkout repo
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
 
@@ -70,8 +70,19 @@ jobs:
           if [ "$USE_DEV_VERSION" = "true" ]; then
             latest_dev_num=0
 
-            # Get all versions from PyPI that match the current package version with dev suffix
-            dev_versions=$(curl -s "$_TEST_PYPI_REPOSITORY_URL" | \
+            # Fetch all releases from Test PyPI
+            echo "Fetching releases from Test PyPI..."
+            test_pypi_response=$(curl -sf "$_TEST_PYPI_REPOSITORY_URL")
+
+            if [ $? -ne 0 ] || [ -z "$test_pypi_response" ]; then
+              echo "==================================="
+              echo "[!] Failed to fetch releases from Test PyPI"
+              echo "==================================="
+              exit 1
+            fi
+
+            # Get all versions that match the current package version with dev suffix
+            dev_versions=$(echo "$test_pypi_response" | \
               jq -r --arg version "$VERSION" \
               '.releases | keys[] | select(test("^" + $version + "\\.dev[0-9]+$"))' || true)
 
@@ -81,9 +92,9 @@ jobs:
                 sed -n "s/^${VERSION}\.dev\([0-9]\+\)$/\1/p" | \
                 sort -n | \
                 tail -1)
+              echo "Found existing dev versions. Latest: ${VERSION}.dev${latest_dev_num}"
             else
-              echo "Failed to retrieve current dev_versions from PyPi."
-              exit 1
+              echo "No existing dev versions found for ${VERSION}. Will create ${VERSION}.dev1"
             fi
 
             # Increment dev number
@@ -110,12 +121,12 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          - os: macos-13
+          - os: macos-15
             target: x86_64-apple-darwin
             python-version: "3.9"
             maturin-build-args: ""
 
-          - os: macos-13
+          - os: macos-15
             target: aarch64-apple-darwin
             python-version: "3.9"
             maturin-build-args: ""
@@ -137,7 +148,7 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
 
@@ -159,40 +170,40 @@ jobs:
           git diff
 
       - name: Setup Python
-        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
         with:
           python-version: ${{ matrix.settings.python-version }}
 
       - name: Setup Node
-        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
         with:
           node-version: 22
 
       - name: Install rust
-        uses: dtolnay/rust-toolchain@6d653acede28d24f02e3cd41383119e8b1b35921 # stable
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
         with:
           toolchain: stable
           targets: ${{ matrix.settings.target }}
 
       - name: Set up Zig
-        uses: mlugg/setup-zig@8d6198c65fb0feaa111df26e6b467fea8345e46f # v2.0.5
+        uses: mlugg/setup-zig@fa65c4058643678a4e4a9a60513944a7d8d35440 # v2.1.0
         with:
           version: 0.15.1
 
       - name: Cache cargo registry
-        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+        uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
         with:
           key: ${{ matrix.settings.target }}-cargo-${{ matrix.settings.os }}
 
       - name: Retrieve schemas
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: schemas.py
           path: ${{ github.workspace }}/languages/python/bitwarden_sdk
 
       - name: Build wheels
         if: ${{ matrix.settings.target != 'x86_64-unknown-linux-gnu' }}
-        uses: PyO3/maturin-action@ea5bac0f1ccd0ab11c805e2b804bfcb65dac2eab # v1.45.0
+        uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380 # v1.49.4
         with:
           target: ${{ matrix.settings.target }}
           args: --release --interpreter python${{ matrix.settings.python-version }} ${{ matrix.settings.maturin-build-args }}
@@ -201,21 +212,21 @@ jobs:
 
       - name: Build wheels (Linux - x86_64)
         if: ${{ matrix.settings.target == 'x86_64-unknown-linux-gnu' }}
-        uses: PyO3/maturin-action@ea5bac0f1ccd0ab11c805e2b804bfcb65dac2eab # v1.45.0
+        uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380 # v1.49.4
         with:
           target: ${{ matrix.settings.target }}
           args: --release --sdist --interpreter python${{ matrix.settings.python-version }} ${{ matrix.settings.maturin-build-args }}
           working-directory: languages/python
 
       - name: Upload wheels
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: bitwarden_sdk-${{ env._PACKAGE_VERSION }}-${{ matrix.settings.target }}
           path: ${{ github.workspace }}/target/wheels/bitwarden_sdk*.whl
 
       - name: Upload sdists
         if: ${{ matrix.settings.target == 'x86_64-unknown-linux-gnu' }} # we only need one sdist
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: bitwarden_sdk-${{ env._PACKAGE_VERSION }}-sdist
           path: ${{ github.workspace }}/target/wheels/bitwarden_sdk-*.tar.gz

@@ -1,4 +1,4 @@
-module github.com/bitwarden/sdk-go
+module github.com/bitwarden/sdk-go/v2
 
 go 1.21
 

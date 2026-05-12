@@ -1,6 +1,8 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["github>bitwarden/renovate-config:non-pinned"],
+  "schedule": ["0 0-4 8-14 */2 1"],
+  "timezone": "America/Chicago",
   "separateMajorMinor": true,
   "enabledManagers": ["cargo", "dockerfile", "github-actions", "gomod", "npm", "nuget"],
   "constraints": {

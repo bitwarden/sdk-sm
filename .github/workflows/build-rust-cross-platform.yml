@@ -21,9 +21,9 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          - os: macos-13
+          - os: macos-15
             target: x86_64-apple-darwin
-          - os: macos-13
+          - os: macos-15
             target: aarch64-apple-darwin
           - os: windows-2022
             target: x86_64-pc-windows-msvc
@@ -41,21 +41,21 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
 
       - name: Install rust
-        uses: dtolnay/rust-toolchain@6d653acede28d24f02e3cd41383119e8b1b35921 # stable
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
         with:
           toolchain: stable
 
       - name: Cache cargo registry
-        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+        uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
 
       - name: Install Zig
         if: ${{ contains(matrix.settings.target, 'musl') }}
-        uses: mlugg/setup-zig@8d6198c65fb0feaa111df26e6b467fea8345e46f # v2.0.5
+        uses: mlugg/setup-zig@fa65c4058643678a4e4a9a60513944a7d8d35440 # v2.1.0
         with:
           version: 0.15.1
 
@@ -89,13 +89,13 @@ jobs:
         run: cargo build -p bitwarden-c --target ${{ matrix.settings.target }} --release
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: libbitwarden_c_files-${{ matrix.settings.target }}
           path: target/${{ matrix.settings.target }}/release/*bitwarden_c*
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: libbitwarden_c_files-${{ matrix.settings.target }}
           path: target/${{ matrix.settings.target }}/release-windows/*bitwarden_c*

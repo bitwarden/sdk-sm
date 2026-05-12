@@ -57,14 +57,14 @@ void BitwardenClient::loginAccessToken(const std::string& accessToken, const std
     accessTokenLoginRequest.set_state_file(stateFile);
     command.set_login_access_token(accessTokenLoginRequest);
 
-    auto deserializer = [](const char* response) -> ResponseForApiKeyLoginResponse {
+    auto deserializer = [](const char* response) -> ResponseForAccessTokenLoginResponse {
         nlohmann::json jsonResponse = nlohmann::json::parse(response);
-        ResponseForApiKeyLoginResponse loginResponse;
+        ResponseForAccessTokenLoginResponse loginResponse;
         Bitwarden::Sdk::from_json(jsonResponse, loginResponse);
         return loginResponse;
     };
     try {
-        commandRunner->runCommand<ResponseForApiKeyLoginResponse, ApiKeyLoginResponse>(command, deserializer);
+        commandRunner->runCommand<ResponseForAccessTokenLoginResponse, AccessTokenLoginResponse>(command, deserializer);
     } catch (const std::exception& ex) {
         std::cerr << "Error in accessTokenLogin: " << ex.what() << std::endl;
         throw ex;

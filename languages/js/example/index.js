@@ -12,7 +12,7 @@ async function main() {
   );
 
   const organization_id = process.env.ORGANIZATION_ID;
-  await client.accessTokenLogin(process.env.ACCESS_TOKEN);
+  await client.loginAccessToken(process.env.ACCESS_TOKEN);
 
   const project = await client.projects().create("test", organization_id);
   const projects = await client.projects().list(organization_id);

@@ -12,7 +12,7 @@ public class AuthClient {
         this.commandRunner = commandRunner;
     }
 
-    public APIKeyLoginResponse loginAccessToken(String accessToken, String stateFile) {
+    public AccessTokenLoginResponse loginAccessToken(String accessToken, String stateFile) {
         Command command = new Command();
         AccessTokenLoginRequest accessTokenLoginRequest = new AccessTokenLoginRequest();
         accessTokenLoginRequest.setAccessToken(accessToken);
@@ -20,8 +20,8 @@ public class AuthClient {
 
         command.setLoginAccessToken(accessTokenLoginRequest);
 
-        ResponseForAPIKeyLoginResponse response = commandRunner.runCommand(command,
-            BitwardenClient.throwingFunctionWrapper(Converter::ResponseForAPIKeyLoginResponseFromJsonString));
+        ResponseForAccessTokenLoginResponse response = commandRunner.runCommand(command,
+            BitwardenClient.throwingFunctionWrapper(Converter::ResponseForAccessTokenLoginResponseFromJsonString));
 
         if (response == null || !response.getSuccess()) {
             throw new BitwardenClientException(response != null ? response.getErrorMessage() : "Login failed");

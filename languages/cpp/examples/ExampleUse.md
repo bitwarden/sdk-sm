@@ -13,7 +13,7 @@ For each OS the library files will be the following:
 
 - macOS: `libBitwardenClient.dylib` and `libbitwarden_c.dylib`
 - Linux: `libBitwardenClient.so` and `libbitwarden_c.so`
-- Windows:  `BitwardenClient.dll` and `bitwarden_c.dll`
+- Windows: `BitwardenClient.dll` and `bitwarden_c.dll`
 
 Follow the [cmake build guide](../CMakeBuild.md) to create the libraries locally.
 
@@ -101,7 +101,8 @@ for macOS nlohmann and boost libraries installed with homebrew the following can
 -I/opt/homebrew/include
 ```
 
-The result is `MyBitwardenApp` in the `examples` directory, and can be ran from the `examples` directory:
+The result is `MyBitwardenApp` in the `examples` directory, and can be ran from the `examples`
+directory:
 
 ```bash
 ./MyBitwardenApp

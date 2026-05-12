@@ -1,7 +1,7 @@
 use std::{fs::File, io::Write};
 
 use anyhow::Result;
-use schemars::{JsonSchema, schema::RootSchema, schema_for};
+use schemars::{JsonSchema, Schema, schema_for};
 
 /// Creates a json schema file for any type passed in using Schemars. The filename and path of the
 /// generated schema file is derived from the namespace passed into the macro or supplied as the
@@ -68,7 +68,7 @@ macro_rules! write_schema_for {
     };
 }
 
-fn write_schema(schema: RootSchema, dir_path: String, type_name: String) -> Result<()> {
+fn write_schema(schema: Schema, dir_path: String, type_name: String) -> Result<()> {
     let file_name = type_name
         .split("::")
         .last()
@@ -87,19 +87,17 @@ fn write_schema(schema: RootSchema, dir_path: String, type_name: String) -> Resu
 
 use bitwarden_json::response::Response;
 
-#[allow(dead_code)]
+#[expect(dead_code)]
 #[derive(JsonSchema)]
 struct SchemaTypes {
     // Input types for new Client
-    client_settings: bitwarden::ClientSettings,
+    client_settings: bitwarden::secrets_manager::ClientSettings,
 
     // Input types for Client::run_command
     input_command: bitwarden_json::command::Command,
 
     // Output types for Client::run_command
-    api_key_login: Response<bitwarden::auth::login::ApiKeyLoginResponse>,
-    password_login: Response<bitwarden::auth::login::PasswordLoginResponse>,
-    login_access_token: Response<bitwarden::auth::login::AccessTokenLoginResponse>,
+    login_access_token: Response<bitwarden::secrets_manager::AccessTokenLoginResponse>,
     secret_identifiers: Response<bitwarden::secrets_manager::secrets::SecretIdentifiersResponse>,
     secret: Response<bitwarden::secrets_manager::secrets::SecretResponse>,
     secrets: Response<bitwarden::secrets_manager::secrets::SecretsResponse>,

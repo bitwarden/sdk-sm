@@ -37,7 +37,9 @@ func NewBitwardenLibrary() BitwardenLibrary {
 }
 
 func (b *BitwardenLibraryImpl) Init(clientSettings string) (ClientPointer, error) {
-	ptr := C.init(C.CString(clientSettings))
+	css := C.CString(clientSettings)
+	defer C.free(unsafe.Pointer(css))
+	ptr := C.init(css)
 	if ptr == nil {
 		return ClientPointer{}, fmt.Errorf("initialization failed")
 	}
@@ -49,7 +51,9 @@ func (b *BitwardenLibraryImpl) FreeMem(client ClientPointer) {
 }
 
 func (b *BitwardenLibraryImpl) RunCommand(command string, client ClientPointer) (string, error) {
-	cstr := C.run_command(C.CString(command), client.Pointer)
+	cmds := C.CString(command)
+	defer C.free(unsafe.Pointer(cmds))
+	cstr := C.run_command(cmds, client.Pointer)
 	if cstr == nil {
 		return "", fmt.Errorf("run command failed")
 	}

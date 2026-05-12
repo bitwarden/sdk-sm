@@ -8,5 +8,5 @@
     "composite": true,
     "declarationMap": true
   },
-  "include": ["./src/**/*"],
+  "include": ["./src/**/*"]
 }

@@ -4,7 +4,8 @@
 
 Gradle is used to build Java Bitwarden client library.
 
-The output of the build is placed in `build/libs` directory and should contain `BitwardenSDK.jar` file.
+The output of the build is placed in `build/libs` directory and should contain `BitwardenSDK.jar`
+file.
 
 ## Prerequisites
 

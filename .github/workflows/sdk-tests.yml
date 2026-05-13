@@ -1,42 +1,56 @@
-name: SDK Tests
+name: SDK Integration Tests
+
+# This workflow runs SDK integration tests using the .NET SdkTestFramework
+# It supports multiple languages, platforms, and test configurations
 
 on:
   workflow_dispatch:
     inputs:
       test_mode:
-        description: 'Test mode (fake-server or real-server)'
-        required: false
+        description: 'Test execution mode'
+        required: true
         default: 'fake-server'
         type: choice
         options:
           - fake-server
           - real-server
       sdk_source:
-        description: 'SDK source (local-build or published-package)'
-        required: false
-        default: 'local-build'
+        description: 'SDK source for testing'
+        required: true
+        default: 'local'
         type: choice
         options:
-          - local-build
-          - published-package
+          - local
+          - latest-main
+      verbose:
+        description: 'Enable verbose output'
+        required: false
+        default: false
+        type: boolean
+      no_build:
+        description: 'Skip SDK builds (use existing builds)'
+        required: false
+        default: false
+        type: boolean
 
   push:
     branches:
       - main
       - 'test/**'
+      - 'QA-*/**'
     paths:
-      - 'languages/python/**'
-      - 'languages/go/**'
+      - 'languages/**'
       - 'tests/**'
+      - 'crates/**'
       - '.github/workflows/sdk-tests.yml'
 
   pull_request:
     branches:
       - main
     paths:
-      - 'languages/python/**'
-      - 'languages/go/**'
+      - 'languages/**'
       - 'tests/**'
+      - 'crates/**'
       - '.github/workflows/sdk-tests.yml'
 
   schedule:
@@ -61,7 +75,7 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
-      # Checkout code
+      # Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -109,91 +123,47 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      # Cache Python dependencies
-      - name: Cache Python dependencies
+      # Cache .NET dependencies
+      - name: Cache .NET dependencies
         uses: actions/cache@v4
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
           restore-keys: |
-            ${{ runner.os }}-pip-
-
-      # Cache Go modules
-      - name: Cache Go modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+            ${{ runner.os }}-nuget-
 
       # Install Python build tools
       - name: Install Python build tools
+        if: ${{ !github.event.inputs.no_build }}
         run: |
           python -m pip install --upgrade pip
-          pip install uv maturin
+          pip install maturin
 
-      # Generate schemas (required for SDK builds)
+      # Install npm dependencies and generate schemas
       - name: Generate schemas
-        run: npm run schemas
-        working-directory: .
-
-      # Build Python SDK (local-build mode)
-      - name: Build Python SDK
-        if: ${{ github.event.inputs.sdk_source != 'published-package' }}
+        if: ${{ !github.event.inputs.no_build }}
         run: |
-          cd languages/python
-          uv venv .venv --python ${{ env.PYTHON_VERSION }}
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            .venv\Scripts\activate
-          else
-            source .venv/bin/activate
-          fi
-          uv pip install .[dev]
-          maturin develop
-        shell: bash
+          npm ci
+          npm run schemas
 
-      # Build Go SDK (local-build mode)
-      - name: Build Go SDK
-        if: ${{ github.event.inputs.sdk_source != 'published-package' }}
+      # Build test framework
+      - name: Build test framework
         run: |
-          # Build C library
-          cargo build -p bitwarden-c
-
-          # Create lib directories
-          mkdir -p languages/go/internal/cinterface/lib
-
-          # Setup platform-specific library
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            mkdir -p languages/go/internal/cinterface/lib/windows-x64
-            cp target/debug/bitwarden_c.dll languages/go/internal/cinterface/lib/windows-x64/
-          elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            if [[ "$(uname -m)" == "arm64" ]]; then
-              mkdir -p languages/go/internal/cinterface/lib/darwin-arm64
-              cp target/debug/libbitwarden_c.a languages/go/internal/cinterface/lib/darwin-arm64/
-            else
-              mkdir -p languages/go/internal/cinterface/lib/darwin-x64
-              cp target/debug/libbitwarden_c.a languages/go/internal/cinterface/lib/darwin-x64/
-            fi
-          else
-            mkdir -p languages/go/internal/cinterface/lib/linux-x64
-            cp target/debug/libbitwarden_c.a languages/go/internal/cinterface/lib/linux-x64/
-          fi
-        shell: bash
+          cd tests
+          dotnet restore
+          dotnet build --configuration Release
 
       # Start fake-server (if in fake-server mode)
       - name: Start fake-server
         if: ${{ github.event.inputs.test_mode != 'real-server' }}
         run: |
-          cargo build -p fake-server
-          nohup cargo run -p fake-server > fake-server.log 2>&1 &
+          cargo build -p fake-server --release
+          nohup cargo run -p fake-server --release > fake-server.log 2>&1 &
           echo $! > fake-server.pid
 
           # Wait for server to start
           for i in {1..30}; do
-            if curl -s http://localhost:4000/health > /dev/null; then
+            if curl -s http://localhost:4000/health > /dev/null 2>&1; then
               echo "Fake server is running"
               break
             fi
@@ -202,58 +172,36 @@ jobs:
           done
         shell: bash
 
-      # Create .env file from secrets in SDKTestFramework location
+      # Setup environment variables
       - name: Setup environment variables
         run: |
-          mkdir -p tests/SdkTestFramework.Tests/Configuration
-          cat > tests/SdkTestFramework.Tests/Configuration/.env << EOF
-          ACCESS_TOKEN=${{ secrets.ACCESS_TOKEN || 'test-token-123' }}
-          ORGANIZATION_ID=${{ secrets.ORGANIZATION_ID || 'test-org-123' }}
-          API_URL=${{ github.event.inputs.test_mode == 'real-server' && secrets.API_URL || 'http://localhost:4000' }}
-          IDENTITY_URL=${{ github.event.inputs.test_mode == 'real-server' && secrets.IDENTITY_URL || 'http://localhost:33656' }}
+          # Create .env file for test configuration
+          cat > tests/.env << EOF
+          ACCESS_TOKEN=${{ secrets.ACCESS_TOKEN || 'test-token' }}
+          ORGANIZATION_ID=${{ secrets.ORGANIZATION_ID || 'test-org-id' }}
+          API_URL=${{ github.event.inputs.test_mode == 'real-server' && secrets.API_URL || 'http://localhost:4000/api' }}
+          IDENTITY_URL=${{ github.event.inputs.test_mode == 'real-server' && secrets.IDENTITY_URL || 'http://localhost:4000/identity' }}
           STATE_FILE=${{ runner.temp }}/sdk-state.json
           TEST_MODE=${{ github.event.inputs.test_mode || 'fake-server' }}
+          SDK_SOURCE=${{ github.event.inputs.sdk_source || 'local' }}
+          NO_BUILD=${{ github.event.inputs.no_build || 'false' }}
+          VERBOSE=${{ github.event.inputs.verbose || 'false' }}
           EOF
-
-          # Platform-specific environment variables
-          if [[ "$RUNNER_OS" == "macOS" ]]; then
-            echo "DYLD_LIBRARY_PATH=${{ github.workspace }}/target/debug" >> tests/SdkTestFramework.Tests/Configuration/.env
-            echo "OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES" >> tests/SdkTestFramework.Tests/Configuration/.env
-          fi
         shell: bash
-
-      # Update test-config.json with runtime values
-      - name: Update test configuration
-        run: |
-          cd tests
-          if [[ -f test-config.json ]]; then
-            # Update TEST_MODE and SDK_SOURCE if provided
-            if [[ -n "${{ github.event.inputs.test_mode }}" ]]; then
-              jq '.configuration.TEST_MODE = "${{ github.event.inputs.test_mode }}"' test-config.json > temp.json && mv temp.json test-config.json
-            fi
-            if [[ -n "${{ github.event.inputs.sdk_source }}" ]]; then
-              jq '.configuration.SDK_SOURCE = "${{ github.event.inputs.sdk_source }}"' test-config.json > temp.json && mv temp.json test-config.json
-            fi
-          fi
-        shell: bash
-
-      # Restore .NET dependencies
-      - name: Restore .NET dependencies
-        run: |
-          dotnet restore tests/SdkTestFramework/SdkTestFramework.csproj
-          dotnet restore tests/SdkTests/SdkTests.csproj
-
-      # Build test framework
-      - name: Build test framework
-        run: |
-          dotnet build tests/SdkTestFramework/SdkTestFramework.csproj --configuration Release
-          dotnet build tests/SdkTests/SdkTests.csproj --configuration Release
 
       # Run tests
       - name: Run SDK tests
         run: |
-          cd tests/SdkTests
-          dotnet test --configuration Release --logger "console;verbosity=detailed" --logger "trx;LogFileName=test-results.trx"
+          cd tests
+          dotnet test --configuration Release \
+            --logger "console;verbosity=${{ github.event.inputs.verbose && 'detailed' || 'normal' }}" \
+            --logger "trx;LogFileName=test-results.trx" \
+            --logger "json;LogFileName=test-results.json" \
+            --results-directory TestResults
+        env:
+          TEST_MODE: ${{ github.event.inputs.test_mode || 'fake-server' }}
+          SDK_SOURCE: ${{ github.event.inputs.sdk_source || 'local' }}
+          NO_BUILD: ${{ github.event.inputs.no_build || 'false' }}
         continue-on-error: true
 
       # Stop fake-server
@@ -273,48 +221,37 @@ jobs:
         with:
           name: test-results-${{ matrix.os }}
           path: |
-            tests/SdkTests/bin/Release/net8.0/test-results/
-            tests/SdkTests/TestResults/
+            tests/TestResults/
             fake-server.log
           retention-days: 30
 
-      # Upload test report
-      - name: Upload test report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-report-${{ matrix.os }}
-          path: |
-            tests/SdkTests/bin/Release/net8.0/test-report-*.json
-            test-results/latest.json
-          retention-days: 30
-
-      # Test Report Summary (for PR comments)
+      # Generate test summary
       - name: Generate test summary
         if: always()
         run: |
           echo "## Test Results for ${{ matrix.os }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [[ -f tests/SdkTests/bin/Release/net8.0/test-results/latest.json ]]; then
-            # Parse JSON and create markdown summary
-            python -c "
-          import json
-          import sys
-
-          with open('tests/SdkTests/bin/Release/net8.0/test-results/latest.json', 'r') as f:
-              report = json.load(f)
-
-          summary = report.get('summary', {})
-          print(f\"- **Total Operations**: {summary.get('totalOperations', 0)}\")
-          print(f\"- **Passed**: {summary.get('passedOperations', 0)}\")
-          print(f\"- **Failed**: {summary.get('failedOperations', 0)}\")
-          print(f\"- **Success Rate**: {summary.get('successRate', 0):.1f}%\")
-          print(f\"- **Status**: {'✅ PASSED' if summary.get('allPassed', False) else '❌ FAILED'}\")
-          " >> $GITHUB_STEP_SUMMARY
+          # Parse JSON test results if available
+          if [[ -f tests/TestResults/test-results.json ]]; then
+            echo "### Test Summary" >> $GITHUB_STEP_SUMMARY
+            # Extract key metrics from JSON (this can be enhanced with jq)
+            cat tests/TestResults/test-results.json | jq -r '
+              "- Total Tests: \(.summary.total)",
+              "- Passed: \(.summary.passed)",
+              "- Failed: \(.summary.failed)",
+              "- Skipped: \(.summary.skipped)",
+              "- Duration: \(.summary.duration)ms"
+            ' >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "Unable to parse test results" >> $GITHUB_STEP_SUMMARY
           else
             echo "No test results found" >> $GITHUB_STEP_SUMMARY
           fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- Test Mode: ${{ github.event.inputs.test_mode || 'fake-server' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- SDK Source: ${{ github.event.inputs.sdk_source || 'local' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- No Build: ${{ github.event.inputs.no_build || 'false' }}" >> $GITHUB_STEP_SUMMARY
         shell: bash
         continue-on-error: true
 
@@ -326,6 +263,9 @@ jobs:
     if: always()
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -333,22 +273,39 @@ jobs:
 
       - name: Generate combined summary
         run: |
-          echo "# SDK Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "# SDK Integration Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+
           echo "## Platform Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+
+          SUCCESS=0
+          FAILURE=0
 
           for os in ubuntu-latest macos-latest windows-latest; do
             echo "### $os" >> $GITHUB_STEP_SUMMARY
             if [[ -d "artifacts/test-results-$os" ]]; then
-              echo "✅ Tests completed" >> $GITHUB_STEP_SUMMARY
+              if [[ -f "artifacts/test-results-$os/test-results.json" ]]; then
+                echo "✅ Tests completed" >> $GITHUB_STEP_SUMMARY
+                SUCCESS=$((SUCCESS + 1))
+              else
+                echo "⚠️ Tests completed with issues" >> $GITHUB_STEP_SUMMARY
+              fi
             else
               echo "❌ Tests failed or did not run" >> $GITHUB_STEP_SUMMARY
+              FAILURE=$((FAILURE + 1))
             fi
             echo "" >> $GITHUB_STEP_SUMMARY
           done
 
-          echo "## Configuration" >> $GITHUB_STEP_SUMMARY
-          echo "- Test Mode: ${{ github.event.inputs.test_mode || 'fake-server' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- SDK Source: ${{ github.event.inputs.sdk_source || 'local-build' }}" >> $GITHUB_STEP_SUMMARY
+          echo "## Overall Status" >> $GITHUB_STEP_SUMMARY
+          if [[ $FAILURE -eq 0 ]]; then
+            echo "✅ All platforms passed" >> $GITHUB_STEP_SUMMARY
+          elif [[ $SUCCESS -gt 0 ]]; then
+            echo "⚠️ Some platforms failed" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "❌ All platforms failed" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
         shell: bash

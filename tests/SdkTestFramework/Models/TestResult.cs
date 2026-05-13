@@ -10,9 +10,6 @@ public record TestResult
     [JsonPropertyName("language")]
     public required string Language { get; init; }
 
-    [JsonPropertyName("sdk_version")]
-    public string? SdkVersion { get; init; }
-
     [JsonPropertyName("operations")]
     public required List<TestOperation> Operations { get; init; }
 
@@ -25,14 +22,32 @@ public record TestResult
     [JsonPropertyName("architecture")]
     public required string Architecture { get; init; }
 
-    [JsonPropertyName("os_version")]
-    public string? OperatingSystemVersion { get; init; }
-
     [JsonPropertyName("timestamp")]
     public required DateTime Timestamp { get; init; }
 
-    public int PassedCount() => Operations.Count(op => op.IsSuccessful());
-    public int FailedCount() => Operations.Count(op => !op.IsSuccessful());
-    public bool AllPassed() => Operations.All(op => op.IsSuccessful());
-    public double SuccessRate() => Operations.Count == 0 ? 0 : (double)PassedCount() / Operations.Count * 100;
+    // Additional properties for new framework
+    [JsonPropertyName("success")]
+    public bool Success { get; init; }
+
+    [JsonPropertyName("error")]
+    public string? Error { get; init; }
+
+    [JsonPropertyName("total_tests")]
+    public int TotalTests { get; init; }
+
+    [JsonPropertyName("passed_tests")]
+    public int PassedTests { get; init; }
+
+    [JsonPropertyName("failed_tests")]
+    public int FailedTests { get; init; }
+
+    [JsonPropertyName("skipped_tests")]
+    public int SkippedTests { get; init; }
+
+    [JsonPropertyName("duration")]
+    [JsonIgnore]
+    public TimeSpan Duration { get; init; }
+
+    [JsonIgnore]
+    public bool Verbose { get; init; }
 }

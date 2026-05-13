@@ -3,6 +3,9 @@
 .pytest_cache
 .vscode/c_cpp_properties.json
 
+# Rider/ReSharper user-specific files
+*.DotSettings.user
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/

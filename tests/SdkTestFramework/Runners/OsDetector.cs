@@ -69,14 +69,4 @@ public static class OsDetector
 
     private static bool IsArmArchitecture(string architecture) =>
         architecture.Contains("arm", StringComparison.OrdinalIgnoreCase);
-
-    public static bool IsPlatformSupported(OsContext context, string testCategory)
-    {
-        // Windows ARM is not supported for certain operations
-        if (context.IsWindowsArm())
-            return false;
-
-        // All language SDK tests are supported on all platforms
-        return true;
-    }
 }

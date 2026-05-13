@@ -19,8 +19,6 @@ public record TestOperation
     [JsonPropertyName("error")]
     public string? Error { get; init; }
 
-    [JsonPropertyName("details")]
-    public Dictionary<string, object>? Details { get; init; }
-
-    public bool IsSuccessful() => Success;
+    [JsonPropertyName("message")]
+    public string? Message { get; init; }
 }

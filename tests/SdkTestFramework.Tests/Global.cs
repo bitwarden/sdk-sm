@@ -1,19 +1,25 @@
 using NUnit.Framework;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using SdkTestFramework.Common;
 using SdkTestFramework.Config;
+using SdkTestFramework.Platform;
 using SdkTestFramework.Runners;
+using SdkTestFramework.Services;
 
 namespace SdkTestFramework.Tests
 {
     /// <summary>
     /// One time global set up fixture. OneTimeSetUp will run once before ANY test.
     /// OneTimeTearDown will run once after ALL tests have been completed.
+    /// Manages global service registration and configuration.
     /// </summary>
     [SetUpFixture]
     public class Global
     {
         private static TestConfig? _testConfig;
         private static FakeServerManager? _fakeServerManager;
+        private static IServiceProvider? _serviceProvider;
 
         [OneTimeSetUp]
         public async Task Global_SetUp()
@@ -32,7 +38,7 @@ namespace SdkTestFramework.Tests
             _testConfig = TestConfig.LoadFromConfiguration(ConfigurationService.Configuration);
 
             // Debug: Check if configuration loaded properly
-            if (_testConfig?.Configuration == null)
+            if (_testConfig.Configuration == null)
             {
                 throw new InvalidOperationException("TestConfig.Configuration is null after loading");
             }
@@ -43,6 +49,9 @@ namespace SdkTestFramework.Tests
                 throw new InvalidOperationException("TestConfig.Timeouts is null after loading");
             }
             await TestContext.Progress.WriteLineAsync($"  Loaded timeout: DefaultTimeoutMs = {_testConfig.Timeouts.DefaultTimeoutMs}ms");
+
+            // Initialize dependency injection container
+            await InitializeServicesAsync();
 
             if (string.IsNullOrEmpty(_testConfig.Configuration.TestMode))
             {
@@ -139,7 +148,44 @@ namespace SdkTestFramework.Tests
             // Stop fake server if we started it
             _fakeServerManager?.Dispose();
 
+            // Dispose service provider
+            if (_serviceProvider is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+
             await TestContext.Progress.WriteLineAsync("✅ Global teardown complete");
+        }
+
+        /// <summary>
+        /// Initialize dependency injection services
+        /// </summary>
+        private static async Task InitializeServicesAsync()
+        {
+            await TestContext.Progress.WriteLineAsync("Initializing services...");
+
+            var services = new ServiceCollection();
+
+            // Add logging
+            services.AddLogging(builder =>
+            {
+                builder.AddConsole();
+                builder.SetMinimumLevel(LogLevel.Information);
+            });
+
+            // Add platform services
+            services.AddSingleton<IPlatformService>(PlatformDetector.CreatePlatformService);
+
+            // Add process executor
+            services.AddSingleton<IProcessExecutor, ProcessExecutor>();
+
+            // Add test result formatter
+            services.AddSingleton<ITestResultFormatter, TestResultFormatter>();
+
+            // Build service provider
+            _serviceProvider = services.BuildServiceProvider();
+
+            await TestContext.Progress.WriteLineAsync("  ✓ Services initialized");
         }
 
         /// <summary>
@@ -152,6 +198,18 @@ namespace SdkTestFramework.Tests
                 throw new InvalidOperationException("Test configuration not loaded. Ensure Global setup has run.");
             }
             return _testConfig;
+        }
+
+        /// <summary>
+        /// Get a service from the global service provider
+        /// </summary>
+        public static T GetService<T>() where T : class
+        {
+            if (_serviceProvider == null)
+            {
+                throw new InvalidOperationException("Service provider not initialized. Ensure Global setup has run.");
+            }
+            return _serviceProvider.GetRequiredService<T>();
         }
     }
 }

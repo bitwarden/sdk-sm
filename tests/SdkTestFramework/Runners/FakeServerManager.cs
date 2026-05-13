@@ -156,7 +156,7 @@ public sealed class FakeServerManager(TestConfig config) : IDisposable
     /// <summary>
     /// Builds the fake-server using cargo
     /// </summary>
-    private async Task<bool> BuildFakeServerAsync()
+    private static async Task<bool> BuildFakeServerAsync()
     {
         try
         {
@@ -185,7 +185,6 @@ public sealed class FakeServerManager(TestConfig config) : IDisposable
                 return false;
             }
 
-            var output = await process.StandardOutput.ReadToEndAsync();
             var error = await process.StandardError.ReadToEndAsync();
 
             await process.WaitForExitAsync();

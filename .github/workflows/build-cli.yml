@@ -42,8 +42,9 @@ jobs:
         run: |
           if [[ $REPO_OWNER == bitwarden ]]; then
             echo "sign=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "sign=false" >> "$GITHUB_OUTPUT"
           fi
-          echo "sign=false" >> "$GITHUB_OUTPUT"
 
   build-windows:
     name: Building CLI for - ${{ matrix.settings.os }} - ${{ matrix.settings.target }}

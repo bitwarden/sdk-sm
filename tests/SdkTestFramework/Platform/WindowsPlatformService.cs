@@ -1,12 +1,11 @@
 using System.Runtime.InteropServices;
-using Microsoft.Extensions.Logging;
 
 namespace SdkTestFramework.Platform;
 
 /// <summary>
 /// Windows-specific platform service implementation
 /// </summary>
-public class WindowsPlatformService(ILogger<WindowsPlatformService> logger) : PlatformServiceBase(logger)
+public class WindowsPlatformService : PlatformServiceBase
 {
     public override OSPlatform OperatingSystem => OSPlatform.Windows;
 

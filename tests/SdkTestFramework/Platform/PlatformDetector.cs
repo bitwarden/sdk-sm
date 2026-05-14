@@ -1,6 +1,4 @@
 using System.Runtime.InteropServices;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace SdkTestFramework.Platform;
 
@@ -28,24 +26,23 @@ public static class PlatformDetector
     /// <summary>
     /// Create a platform service for the current platform
     /// </summary>
-    public static IPlatformService CreatePlatformService(IServiceProvider serviceProvider)
+    public static IPlatformService CreatePlatformService()
     {
         var platform = GetCurrentPlatform();
 
         if (platform == OSPlatform.Windows)
         {
-            var logger = serviceProvider.GetRequiredService<ILogger<WindowsPlatformService>>();
-            return new WindowsPlatformService(logger);
+            return new WindowsPlatformService();
         }
-        else if (platform == OSPlatform.OSX)
+
+        if (platform == OSPlatform.OSX)
         {
-            var logger = serviceProvider.GetRequiredService<ILogger<MacOsPlatformService>>();
-            return new MacOsPlatformService(logger);
+            return new MacOsPlatformService();
         }
-        else if (platform == OSPlatform.Linux)
+
+        if (platform == OSPlatform.Linux)
         {
-            var logger = serviceProvider.GetRequiredService<ILogger<LinuxPlatformService>>();
-            return new LinuxPlatformService(logger);
+            return new LinuxPlatformService();
         }
 
         throw new PlatformNotSupportedException(

@@ -1,12 +1,11 @@
 using System.Runtime.InteropServices;
-using Microsoft.Extensions.Logging;
 
 namespace SdkTestFramework.Platform;
 
 /// <summary>
 /// Linux-specific platform service implementation
 /// </summary>
-public class LinuxPlatformService(ILogger<LinuxPlatformService> logger) : PlatformServiceBase(logger)
+public class LinuxPlatformService : PlatformServiceBase
 {
     public override OSPlatform OperatingSystem => OSPlatform.Linux;
 

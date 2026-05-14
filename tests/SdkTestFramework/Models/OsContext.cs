@@ -13,8 +13,6 @@ public record OsContext
     public required bool IsMacOs { get; init; }
     public required bool IsLinux { get; init; }
     public required bool IsArm { get; init; }
-
-    public bool IsWindowsArm() => IsWindows && IsArm; // Not supported
 }
 
 public enum OperatingSystemType

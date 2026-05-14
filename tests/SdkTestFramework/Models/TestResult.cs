@@ -47,7 +47,4 @@ public record TestResult
     [JsonPropertyName("duration")]
     [JsonIgnore]
     public TimeSpan Duration { get; init; }
-
-    [JsonIgnore]
-    public bool Verbose { get; init; }
 }

@@ -174,7 +174,7 @@ namespace SdkTestFramework.Tests
             });
 
             // Add platform services
-            services.AddSingleton<IPlatformService>(PlatformDetector.CreatePlatformService);
+            services.AddSingleton<IPlatformService>(_ => PlatformDetector.CreatePlatformService());
 
             // Add process executor
             services.AddSingleton<IProcessExecutor, ProcessExecutor>();

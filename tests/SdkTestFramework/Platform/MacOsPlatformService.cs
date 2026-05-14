@@ -1,12 +1,11 @@
 using System.Runtime.InteropServices;
-using Microsoft.Extensions.Logging;
 
 namespace SdkTestFramework.Platform;
 
 /// <summary>
 /// macOS-specific platform service implementation
 /// </summary>
-public class MacOsPlatformService(ILogger<MacOsPlatformService> logger) : PlatformServiceBase(logger)
+public class MacOsPlatformService : PlatformServiceBase
 {
     public override OSPlatform OperatingSystem => OSPlatform.OSX;
 

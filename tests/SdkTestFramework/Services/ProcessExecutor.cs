@@ -61,7 +61,7 @@ public class ProcessExecutor(IPlatformService platformService, ILogger<ProcessEx
                     ex.InnerException.GetType().Name, ex.InnerException.Message);
             }
 
-            throw new ProcessExecutionException($"Failed to execute command: {request.Command}", ex);
+            throw new InvalidOperationException($"Failed to execute command: {request.Command}", ex);
         }
     }
 
@@ -146,7 +146,7 @@ public class ProcessExecutor(IPlatformService platformService, ILogger<ProcessEx
                 ? string.Empty
                 : $". Error: {result.StandardError}";
 
-            throw new ProcessExecutionException(
+            throw new InvalidOperationException(
                 $"Command '{request.Command}' failed with exit code {result.ExitCode}{errorDetails}",
                 new Exception($"Process exited with code {result.ExitCode}"));
         }

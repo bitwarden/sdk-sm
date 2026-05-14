@@ -22,7 +22,7 @@ public class ProcessExecutorTests
             builder.AddConsole();
         });
 
-        services.AddSingleton<IPlatformService>(PlatformDetector.CreatePlatformService);
+        services.AddSingleton<IPlatformService>(_ => PlatformDetector.CreatePlatformService());
         services.AddSingleton<IProcessExecutor, ProcessExecutor>();
 
         var provider = services.BuildServiceProvider();

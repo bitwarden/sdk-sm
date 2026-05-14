@@ -55,13 +55,5 @@ namespace SdkTestFramework.Tests
         {
             return Configuration[key];
         }
-
-        /// <summary>
-        /// Get a configuration section
-        /// </summary>
-        public static T GetSection<T>(string sectionName) where T : new()
-        {
-            return Configuration.GetSection(sectionName).Get<T>() ?? new T();
-        }
     }
 }

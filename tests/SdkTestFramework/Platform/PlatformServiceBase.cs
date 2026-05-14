@@ -1,14 +1,12 @@
 using System.Runtime.InteropServices;
-using Microsoft.Extensions.Logging;
 
 namespace SdkTestFramework.Platform;
 
 /// <summary>
 /// Base class for platform-specific services
 /// </summary>
-public abstract class PlatformServiceBase(ILogger<PlatformServiceBase> logger) : IPlatformService
+public abstract class PlatformServiceBase : IPlatformService
 {
-    protected readonly ILogger<PlatformServiceBase> Logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     public abstract OSPlatform OperatingSystem { get; }
     public abstract string PlatformName { get; }

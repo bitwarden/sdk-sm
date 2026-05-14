@@ -17,9 +17,6 @@ public record TestConfig
     [JsonPropertyName("timeouts")]
     public required TimeoutSettings Timeouts { get; init; }
 
-    [JsonPropertyName("testOperations")]
-    public required IReadOnlyList<string> TestOperations { get; init; }
-
     /// <summary>
     /// Load configuration from IConfiguration (matches Bitwarden pattern)
     /// </summary>
@@ -45,10 +42,7 @@ public record TestConfig
             {
                 DefaultTimeoutMs = configuration.GetValue("timeouts:DEFAULT_TIMEOUT_MS", 30000),
                 BuildTimeoutMs = configuration.GetValue("timeouts:BUILD_TIMEOUT_MS", 120000)
-            },
-
-            TestOperations = configuration.GetSection("testOperations").Get<List<string>>()?.AsReadOnly()
-                ?? Array.Empty<string>().ToList().AsReadOnly()
+            }
         };
 
         return config;

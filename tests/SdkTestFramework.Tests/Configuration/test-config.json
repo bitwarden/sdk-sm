@@ -19,14 +19,5 @@
   "retries": {
     "RETRY_ATTEMPTS": 2,
     "RETRY_DELAY_MS": 1000
-  },
-  "testOperations": [
-    "auth",
-    "create_secret",
-    "list_secrets",
-    "get_secret",
-    "delete_secret",
-    "sync_no_date",
-    "sync_with_date"
-  ]
+  }
 }

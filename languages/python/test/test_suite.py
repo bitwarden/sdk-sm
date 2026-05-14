@@ -27,7 +27,7 @@ class PythonSdkTestSuite:
         self.verbose = verbose
         self.client = None
         self.organization_id = os.getenv("ORGANIZATION_ID")
-        self.test_mode = os.getenv("TEST_MODE", "fake-server")
+        self.test_mode = os.getenv("TEST_MODE")
 
         # Test tracking
         self.operations = []
@@ -40,8 +40,11 @@ class PythonSdkTestSuite:
     def setup_client(self) -> bool:
         """Initialize the Bitwarden client"""
         try:
-            api_url = os.getenv("API_URL", "http://localhost:4000/api")
-            identity_url = os.getenv("IDENTITY_URL", "http://localhost:4000/identity")
+            api_url = os.getenv("API_URL")
+            identity_url = os.getenv("IDENTITY_URL")
+
+            if not api_url or not identity_url:
+                raise ValueError("API_URL and IDENTITY_URL environment variables must be set")
 
             if self.verbose:
                 print(f"Setting up client with API: {api_url}, Identity: {identity_url}", file=sys.stderr)
@@ -97,10 +100,12 @@ class PythonSdkTestSuite:
 
         # Print progress for text mode
         if not self.json_output:
-            if operation["success"]:
-                print(f"✅ {display_name} ({operation['duration_ms']}ms)")
-            elif operation["error"]:
+            if operation["error"]:
                 print(f"❌ {display_name} ({operation['duration_ms']}ms): {operation['error']}")
+            elif operation["success"]:
+                print(f"✅ {display_name} ({operation['duration_ms']}ms)")
+            else:
+                print(f"❌ {display_name} ({operation['duration_ms']}ms)")
 
         self.operations.append(operation)
         return operation["success"]
@@ -302,52 +307,36 @@ class PythonSdkTestSuite:
         except ValueError:
             return True, {"validation": "correctly rejected invalid params"}
 
-    def run_all_tests(self):
-        """Run all test operations"""
-        self.start_time = time.time()
-
-        # Validate required environment variables
-        if not self.organization_id:
-            raise ValueError("ORGANIZATION_ID environment variable must be set")
-
-        if not self.setup_client():
-            raise ConnectionError("Failed to setup client")
-
-        # Define test operations in order
-        tests = [
-            ("test_auth", self.test_auth, "Authentication"),
-            ("test_secret_create", self.test_secret_create, "Create Secret"),
-            ("test_secret_list", self.test_secret_list, "List Secrets"),
-            ("test_secret_get", self.test_secret_get, "Get Secret"),
-            ("test_secret_update", self.test_secret_update, "Update Secret"),
-            ("test_secret_get_by_ids", self.test_secret_get_by_ids, "Get Secrets by IDs"),
-            ("test_secret_sync", self.test_secret_sync, "Sync Secrets"),
-            ("test_secret_delete", self.test_secret_delete, "Delete Secrets"),
-            ("test_project_create", self.test_project_create, "Create Project"),
-            ("test_project_list", self.test_project_list, "List Projects"),
-            ("test_project_get", self.test_project_get, "Get Project"),
-            ("test_project_update", self.test_project_update, "Update Project"),
-            ("test_project_delete", self.test_project_delete, "Delete Projects"),
-            ("test_generator_default", self.test_generator_default, "Generate Password (Default)"),
-            ("test_generator_custom", self.test_generator_custom, "Generate Password (Custom)"),
-            ("test_generator_validation", self.test_generator_validation, "Generator Validation"),
+    def discover_tests(self):
+        """Discover all test methods using introspection"""
+        tests = []
+        # Define the order and display names for tests
+        test_definitions = [
+            ("test_auth", "Authentication"),
+            ("test_secret_create", "Create Secret"),
+            ("test_secret_list", "List Secrets"),
+            ("test_secret_get", "Get Secret"),
+            ("test_secret_update", "Update Secret"),
+            ("test_secret_get_by_ids", "Get Secrets by IDs"),
+            ("test_secret_sync", "Sync Secrets"),
+            ("test_secret_delete", "Delete Secrets"),
+            ("test_project_create", "Create Project"),
+            ("test_project_list", "List Projects"),
+            ("test_project_get", "Get Project"),
+            ("test_project_update", "Update Project"),
+            ("test_project_delete", "Delete Projects"),
+            ("test_generator_default", "Generate Password (Default)"),
+            ("test_generator_custom", "Generate Password (Custom)"),
+            ("test_generator_validation", "Generator Validation"),
         ]
 
-        # Print header for text mode
-        if not self.json_output:
-            print("=" * 60)
-            print("Python SDK Test Suite")
-            print(f"Mode: {self.test_mode}")
-            print("=" * 60)
-            print()
+        for name, display in test_definitions:
+            if hasattr(self, name):
+                tests.append((name, getattr(self, name), display))
+        return tests
 
-        # Run tests
-        for name, func, display in tests:
-            self.run_operation(name, func, display)
-
-        total_duration = int((time.time() - self.start_time) * 1000)
-
-        # Generate JSON report
+    def generate_report(self, total_duration):
+        """Generate and output the test report"""
         if self.json_output:
             report = {
                 "language": "python",
@@ -373,6 +362,35 @@ class PythonSdkTestSuite:
                     if not op["success"]:
                         print(f"  - {op['operation']}: {op.get('error', 'Failed')}")
             print("=" * 60)
+
+    def run_all_tests(self):
+        """Run all test operations"""
+        self.start_time = time.time()
+
+        # Validate required environment variables
+        if not self.organization_id:
+            raise ValueError("ORGANIZATION_ID environment variable must be set")
+
+        if not self.setup_client():
+            raise ConnectionError("Failed to setup client")
+
+        # Print header for text mode
+        if not self.json_output:
+            print("=" * 60)
+            print("Python SDK Test Suite")
+            print(f"Mode: {self.test_mode or 'default'}")
+            print("=" * 60)
+            print()
+
+        # Discover and run tests
+        tests = self.discover_tests()
+        for name, func, display in tests:
+            self.run_operation(name, func, display)
+
+        total_duration = int((time.time() - self.start_time) * 1000)
+
+        # Generate report
+        self.generate_report(total_duration)
 
         # Return appropriate exit code
         all_passed = all(op["success"] for op in self.operations)

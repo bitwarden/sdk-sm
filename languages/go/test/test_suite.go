@@ -53,7 +53,7 @@ func NewTestSuite(jsonOutput, verbose bool) *GoSDKTestSuite {
 		jsonOutput:        jsonOutput,
 		verbose:           verbose,
 		organizationID:    os.Getenv("ORGANIZATION_ID"),
-		testMode:         getEnvOrDefault("TEST_MODE", "fake-server"),
+		testMode:         os.Getenv("TEST_MODE"),
 		operations:       []TestOperation{},
 		createdSecretIDs: []string{},
 		createdProjectIDs: []string{},
@@ -62,8 +62,12 @@ func NewTestSuite(jsonOutput, verbose bool) *GoSDKTestSuite {
 
 // SetupClient initializes the Bitwarden client
 func (s *GoSDKTestSuite) SetupClient() error {
-	apiURL := getEnvOrDefault("API_URL", "http://localhost:4000/api")
-	identityURL := getEnvOrDefault("IDENTITY_URL", "http://localhost:4000/identity")
+	apiURL := os.Getenv("API_URL")
+	identityURL := os.Getenv("IDENTITY_URL")
+
+	if apiURL == "" || identityURL == "" {
+		return fmt.Errorf("API_URL and IDENTITY_URL environment variables must be set")
+	}
 
 	if s.verbose {
 		fmt.Fprintf(os.Stderr, "Setting up client with API: %s, Identity: %s\n", apiURL, identityURL)
@@ -524,27 +528,16 @@ func (s *GoSDKTestSuite) TestGeneratorValidation() (bool, map[string]interface{}
 	}, nil
 }
 
-// RunAllTests executes all test operations
-func (s *GoSDKTestSuite) RunAllTests() int {
-	s.startTime = time.Now()
+// TestDefinition holds test metadata
+type TestDefinition struct {
+	name        string
+	testFunc    func() (bool, map[string]interface{}, error)
+	displayName string
+}
 
-	// Validate required environment variables
-	if s.organizationID == "" {
-		fmt.Fprintln(os.Stderr, "ORGANIZATION_ID environment variable must be set")
-		return 1
-	}
-
-	if err := s.SetupClient(); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to setup client: %v\n", err)
-		return 1
-	}
-
-	// Define test operations
-	tests := []struct {
-		name        string
-		testFunc    func() (bool, map[string]interface{}, error)
-		displayName string
-	}{
+// GetTests returns all test definitions
+func (s *GoSDKTestSuite) GetTests() []TestDefinition {
+	return []TestDefinition{
 		{"test_auth", s.TestAuth, "Authentication"},
 		{"test_secret_create", s.TestSecretCreate, "Create Secret"},
 		{"test_secret_list", s.TestSecretList, "List Secrets"},
@@ -562,24 +555,10 @@ func (s *GoSDKTestSuite) RunAllTests() int {
 		{"test_generator_custom", s.TestGeneratorCustom, "Generate Password (Custom)"},
 		{"test_generator_validation", s.TestGeneratorValidation, "Generator Validation"},
 	}
+}
 
-	// Print header for text mode
-	if !s.jsonOutput {
-		fmt.Println(strings.Repeat("=", 60))
-		fmt.Println("Go SDK Test Suite")
-		fmt.Printf("Mode: %s\n", s.testMode)
-		fmt.Println(strings.Repeat("=", 60))
-		fmt.Println()
-	}
-
-	// Run tests
-	for _, test := range tests {
-		s.RunOperation(test.name, test.testFunc, test.displayName)
-	}
-
-	totalDuration := time.Since(s.startTime).Milliseconds()
-
-	// Generate JSON report
+// GenerateReport outputs the test report
+func (s *GoSDKTestSuite) GenerateReport(totalDuration int64) {
 	if s.jsonOutput {
 		report := TestResult{
 			Language:        "go",
@@ -622,6 +601,46 @@ func (s *GoSDKTestSuite) RunAllTests() int {
 		}
 		fmt.Println(strings.Repeat("=", 60))
 	}
+}
+
+// RunAllTests executes all test operations
+func (s *GoSDKTestSuite) RunAllTests() int {
+	s.startTime = time.Now()
+
+	// Validate required environment variables
+	if s.organizationID == "" {
+		fmt.Fprintln(os.Stderr, "ORGANIZATION_ID environment variable must be set")
+		return 1
+	}
+
+	if err := s.SetupClient(); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to setup client: %v\n", err)
+		return 1
+	}
+
+	// Print header for text mode
+	if !s.jsonOutput {
+		fmt.Println(strings.Repeat("=", 60))
+		fmt.Println("Go SDK Test Suite")
+		testMode := s.testMode
+		if testMode == "" {
+			testMode = "default"
+		}
+		fmt.Printf("Mode: %s\n", testMode)
+		fmt.Println(strings.Repeat("=", 60))
+		fmt.Println()
+	}
+
+	// Get and run all tests
+	tests := s.GetTests()
+	for _, test := range tests {
+		s.RunOperation(test.name, test.testFunc, test.displayName)
+	}
+
+	totalDuration := time.Since(s.startTime).Milliseconds()
+
+	// Generate report
+	s.GenerateReport(totalDuration)
 
 	// Return appropriate exit code
 	allPassed := true
@@ -658,12 +677,6 @@ func (s *GoSDKTestSuite) removeCreatedProjectID(id string) {
 	}
 }
 
-func getEnvOrDefault(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
 
 func getSDKVersion() string {
 	// Try to get version from Go modules

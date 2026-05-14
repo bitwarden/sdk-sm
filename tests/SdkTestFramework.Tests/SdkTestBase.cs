@@ -93,9 +93,6 @@ public abstract class SdkTestBase : TestBase
         var formattedOutput = ResultFormatter.FormatTestResult(result);
         TestContext.WriteLine(formattedOutput);
 
-        // Log individual operations
-        LogTestOperations(result);
-
         return result;
     }
 

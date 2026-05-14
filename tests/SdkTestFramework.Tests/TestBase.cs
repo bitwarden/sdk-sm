@@ -93,28 +93,6 @@ namespace SdkTestFramework.Tests
         }
 
         /// <summary>
-        /// Logs individual test operation results to TestContext
-        /// </summary>
-        protected static void LogTestOperations(TestResult result)
-        {
-            foreach (var op in result.Operations)
-            {
-                if (op.Success)
-                {
-                    TestContext.WriteLine($"✅ {op.Operation}: {op.Message ?? "Passed"}");
-                }
-                else
-                {
-                    TestContext.WriteLine($"❌ {op.Operation}: {op.Error ?? op.Message ?? "Failed"}");
-                    if (!string.IsNullOrEmpty(op.Error))
-                    {
-                        TestContext.WriteLine($"   Error: {op.Error}");
-                    }
-                }
-            }
-        }
-
-        /// <summary>
         /// Validates test result and provides detailed assertion messages
         /// </summary>
         protected static void ValidateTestResult(TestResult result, string expectedLanguage)

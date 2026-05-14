@@ -329,7 +329,9 @@ tests/
 
 3. **Check fake-server logs**:
    ```bash
-   RUST_LOG=info ./target/debug/fake-server
+   # The framework automatically sets RUST_LOG=info when starting fake-server
+   # For manual debugging with different log levels:
+   RUST_LOG=debug ./target/debug/fake-server
    ```
 
 4. **Verify configuration**:

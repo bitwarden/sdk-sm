@@ -19,21 +19,22 @@ on:
         type: string
         default: latest
 
+permissions: {}
+
+concurrency:
+  group: publish-rust-crates
+  cancel-in-progress: false
+
 jobs:
   setup:
     name: Setup
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     outputs:
       release_version: ${{ steps.version-output.outputs.version }}
       release_tag: ${{ steps.version-output.outputs.tag_name }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-        with:
-          persist-credentials: false
-
       - name: Branch check
         if: ${{ inputs.release_type != 'Dry Run' }}
         run: |
@@ -47,33 +48,39 @@ jobs:
       - name: Version output
         id: version-output
         env:
-          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          if [[ "${VERSION}" == "latest" || "${VERSION}" == "" ]]; then
-            TAG_NAME=$(curl  "https://api.github.com/repos/bitwarden/sdk-sm/releases" | jq -r -c '.[] | select(.tag_name | contains("rust")) | .tag_name' | head -1)
-            VERSION=$(echo "$TAG_NAME" | grep -ohE '[0-9]+\.[0-9]+\.[0-9]+$')
-            echo "Latest Released Version: $VERSION"
-            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
-            echo "Latest Released Tag name: $TAG_NAME"
-            echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          if [[ "$INPUT_VERSION" == "latest" || "$INPUT_VERSION" == "" ]]; then
+            TAG_NAME=$(gh release list --repo bitwarden/sdk-sm --limit 100 --order desc \
+              --json tagName --jq '[.[].tagName | select(startswith("rust-v"))][0]')
+            if [[ -z "$TAG_NAME" || "$TAG_NAME" == "null" ]]; then
+              echo "::error::No rust-v* release found on bitwarden/sdk-sm"
+              exit 1
+            fi
+            VERSION="${TAG_NAME#rust-v}"
           else
-            echo "Release Version: ${VERSION}"
-            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+            VERSION="${INPUT_VERSION#rust-v}"
+            VERSION="${VERSION#v}"
+            TAG_NAME="rust-v${VERSION}"
           fi
+          echo "Resolved version: $VERSION"
+          echo "Resolved tag: $TAG_NAME"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
 
   publish:
     name: Publish
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: setup
     permissions:
       contents: read
       id-token: write
-      deployments: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - name: Checkout sdk-sm
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          repository: bitwarden/sdk-sm
           ref: ${{ needs.setup.outputs.release_tag }}
           persist-credentials: false
 
@@ -84,15 +91,32 @@ jobs:
           tenant_id: ${{ secrets.AZURE_TENANT_ID }}
           client_id: ${{ secrets.AZURE_CLIENT_ID }}
 
-      - name: Retrieve secrets
-        id: retrieve-secrets
+      - name: Retrieve crates.io token
+        id: retrieve-cratesio
         uses: bitwarden/gh-actions/get-keyvault-secrets@main
         with:
-          keyvault: "bitwarden-ci"
+          keyvault: gh-deploy
           secrets: "cratesio-api-token"
+
+      - name: Retrieve deploy app credentials
+        id: retrieve-deploy-app
+        uses: bitwarden/gh-actions/get-keyvault-secrets@main
+        with:
+          keyvault: gh-deploy
+          secrets: "gh-app-bre-deploy-id,gh-app-bre-deploy-key"
 
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
+
+      - name: Generate sdk-sm deployments token
+        id: app-token
+        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
+        with:
+          app-id: ${{ steps.retrieve-deploy-app.outputs.gh-app-bre-deploy-id }}
+          private-key: ${{ steps.retrieve-deploy-app.outputs.gh-app-bre-deploy-key }}
+          owner: bitwarden
+          repositories: sdk-sm
+          permission-deployments: write
 
       - name: Install rust
         uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
@@ -103,38 +127,74 @@ jobs:
         uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
 
       - name: Install cargo-release
-        run: cargo install cargo-release
+        run: cargo install cargo-release --version 0.25.20 --locked
 
-      - name: Create GitHub deployment
+      - name: Create deployment on sdk-sm
         if: ${{ inputs.release_type != 'Dry Run' }}
-        uses: chrnorm/deployment-action@55729fcebec3d284f60f5bcabbd8376437d696b1 # v2.0.7
         id: deployment
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          DEPLOYMENT_REF: ${{ needs.setup.outputs.release_tag }}
         with:
-          token: "${{ secrets.GITHUB_TOKEN }}"
-          initial-status: "in_progress"
-          environment: "Bitwarden SDK"
-          description: "Deployment from branch ${{ github.ref_name }}"
-          task: release
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const logUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const { data } = await github.rest.repos.createDeployment({
+              owner: 'bitwarden',
+              repo: 'sdk-sm',
+              ref: process.env.DEPLOYMENT_REF,
+              environment: 'Bitwarden SDK',
+              description: `Deployment from ${process.env.DEPLOYMENT_REF}`,
+              task: 'release',
+              auto_merge: false,
+              required_contexts: [],
+            });
+            await github.rest.repos.createDeploymentStatus({
+              owner: 'bitwarden',
+              repo: 'sdk-sm',
+              deployment_id: data.id,
+              state: 'in_progress',
+              log_url: logUrl,
+            });
+            core.setOutput('deployment_id', data.id);
 
       - name: Cargo release
         if: ${{ inputs.release_type != 'Dry Run' }}
         env:
           PUBLISH_GRACE_SLEEP: 10
-          CARGO_REGISTRY_TOKEN: ${{ steps.retrieve-secrets.outputs.cratesio-api-token }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.retrieve-cratesio.outputs.cratesio-api-token }}
         run: cargo-release release publish --exclude bws --execute --no-confirm --allow-branch '*'
 
       - name: Update deployment status to Success
         if: ${{ inputs.release_type != 'Dry Run' && success() }}
-        uses: chrnorm/deployment-status@9a72af4586197112e0491ea843682b5dc280d806 # v2.0.3
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          DEPLOYMENT_ID: ${{ steps.deployment.outputs.deployment_id }}
         with:
-          token: "${{ secrets.GITHUB_TOKEN }}"
-          state: "success"
-          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const logUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            await github.rest.repos.createDeploymentStatus({
+              owner: 'bitwarden',
+              repo: 'sdk-sm',
+              deployment_id: Number(process.env.DEPLOYMENT_ID),
+              state: 'success',
+              log_url: logUrl,
+            });
 
       - name: Update deployment status to Failure
         if: ${{ inputs.release_type != 'Dry Run' && failure() }}
-        uses: chrnorm/deployment-status@9a72af4586197112e0491ea843682b5dc280d806 # v2.0.3
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          DEPLOYMENT_ID: ${{ steps.deployment.outputs.deployment_id }}
         with:
-          token: "${{ secrets.GITHUB_TOKEN }}"
-          state: "failure"
-          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const logUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            await github.rest.repos.createDeploymentStatus({
+              owner: 'bitwarden',
+              repo: 'sdk-sm',
+              deployment_id: Number(process.env.DEPLOYMENT_ID),
+              state: 'failure',
+              log_url: logUrl,
+            });

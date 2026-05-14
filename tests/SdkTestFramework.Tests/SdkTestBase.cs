@@ -51,39 +51,29 @@ public abstract class SdkTestBase : TestBase
     }
 
     /// <summary>
-    /// Builds test configuration from environment variables and config file
+    /// Builds test configuration from config file only
     /// </summary>
     private TestConfiguration BuildTestConfiguration()
     {
-        var envTestMode = Environment.GetEnvironmentVariable("TEST_MODE");
-        var envTimeout = Environment.GetEnvironmentVariable("TEST_TIMEOUT_MS");
-        var envSdkSource = Environment.GetEnvironmentVariable("SDK_SOURCE");
-        var envPythonVersion = Environment.GetEnvironmentVariable("PYTHON_VERSION");
-
         return new TestConfiguration
         {
             Language = SdkLanguage.ToLower(),
-            TestMode = envTestMode ?? TestConfig.Configuration.TestMode,
+            TestMode = TestConfig.Configuration.TestMode,
             JsonOutput = true, // Always use JSON for better parsing
             Verbose = IsVerboseMode(),
-            TimeoutMs = ParseTimeout(envTimeout),
-            SdkSource = envSdkSource ?? TestConfig.Configuration.SdkSource,
+            TimeoutMs = TestConfig.Timeouts.DefaultTimeoutMs,
+            SdkSource = TestConfig.Configuration.SdkSource,
             PythonVersion = SdkLanguage == "Python"
-                ? (envPythonVersion ?? TestConfig.Configuration.PythonVersion)
+                ? TestConfig.Configuration.PythonVersion
                 : null,
-            NoBuild = Environment.GetEnvironmentVariable("TEST_NO_BUILD") == "true"
+            NoBuild = !TestConfig.Configuration.BuildSdk  // Invert BuildSdk to get NoBuild
         };
     }
 
     private static bool IsVerboseMode()
     {
-        return Environment.GetEnvironmentVariable("TEST_VERBOSE") == "true"
-            || TestContext.Parameters.Get("verbose", "false") == "true";
-    }
-
-    private static int? ParseTimeout(string? timeoutValue)
-    {
-        return int.TryParse(timeoutValue, out var timeout) ? timeout : 300000;
+        // Can still allow verbose override from test parameters for debugging
+        return TestContext.Parameters.Get("verbose", "false") == "true";
     }
 
     /// <summary>

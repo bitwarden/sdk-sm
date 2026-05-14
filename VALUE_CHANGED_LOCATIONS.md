@@ -20,29 +20,23 @@ The `value_changed` field in `SecretPutRequest` should be `true` if the secret's
 - **Logic:** `value_changed: secret.value.is_some()`
 - **Details:** Checks if user provided a new value in the edit command (Optional field)
 
-### 2. **Python** 🟡 PLACEHOLDER
-- **File:** `languages/python/bitwarden_sdk/bitwarden_client.py:256-260`
-- **Status:** 🟡 Needs Implementation
-- **Current:** `value_changed = False` (placeholder)
-- **TODO:** Either:
-  - Fetch old secret first and compare values, OR
-  - Add `value_changed` parameter to `update()` method signature
+### 2. **Python** ✅ COMPLETE
+- **File:** `languages/python/bitwarden_sdk/schemas.py:640`
+- **Status:** ✅ Implemented
+- **Logic:** Field added with default value `False`
+- **Details:** Parsed from JSON `valueChanged` field in requests, serialized back to JSON
 
-### 3. **Go** 🟡 PLACEHOLDER
-- **File:** `languages/go/secrets.go:99-110`
-- **Status:** 🟡 Needs Implementation
-- **Current:** `ValueChanged: false` (placeholder)
-- **TODO:** Either:
-  - Fetch old secret first and compare values, OR
-  - Add `valueChanged` parameter to `Update()` method signature
+### 3. **Go** ✅ COMPLETE
+- **File:** `languages/go/schema.go:950`
+- **Status:** ✅ Implemented
+- **Logic:** Field added with JSON tag `json:"valueChanged"`
+- **Details:** Struct field automatically marshaled/unmarshaled by encoding/json
 
-### 4. **C#** 🟡 PLACEHOLDER
-- **File:** `languages/csharp/Bitwarden.Sdk/SecretsClient.cs:65-81`
-- **Status:** 🟡 Needs Implementation
-- **Current:** `ValueChanged = false` (placeholder)
-- **TODO:** Either:
-  - Fetch old secret first and compare values, OR
-  - Add `valueChanged` parameter to `UpdateAsync()` method signature
+### 4. **C#** ✅ COMPLETE
+- **File:** `languages/csharp/Bitwarden.Sdk/schemas.cs:607-609`
+- **Status:** ✅ Implemented
+- **Logic:** Property added with JsonPropertyName attribute
+- **Details:** Automatically serialized/deserialized by System.Text.Json
 
 ### 5. **Java** 🔴 NEEDS COMMENT
 - **File:** `languages/java/src/main/java/com/bitwarden/sdk/SecretsClient.java`

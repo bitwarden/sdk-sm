@@ -1,4 +1,3 @@
-using System.IO;
 
 namespace SdkTestFramework.Common;
 
@@ -14,7 +13,7 @@ public static class PathUtilities
     /// <param name="marker">The marker to look for (e.g., ".git" directory or "Cargo.toml" file)</param>
     /// <param name="isDirectory">Whether the marker is a directory (true) or file (false)</param>
     /// <returns>The root path, or null if not found</returns>
-    public static string? FindRootPath(string startPath, string marker, bool isDirectory = false)
+    private static string? FindRootPath(string startPath, string marker, bool isDirectory = false)
     {
         var dir = new DirectoryInfo(startPath);
 
@@ -45,7 +44,7 @@ public static class PathUtilities
     /// <summary>
     /// Finds the SDK root by looking for Cargo.toml file
     /// </summary>
-    public static string? FindSdkRoot(string startPath)
+    private static string? FindSdkRoot(string startPath)
     {
         return FindRootPath(startPath, "Cargo.toml", isDirectory: false);
     }

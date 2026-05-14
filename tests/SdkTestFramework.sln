@@ -5,8 +5,6 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{4853563E-EC0D-4B52-9C13-F0CC84421C4E}"
 	ProjectSection(SolutionItems) = preProject
 		README.md = README.md
-		ADDING_LANGUAGES.md = ADDING_LANGUAGES.md
-		ADDING_INTEGRATIONS.md = ADDING_INTEGRATIONS.md
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SdkTestFramework", "SdkTestFramework\SdkTestFramework.csproj", "{D6E763AC-04C3-4F60-97B9-1143BA3F2F13}"

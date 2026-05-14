@@ -32,10 +32,10 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          - os: macos-15
+          - os: macos-14
             target: x86_64-apple-darwin
 
-          - os: macos-15
+          - os: macos-14
             target: aarch64-apple-darwin
 
           - os: windows-2022

@@ -13,22 +13,12 @@ public class LinuxPlatformService : PlatformServiceBase
 
     public override (string fileName, string arguments) FormatCommand(string command, string? additionalArguments = null)
     {
-        var fullCommand = string.IsNullOrEmpty(additionalArguments)
-            ? command
-            : $"{command} {additionalArguments}";
+        var fullCommand = CombineCommandArguments(command, additionalArguments);
 
         // Use bash if available, otherwise sh
-        var shell = GetShell();
+        var shell = GetUnixShell("/bin/bash", "/bin/sh");
 
         // Use -c flag for command execution
         return (shell, $"-c \"{fullCommand.Replace("\"", "\\\"")}\"");
-    }
-
-    private static string GetShell()
-    {
-        if (File.Exists("/bin/bash"))
-            return "/bin/bash";
-
-        return "/bin/sh";
     }
 }

@@ -17,7 +17,6 @@ public static class ConsoleFormatting
     /// Line separators
     /// </summary>
     public const string LineSeparator = "═══════════════════════════════════════════════════════════════════";
-    public const string DashedLine = "-----------------------------------";
 
     /// <summary>
     /// Creates a centered header text within box borders
@@ -29,16 +28,5 @@ public static class ConsoleFormatting
         var rightPadding = padding - leftPadding;
 
         return $"{BoxSide}{new string(' ', leftPadding)}{text}{new string(' ', rightPadding)}{BoxSide}";
-    }
-
-    /// <summary>
-    /// Prints a complete boxed header with the given title
-    /// </summary>
-    public static void PrintBoxedHeader(string title)
-    {
-        Console.WriteLine(BoxTop);
-        Console.WriteLine(CreateBoxedHeader(title));
-        Console.WriteLine(BoxBottom);
-        Console.WriteLine();
     }
 }

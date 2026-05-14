@@ -1,5 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using SdkTestFramework.Common;
+using SdkTestFramework.Config;
 using SdkTestFramework.Models;
 using SdkTestFramework.Platform;
 using SdkTestFramework.Services;
@@ -12,12 +14,14 @@ namespace SdkTestFramework.TestRunners;
 public abstract class BaseTestRunner(
     ILogger logger,
     IProcessExecutor processExecutor,
-    IPlatformService platformService)
+    IPlatformService platformService,
+    TestConfig testConfig)
 {
     protected readonly ILogger Logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private readonly IProcessExecutor _processExecutor = processExecutor ?? throw new ArgumentNullException(nameof(processExecutor));
     protected readonly IPlatformService PlatformService = platformService ?? throw new ArgumentNullException(nameof(platformService));
-    protected readonly string RepoRoot = FindRepoRoot(Directory.GetCurrentDirectory())
+    protected readonly TestConfig Config = testConfig ?? throw new ArgumentNullException(nameof(testConfig));
+    protected readonly string RepoRoot = PathUtilities.FindRepositoryRoot(Directory.GetCurrentDirectory())
                                          ?? throw new InvalidOperationException("Could not find repository root");
 
     /// <summary>
@@ -30,22 +34,6 @@ public abstract class BaseTestRunner(
     /// </summary>
     public abstract Task<TestResult> RunTestsAsync(TestConfiguration config, CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Find the repository root by looking for .git directory
-    /// </summary>
-    private static string? FindRepoRoot(string startPath)
-    {
-        var dir = new DirectoryInfo(startPath);
-        while (dir != null)
-        {
-            if (Directory.Exists(Path.Combine(dir.FullName, ".git")))
-            {
-                return dir.FullName;
-            }
-            dir = dir.Parent;
-        }
-        return null;
-    }
 
     /// <summary>
     /// Build standard environment variables for test execution
@@ -58,7 +46,13 @@ public abstract class BaseTestRunner(
         };
 
         // Copy existing environment variables if present
-        var envVarNames = new[] { "API_URL", "IDENTITY_URL", "ORGANIZATION_ID", "ACCESS_TOKEN", "STATE_FILE" };
+        var envVarNames = new[] {
+            "API_URL",
+            "IDENTITY_URL",
+            "ORGANIZATION_ID",
+            "ACCESS_TOKEN",
+            "STATE_FILE"
+        };
         foreach (var varName in envVarNames)
         {
             var value = Environment.GetEnvironmentVariable(varName);
@@ -81,7 +75,7 @@ public abstract class BaseTestRunner(
             {
                 Command = toolName,
                 Arguments = versionArgument,
-                Timeout = TimeSpan.FromSeconds(5),
+                Timeout = TimeSpan.FromMilliseconds(Config.Timeouts.ToolCheckTimeoutMs),
                 ThrowOnError = false  // Don't throw if tool is not found
             },
             cancellationToken);
@@ -207,7 +201,7 @@ public abstract class BaseTestRunner(
                 Arguments = arguments,
                 WorkingDirectory = workingDirectory ?? RepoRoot,
                 EnvironmentVariables = environmentVariables,
-                Timeout = timeout ?? TimeSpan.FromMinutes(5),
+                Timeout = timeout ?? TimeSpan.FromMilliseconds(Config.Timeouts.DefaultTimeoutMs),
                 ThrowOnError = throwOnError
             },
             cancellationToken);
@@ -250,25 +244,10 @@ public abstract class BaseTestRunner(
                 foreach (var op in operationsElement.EnumerateArray())
                 {
                     var testOp = ParseTestOperation(op);
-                    if (testOp != null)
-                    {
-                        operations.Add(testOp);
+                    if (testOp == null) continue;
 
-                        // Check for skipped status
-                        var status = GetJsonString(op, "status");
-                        if (status == "skipped")
-                        {
-                            skippedCount++;
-                        }
-                        else if (testOp.Success)
-                        {
-                            passedCount++;
-                        }
-                        else
-                        {
-                            failedCount++;
-                        }
-                    }
+                    operations.Add(testOp);
+                    UpdateCounters(op, testOp, ref passedCount, ref failedCount, ref skippedCount);
                 }
             }
 
@@ -292,9 +271,24 @@ public abstract class BaseTestRunner(
     }
 
     /// <summary>
+    /// Update test counters based on operation status
+    /// </summary>
+    private static void UpdateCounters(JsonElement op, TestOperation testOp, ref int passedCount, ref int failedCount, ref int skippedCount)
+    {
+        var status = GetJsonString(op, "status");
+
+        if (status == "skipped")
+            skippedCount++;
+        else if (testOp.Success)
+            passedCount++;
+        else
+            failedCount++;
+    }
+
+    /// <summary>
     /// Parse a single test operation from JSON
     /// </summary>
-    private static TestOperation? ParseTestOperation(JsonElement operationElement)
+    private TestOperation? ParseTestOperation(JsonElement operationElement)
     {
         try
         {
@@ -322,8 +316,9 @@ public abstract class BaseTestRunner(
                 Error = error
             };
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogWarning(ex, "Failed to parse test operation from JSON element");
             return null;
         }
     }

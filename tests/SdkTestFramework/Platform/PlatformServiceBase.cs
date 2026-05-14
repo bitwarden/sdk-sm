@@ -12,6 +12,30 @@ public abstract class PlatformServiceBase : IPlatformService
     public abstract string PlatformName { get; }
     public abstract (string fileName, string arguments) FormatCommand(string command, string? additionalArguments = null);
 
+    /// <summary>
+    /// Helper method to combine command with additional arguments
+    /// </summary>
+    protected static string CombineCommandArguments(string command, string? additionalArguments)
+    {
+        return string.IsNullOrEmpty(additionalArguments)
+            ? command
+            : $"{command} {additionalArguments}";
+    }
+
+    /// <summary>
+    /// Detects the appropriate shell for Unix-like systems
+    /// </summary>
+    protected static string GetUnixShell(params string[]? preferredShells)
+    {
+        // Use provided shells or default to bash and sh
+        var shells = preferredShells?.Length > 0
+            ? preferredShells
+            : ["/bin/bash", "/bin/sh"];
+
+        // Find first existing shell or fallback to sh
+        return shells.FirstOrDefault(File.Exists) ?? "/bin/sh";
+    }
+
     public Architecture Architecture => RuntimeInformation.OSArchitecture;
 
     public string ArchitectureName => Architecture switch

@@ -13,25 +13,12 @@ public class MacOsPlatformService : PlatformServiceBase
 
     public override (string fileName, string arguments) FormatCommand(string command, string? additionalArguments = null)
     {
-        var fullCommand = string.IsNullOrEmpty(additionalArguments)
-            ? command
-            : $"{command} {additionalArguments}";
+        var fullCommand = CombineCommandArguments(command, additionalArguments);
 
         // Prefer zsh (default on modern macOS), fall back to bash, then sh
-        var shell = GetShell();
+        var shell = GetUnixShell("/bin/zsh", "/bin/bash", "/bin/sh");
 
         // Use -l -c flags for login shell with proper PATH setup
         return (shell, $"-l -c \"{fullCommand.Replace("\"", "\\\"")}\"");
-    }
-
-    private static string GetShell()
-    {
-        if (File.Exists("/bin/zsh"))
-            return "/bin/zsh";
-
-        if (File.Exists("/bin/bash"))
-            return "/bin/bash";
-
-        return "/bin/sh";
     }
 }

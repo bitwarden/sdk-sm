@@ -19,10 +19,10 @@ public class PythonTests : SdkTestBase
 
     protected override BaseTestRunner CreateTestRunner()
     {
-        var logger = Global.GetService<IServiceProvider>()
+        var logger = TestHelper.GetService<IServiceProvider>()
             .GetRequiredService<ILogger<PythonTestRunner>>();
 
-        return new PythonTestRunner(logger, ProcessExecutor, PlatformService);
+        return new PythonTestRunner(logger, ProcessExecutor, PlatformService, TestConfig);
     }
 
     [Test]

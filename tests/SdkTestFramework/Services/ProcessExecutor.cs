@@ -140,16 +140,16 @@ public class ProcessExecutor(IPlatformService platformService, ILogger<ProcessEx
 
     private static void ValidateResult(ProcessResult result, ProcessRequest request)
     {
-        if (request.ThrowOnError && result.ExitCode != 0)
-        {
-            var errorDetails = string.IsNullOrEmpty(result.StandardError)
-                ? string.Empty
-                : $". Error: {result.StandardError}";
+        if (!request.ThrowOnError || result.ExitCode == 0)
+            return;
 
-            throw new InvalidOperationException(
-                $"Command '{request.Command}' failed with exit code {result.ExitCode}{errorDetails}",
-                new Exception($"Process exited with code {result.ExitCode}"));
-        }
+        var errorDetails = string.IsNullOrEmpty(result.StandardError)
+            ? string.Empty
+            : $". Error: {result.StandardError}";
+
+        throw new InvalidOperationException(
+            $"Command '{request.Command}' failed with exit code {result.ExitCode}{errorDetails}",
+            new Exception($"Process exited with code {result.ExitCode}"));
     }
 
     private void HandleProcessCancellation(Process process)
@@ -190,24 +190,19 @@ public class ProcessExecutor(IPlatformService platformService, ILogger<ProcessEx
             foreach (var key in Environment.GetEnvironmentVariables().Keys)
             {
                 var keyStr = key.ToString();
-                if (keyStr != null)
-                {
-                    var value = Environment.GetEnvironmentVariable(keyStr);
-                    if (value != null)
-                    {
-                        startInfo.Environment[keyStr] = value;
-                    }
-                }
+                if (keyStr == null) continue;
+
+                var value = Environment.GetEnvironmentVariable(keyStr);
+                if (value == null) continue;
+
+                startInfo.Environment[keyStr] = value;
             }
         }
 
         // Then add/override with request-specific environment variables
-        if (request.EnvironmentVariables != null)
+        foreach (var (key, value) in request.EnvironmentVariables ?? [])
         {
-            foreach (var (key, value) in request.EnvironmentVariables)
-            {
-                startInfo.Environment[key] = value;
-            }
+            startInfo.Environment[key] = value;
         }
 
         return startInfo;

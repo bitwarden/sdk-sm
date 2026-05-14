@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using SdkTestFramework.Common;
 using SdkTestFramework.Config;
 using SdkTestFramework.Platform;
-using SdkTestFramework.Runners;
 using SdkTestFramework.Services;
 
 namespace SdkTestFramework.Tests
@@ -61,7 +60,9 @@ namespace SdkTestFramework.Tests
             // Start fake server if needed
             if (_testConfig.Configuration.IsFakeServerMode())
             {
-                _fakeServerManager = new FakeServerManager(_testConfig);
+                var loggerFactory = _serviceProvider!.GetRequiredService<ILoggerFactory>();
+                var logger = loggerFactory.CreateLogger<FakeServerManager>();
+                _fakeServerManager = new FakeServerManager(_testConfig, logger);
                 var serverStarted = await _fakeServerManager.StartIfNeeded();
 
                 if (!serverStarted && _testConfig.Configuration.AutoStartFakeServer)
@@ -185,31 +186,10 @@ namespace SdkTestFramework.Tests
             // Build service provider
             _serviceProvider = services.BuildServiceProvider();
 
+            // Initialize the test helper with global configuration and services
+            TestHelper.Initialize(_testConfig!, _serviceProvider);
+
             await TestContext.Progress.WriteLineAsync("  ✓ Services initialized");
-        }
-
-        /// <summary>
-        /// Get the global test configuration
-        /// </summary>
-        public static TestConfig GetTestConfig()
-        {
-            if (_testConfig == null)
-            {
-                throw new InvalidOperationException("Test configuration not loaded. Ensure Global setup has run.");
-            }
-            return _testConfig;
-        }
-
-        /// <summary>
-        /// Get a service from the global service provider
-        /// </summary>
-        public static T GetService<T>() where T : class
-        {
-            if (_serviceProvider == null)
-            {
-                throw new InvalidOperationException("Service provider not initialized. Ensure Global setup has run.");
-            }
-            return _serviceProvider.GetRequiredService<T>();
         }
     }
 }

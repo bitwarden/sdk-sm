@@ -55,7 +55,7 @@ public class TestResultFormatter : ITestResultFormatter
 
     private static void AppendTestOperations(StringBuilder sb, TestResult result)
     {
-        if (!result.Operations.Any())
+        if (result.Operations.Count == 0)
             return;
 
         sb.AppendLine("  Test Operations:");
@@ -76,7 +76,7 @@ public class TestResultFormatter : ITestResultFormatter
         sb.AppendLine($"  📦 {group.Key}");
 
         var operations = group.ToList();
-        for (int i = 0; i < operations.Count; i++)
+        for (var i = 0; i < operations.Count; i++)
         {
             var op = operations[i];
             var isLast = i == operations.Count - 1;

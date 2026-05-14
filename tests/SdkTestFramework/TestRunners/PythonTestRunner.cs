@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
+using SdkTestFramework.Config;
 using SdkTestFramework.Models;
 using SdkTestFramework.Platform;
 using SdkTestFramework.Services;
@@ -21,8 +22,9 @@ public class PythonTestRunner : BaseTestRunner
     public PythonTestRunner(
         ILogger<PythonTestRunner> logger,
         IProcessExecutor processExecutor,
-        IPlatformService platformService)
-        : base(logger, processExecutor, platformService)
+        IPlatformService platformService,
+        TestConfig testConfig)
+        : base(logger, processExecutor, platformService, testConfig)
     {
         _pythonDir = Path.Combine(RepoRoot, "languages", "python");
 
@@ -87,7 +89,7 @@ public class PythonTestRunner : BaseTestRunner
                 string.Join(" ", args),
                 _pythonDir,  // Run from Python directory
                 envVars,
-                TimeSpan.FromMilliseconds(config.TimeoutMs ?? 300000),
+                TimeSpan.FromMilliseconds(config.TimeoutMs ?? Config.Timeouts.DefaultTimeoutMs),
                 cancellationToken,
                 throwOnError: false);  // Don't throw, handle errors in result
 
@@ -122,7 +124,7 @@ public class PythonTestRunner : BaseTestRunner
                 $"-m venv {_venvDir}",
                 _pythonDir,  // Create venv from Python directory
                 null,
-                TimeSpan.FromMinutes(2),
+                TimeSpan.FromMilliseconds(Config.Timeouts.PipInstallTimeoutMs),
                 cancellationToken,
                 throwOnError: false);
 
@@ -143,7 +145,7 @@ public class PythonTestRunner : BaseTestRunner
                     "-m pip install --upgrade pip",
                     _pythonDir,
                     null,
-                    TimeSpan.FromMinutes(2),
+                    TimeSpan.FromMilliseconds(Config.Timeouts.PipInstallTimeoutMs),
                     cancellationToken,
                     throwOnError: false);
             }
@@ -200,8 +202,8 @@ public class PythonTestRunner : BaseTestRunner
         var hasMaturin = await CheckForMaturinAsync(pythonCommand, cancellationToken);
         if (!hasMaturin)
         {
-            var errorMsg = "maturin is required to build the Python SDK but was not found. Install it with: pip install maturin";
-            Logger.LogError(errorMsg);
+            const string errorMsg = "maturin is required to build the Python SDK but was not found. Install it with: pip install maturin";
+            Logger.LogError("maturin is required to build the Python SDK but was not found. Install it with: pip install maturin");
             throw new InvalidOperationException(errorMsg);
         }
 
@@ -223,7 +225,7 @@ public class PythonTestRunner : BaseTestRunner
                 "-m uv --version",
                 _pythonDir,
                 null,
-                TimeSpan.FromSeconds(5),
+                TimeSpan.FromMilliseconds(Config.Timeouts.ToolCheckTimeoutMs),
                 cancellationToken,
                 throwOnError: false);
 
@@ -250,7 +252,7 @@ public class PythonTestRunner : BaseTestRunner
                 $"pip install {deps}",
                 _pythonDir,
                 null,
-                TimeSpan.FromMinutes(5),
+                TimeSpan.FromMilliseconds(Config.Timeouts.BuildTimeoutMs),
                 cancellationToken,
                 throwOnError: false);
 
@@ -271,20 +273,23 @@ public class PythonTestRunner : BaseTestRunner
     private async Task<bool> CheckForMaturinAsync(string pythonCommand, CancellationToken cancellationToken)
     {
         // Check in venv first
-        if (File.Exists(_pythonExecutable))
+        if (!File.Exists(_pythonExecutable))
         {
-            var maturinCheckResult = await ExecuteProcessAsync(
-                pythonCommand,
-                "-m maturin --version",
-                _pythonDir,
-                null,
-                TimeSpan.FromSeconds(5),
-                cancellationToken,
-                throwOnError: false);
-
-            if (maturinCheckResult.Success)
-                return true;
+            // Try system maturin as fallback
+            return await CheckToolAsync("maturin", "--version", cancellationToken);
         }
+
+        var maturinCheckResult = await ExecuteProcessAsync(
+            pythonCommand,
+            "-m maturin --version",
+            _pythonDir,
+            null,
+            TimeSpan.FromMilliseconds(Config.Timeouts.ToolCheckTimeoutMs),
+            cancellationToken,
+            throwOnError: false);
+
+        if (maturinCheckResult.Success)
+            return true;
 
         // Try system maturin as fallback
         return await CheckToolAsync("maturin", "--version", cancellationToken);
@@ -310,7 +315,7 @@ public class PythonTestRunner : BaseTestRunner
                 "-m maturin develop",
                 _pythonDir,
                 maturinEnv,
-                TimeSpan.FromMinutes(5),
+                TimeSpan.FromMilliseconds(Config.Timeouts.BuildTimeoutMs),
                 cancellationToken,
                 throwOnError: false);
 
@@ -323,7 +328,7 @@ public class PythonTestRunner : BaseTestRunner
                     "develop",
                     _pythonDir,
                     maturinEnv,
-                    TimeSpan.FromMinutes(5),
+                    TimeSpan.FromMilliseconds(Config.Timeouts.BuildTimeoutMs),
                     cancellationToken,
                     throwOnError: false);
             }
@@ -336,16 +341,15 @@ public class PythonTestRunner : BaseTestRunner
                 "develop",
                 _pythonDir,
                 maturinEnv,
-                TimeSpan.FromMinutes(5),
+                TimeSpan.FromMilliseconds(Config.Timeouts.BuildTimeoutMs),
                 cancellationToken,
                 throwOnError: false);
         }
 
         if (!maturinResult.Success)
         {
-            var errorMsg = $"Failed to build Python SDK with maturin: {maturinResult.StandardError}";
-            Logger.LogError(errorMsg);
-            throw new InvalidOperationException(errorMsg);
+            Logger.LogError("Failed to build Python SDK with maturin: {Error}", maturinResult.StandardError);
+            throw new InvalidOperationException($"Failed to build Python SDK with maturin: {maturinResult.StandardError}");
         }
     }
 
@@ -363,7 +367,7 @@ public class PythonTestRunner : BaseTestRunner
             $"install {deps}",
             _pythonDir,
             null,
-            TimeSpan.FromMinutes(5),
+            TimeSpan.FromMilliseconds(Config.Timeouts.BuildTimeoutMs),
             cancellationToken,
             throwOnError: false);
 

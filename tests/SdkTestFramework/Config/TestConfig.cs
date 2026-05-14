@@ -39,8 +39,13 @@ public record TestConfig
 
             Timeouts = new TimeoutSettings
             {
-                DefaultTimeoutMs = configuration.GetValue("timeouts:DEFAULT_TIMEOUT_MS", 30000),
-                BuildTimeoutMs = configuration.GetValue("timeouts:BUILD_TIMEOUT_MS", 120000)
+                DefaultTimeoutMs = configuration.GetValue("timeouts:DEFAULT_TIMEOUT_MS", 300000),
+                BuildTimeoutMs = configuration.GetValue("timeouts:BUILD_TIMEOUT_MS", 300000),
+                ToolCheckTimeoutMs = configuration.GetValue("timeouts:TOOL_CHECK_TIMEOUT_MS", 5000),
+                PipInstallTimeoutMs = configuration.GetValue("timeouts:PIP_INSTALL_TIMEOUT_MS", 120000),
+                HttpCheckTimeoutMs = configuration.GetValue("timeouts:HTTP_CHECK_TIMEOUT_MS", 2000),
+                ServerStartupDelayMs = configuration.GetValue("timeouts:SERVER_STARTUP_DELAY_MS", 2000),
+                ProcessExitWaitMs = configuration.GetValue("timeouts:PROCESS_EXIT_WAIT_MS", 5000)
             }
         };
 
@@ -87,5 +92,20 @@ public record TimeoutSettings
 
     [JsonPropertyName("BUILD_TIMEOUT_MS")]
     public required int BuildTimeoutMs { get; init; }
+
+    [JsonPropertyName("TOOL_CHECK_TIMEOUT_MS")]
+    public int ToolCheckTimeoutMs { get; init; } = 5000;
+
+    [JsonPropertyName("PIP_INSTALL_TIMEOUT_MS")]
+    public int PipInstallTimeoutMs { get; init; } = 120000;
+
+    [JsonPropertyName("HTTP_CHECK_TIMEOUT_MS")]
+    public int HttpCheckTimeoutMs { get; init; } = 2000;
+
+    [JsonPropertyName("SERVER_STARTUP_DELAY_MS")]
+    public int ServerStartupDelayMs { get; init; } = 2000;
+
+    [JsonPropertyName("PROCESS_EXIT_WAIT_MS")]
+    public int ProcessExitWaitMs { get; init; } = 5000;
 }
 

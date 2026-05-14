@@ -13,12 +13,15 @@ namespace SdkTestFramework.Tests;
 public abstract class SdkTestBase : TestBase
 {
     // Services - initialized from Global service provider
-    protected IPlatformService PlatformService { get; private set; } = null!;
-    protected IProcessExecutor ProcessExecutor { get; private set; } = null!;
-    private ITestResultFormatter ResultFormatter { get; set; } = null!;
+    private IPlatformService? _platformService;
+    private IProcessExecutor? _processExecutor;
+    private ITestResultFormatter? _resultFormatter;
+    private TestConfiguration? _sdkTestConfiguration;
 
-    // Test configuration
-    private TestConfiguration SdkTestConfiguration { get; set; } = null!;
+    protected IPlatformService PlatformService => _platformService ?? throw new InvalidOperationException("PlatformService not initialized. Ensure OneTimeSetUp has run.");
+    protected IProcessExecutor ProcessExecutor => _processExecutor ?? throw new InvalidOperationException("ProcessExecutor not initialized. Ensure OneTimeSetUp has run.");
+    private ITestResultFormatter ResultFormatter => _resultFormatter ?? throw new InvalidOperationException("ResultFormatter not initialized. Ensure OneTimeSetUp has run.");
+    private TestConfiguration SdkTestConfiguration => _sdkTestConfiguration ?? throw new InvalidOperationException("SdkTestConfiguration not initialized. Ensure OneTimeSetUp has run.");
 
     // Abstract properties for language-specific implementations
     protected abstract string SdkLanguage { get; }
@@ -33,16 +36,16 @@ public abstract class SdkTestBase : TestBase
     {
         await base.TestBase_OneTimeSetUp();
 
-        // Get services from Global
-        PlatformService = Global.GetService<IPlatformService>();
-        ProcessExecutor = Global.GetService<IProcessExecutor>();
-        ResultFormatter = Global.GetService<ITestResultFormatter>();
+        // Get services from TestHelper
+        _platformService = TestHelper.GetService<IPlatformService>();
+        _processExecutor = TestHelper.GetService<IProcessExecutor>();
+        _resultFormatter = TestHelper.GetService<ITestResultFormatter>();
 
         // Create test runner
         _testRunner = CreateTestRunner();
 
         // Build SDK test configuration from environment and config
-        SdkTestConfiguration = BuildTestConfiguration();
+        _sdkTestConfiguration = BuildTestConfiguration();
 
         await TestContext.Progress.WriteLineAsync($"Initialized {SdkLanguage} SDK test environment");
         await TestContext.Progress.WriteLineAsync($"Platform: {PlatformService.PlatformName} ({PlatformService.ArchitectureName})");

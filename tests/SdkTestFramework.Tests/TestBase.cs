@@ -13,14 +13,15 @@ namespace SdkTestFramework.Tests
     [TestFixture]
     public abstract class TestBase
     {
-        protected TestConfig TestConfig { get; private set; } = null!;
+        private TestConfig? _testConfig;
+        protected TestConfig TestConfig => _testConfig ?? throw new InvalidOperationException("TestConfig not initialized. Ensure OneTimeSetUp has run.");
 
 
         [OneTimeSetUp]
         public virtual async Task TestBase_OneTimeSetUp()
         {
             // Load configuration from Global
-            TestConfig = Global.GetTestConfig();
+            _testConfig = TestHelper.GetTestConfig();
 
             await TestContext.Progress.WriteLineAsync($"Running tests inside test class: {GetType().Name}");
         }
@@ -106,10 +107,10 @@ namespace SdkTestFramework.Tests
             }
 
             // Check for failed operations
-            if (result.Operations.Any())
+            if (result.Operations.Count > 0)
             {
                 var failedOps = result.Operations.Where(op => !op.Success).ToList();
-                if (failedOps.Any())
+                if (failedOps.Count > 0)
                 {
                     var failureDetails = string.Join("\n", failedOps.Select(op =>
                         $"  - {op.Operation}: {op.Error ?? op.Message ?? "Failed"}"));

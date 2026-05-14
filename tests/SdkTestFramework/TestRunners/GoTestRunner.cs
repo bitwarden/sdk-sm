@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using SdkTestFramework.Config;
 using SdkTestFramework.Models;
 using SdkTestFramework.Platform;
 using SdkTestFramework.Services;
@@ -15,8 +16,9 @@ public class GoTestRunner : BaseTestRunner
     public GoTestRunner(
         ILogger<GoTestRunner> logger,
         IProcessExecutor processExecutor,
-        IPlatformService platformService)
-        : base(logger, processExecutor, platformService)
+        IPlatformService platformService,
+        TestConfig testConfig)
+        : base(logger, processExecutor, platformService, testConfig)
     {
         _goDir = Path.Combine(RepoRoot, "languages", "go");
     }
@@ -60,25 +62,24 @@ public class GoTestRunner : BaseTestRunner
                 string.Join(" ", args),
                 _goDir,
                 envVars,
-                TimeSpan.FromMilliseconds(config.TimeoutMs ?? 300000),
+                TimeSpan.FromMilliseconds(config.TimeoutMs ?? Config.Timeouts.DefaultTimeoutMs),
                 cancellationToken);
 
             // Parse JSON output if available
-            if (config.JsonOutput && result.Success)
+            if (!config.JsonOutput || !result.Success)
             {
-                try
-                {
-                    return ParseStandardJsonOutput(result.StandardOutput);
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogWarning(ex, "Failed to parse JSON output, using basic result");
-                    return CreateBasicTestResult(result);
-                }
+                return CreateBasicTestResult(result);
             }
 
-            // Use base class method for basic result
-            return CreateBasicTestResult(result);
+            try
+            {
+                return ParseStandardJsonOutput(result.StandardOutput);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to parse JSON output, using basic result");
+                return CreateBasicTestResult(result);
+            }
         }
         catch (Exception ex)
         {
@@ -105,7 +106,7 @@ public class GoTestRunner : BaseTestRunner
             "get -v ./...",
             _goDir,
             null,
-            TimeSpan.FromMinutes(5),
+            TimeSpan.FromMilliseconds(Config.Timeouts.BuildTimeoutMs),
             cancellationToken);
 
         if (!getResult.Success)
@@ -120,7 +121,7 @@ public class GoTestRunner : BaseTestRunner
             "build -v ./...",
             _goDir,
             null,
-            TimeSpan.FromMinutes(5),
+            TimeSpan.FromMilliseconds(Config.Timeouts.BuildTimeoutMs),
             cancellationToken);
 
         if (!buildResult.Success)

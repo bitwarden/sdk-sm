@@ -13,9 +13,7 @@ public class WindowsPlatformService : PlatformServiceBase
 
     public override (string fileName, string arguments) FormatCommand(string command, string? additionalArguments = null)
     {
-        var fullCommand = string.IsNullOrEmpty(additionalArguments)
-            ? command
-            : $"{command} {additionalArguments}";
+        var fullCommand = CombineCommandArguments(command, additionalArguments);
 
         // Use cmd.exe for Windows command execution
         return ("cmd.exe", $"/c \"{fullCommand.Replace("\"", "\\\"")}\"");

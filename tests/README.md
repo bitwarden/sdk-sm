@@ -99,11 +99,15 @@ Edit `tests/SdkTestFramework.Tests/Configuration/test-config.json`:
 For real server testing, update `.env` with your credentials:
 ```bash
 # Real server credentials
-BWS_CLIENT_ID=your-client-id
-BWS_CLIENT_SECRET=your-client-secret
+ACCESS_TOKEN=your-access-token
+ORGANIZATION_ID=your-organization-id
 API_URL=https://api.bitwarden.com
 IDENTITY_URL=https://identity.bitwarden.com
 ```
+
+#### Getting an Access Token
+
+To obtain an access token for real server testing, you'll need to create a machine account in Bitwarden. See the official documentation: [Managing Access Tokens](https://bitwarden.com/help/access-tokens/)
 
 ## 🐛 Troubleshooting
 

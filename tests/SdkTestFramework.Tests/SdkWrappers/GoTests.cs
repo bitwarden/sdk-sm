@@ -20,9 +20,9 @@ public class GoTests : SdkTestBase
     protected override BaseTestRunner CreateTestRunner()
     {
         var logger = Global.GetService<IServiceProvider>()
-            .GetRequiredService<ILogger<GoRunner>>();
+            .GetRequiredService<ILogger<GoTestRunner>>();
 
-        return new GoRunner(logger, ProcessExecutor, PlatformService);
+        return new GoTestRunner(logger, ProcessExecutor, PlatformService);
     }
 
     [Test]

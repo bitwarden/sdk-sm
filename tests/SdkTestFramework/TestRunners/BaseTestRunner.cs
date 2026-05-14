@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using SdkTestFramework.Models;
 using SdkTestFramework.Platform;
@@ -136,7 +137,7 @@ public abstract class BaseTestRunner(
     /// <summary>
     /// Create a test result from parsed JSON data
     /// </summary>
-    protected TestResult CreateJsonTestResult(
+    private TestResult CreateJsonTestResult(
         List<TestOperation> operations,
         int passedCount,
         int failedCount,
@@ -225,5 +226,121 @@ public abstract class BaseTestRunner(
 
         Logger.LogWarning("{Description} not found at: {Path}", description, path);
         return false;
+    }
+
+    /// <summary>
+    /// Parse standard JSON test output format from language test suites
+    /// </summary>
+    protected TestResult ParseStandardJsonOutput(string jsonOutput)
+    {
+        try
+        {
+            var jsonDoc = JsonDocument.Parse(jsonOutput);
+            var root = jsonDoc.RootElement;
+
+            // Parse the operations array
+            var operations = new List<TestOperation>();
+            var passedCount = 0;
+            var failedCount = 0;
+            var skippedCount = 0;
+
+            if (root.TryGetProperty("operations", out var operationsElement) &&
+                operationsElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var op in operationsElement.EnumerateArray())
+                {
+                    var testOp = ParseTestOperation(op);
+                    if (testOp != null)
+                    {
+                        operations.Add(testOp);
+
+                        // Check for skipped status
+                        var status = GetJsonString(op, "status");
+                        if (status == "skipped")
+                        {
+                            skippedCount++;
+                        }
+                        else if (testOp.Success)
+                        {
+                            passedCount++;
+                        }
+                        else
+                        {
+                            failedCount++;
+                        }
+                    }
+                }
+            }
+
+            // Get total duration if available
+            var totalDurationMs = root.TryGetProperty("total_duration_ms", out var durationElement)
+                ? durationElement.GetInt64()
+                : operations.Sum(op => op.DurationMs);
+
+            return CreateJsonTestResult(
+                operations,
+                passedCount,
+                failedCount,
+                skippedCount,
+                TimeSpan.FromMilliseconds(totalDurationMs));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to parse JSON test output");
+            throw new InvalidOperationException($"Failed to parse test output: {ex.Message}", ex);
+        }
+    }
+
+    /// <summary>
+    /// Parse a single test operation from JSON
+    /// </summary>
+    private static TestOperation? ParseTestOperation(JsonElement operationElement)
+    {
+        try
+        {
+            var operationName = GetJsonString(operationElement, "operation") ?? "unknown";
+            var success = operationElement.TryGetProperty("success", out var successElem) && successElem.GetBoolean();
+            var durationMs = GetJsonInt64(operationElement, "duration_ms");
+            var error = GetJsonString(operationElement, "error");
+
+            // Get message from details object if available
+            string? message = null;
+            if (operationElement.TryGetProperty("details", out var details))
+            {
+                message = GetJsonString(details, "message");
+            }
+
+            // Use default message if none provided
+            message ??= success ? "Test passed" : "Test failed";
+
+            return new TestOperation
+            {
+                Operation = operationName,
+                Success = success,
+                DurationMs = durationMs,
+                Message = message,
+                Error = error
+            };
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Safely get a string value from a JSON element
+    /// </summary>
+    private static string? GetJsonString(JsonElement element, string propertyName, string? defaultValue = null)
+    {
+        return element.TryGetProperty(propertyName, out var prop) ? prop.GetString() ?? defaultValue : defaultValue;
+    }
+
+    /// <summary>
+    /// Safely get an int64 value from a JSON element
+    /// </summary>
+    private static long GetJsonInt64(JsonElement element, string propertyName, long defaultValue = 0)
+    {
+        return element.TryGetProperty(propertyName, out var prop) && prop.TryGetInt64(out var value) ? value : defaultValue;
     }
 }

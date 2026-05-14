@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using SdkTestFramework.Models;
 using SdkTestFramework.Platform;
@@ -95,7 +94,7 @@ public class PythonTestRunner : BaseTestRunner
             // Parse the JSON output if available
             if (config.JsonOutput && processResult.Success)
             {
-                return ParseJsonOutput(processResult.StandardOutput);
+                return ParseStandardJsonOutput(processResult.StandardOutput);
             }
 
             // Use base class method for basic result
@@ -373,114 +372,5 @@ public class PythonTestRunner : BaseTestRunner
             Logger.LogWarning("Failed to install dependencies with pip: {Error}", pipResult.StandardError);
             // Dependencies might already be installed, continue anyway
         }
-    }
-
-    private TestResult ParseJsonOutput(string jsonOutput)
-    {
-        try
-        {
-            var jsonDoc = JsonDocument.Parse(jsonOutput);
-            var root = jsonDoc.RootElement;
-
-            // Parse the operations array (same format as Go test suite)
-            var operations = new List<TestOperation>();
-            var passedCount = 0;
-            var failedCount = 0;
-            var skippedCount = 0;
-
-            if (root.TryGetProperty("operations", out var operationsElement) &&
-                operationsElement.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var op in operationsElement.EnumerateArray())
-                {
-                    var testOp = ParseTestOperation(op);
-                    if (testOp != null)
-                    {
-                        operations.Add(testOp);
-
-                        // Check status from details if available, otherwise use success flag
-                        var status = GetStringProperty(op, "status", null);
-                        if (status == "skipped")
-                        {
-                            skippedCount++;
-                        }
-                        else if (testOp.Success)
-                        {
-                            passedCount++;
-                        }
-                        else
-                        {
-                            failedCount++;
-                        }
-                    }
-                }
-            }
-
-            var totalDuration = GetTotalDuration(root);
-
-            return CreateJsonTestResult(
-                operations,
-                passedCount,
-                failedCount,
-                skippedCount,
-                TimeSpan.FromMilliseconds(totalDuration));
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Failed to parse JSON output");
-            throw new InvalidOperationException($"Failed to parse test output: {ex.Message}", ex);
-        }
-    }
-
-    private static TestOperation? ParseTestOperation(JsonElement operationElement)
-    {
-        try
-        {
-            // Extract values with defaults
-            var operationName = GetStringProperty(operationElement, "operation", "unknown") ?? "unknown";
-            var success = operationElement.TryGetProperty("success", out var successElem) && successElem.GetBoolean();
-            var durationMs = GetInt64Property(operationElement, "duration_ms", 0);
-            var error = GetStringProperty(operationElement, "error", null);
-
-            // Get message from details object if available
-            string? message = null;
-            if (operationElement.TryGetProperty("details", out var details))
-            {
-                message = GetStringProperty(details, "message", null);
-            }
-
-            // Use default message if none provided
-            message ??= success ? "Test passed" : "Test failed";
-
-            return new TestOperation
-            {
-                Operation = operationName,
-                Success = success,
-                DurationMs = durationMs,
-                Message = message,
-                Error = error
-            };
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    private static string? GetStringProperty(JsonElement element, string propertyName, string? defaultValue)
-    {
-        return element.TryGetProperty(propertyName, out var prop) ? prop.GetString() ?? defaultValue : defaultValue;
-    }
-
-    private static long GetInt64Property(JsonElement element, string propertyName, long defaultValue)
-    {
-        return element.TryGetProperty(propertyName, out var prop) ? prop.GetInt64() : defaultValue;
-    }
-
-    private static long GetTotalDuration(JsonElement root)
-    {
-        return root.TryGetProperty("total_duration_ms", out var totalDurElem)
-            ? totalDurElem.GetInt64()
-            : 0;
     }
 }

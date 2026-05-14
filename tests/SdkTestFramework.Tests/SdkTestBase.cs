@@ -47,7 +47,6 @@ public abstract class SdkTestBase : TestBase
         await TestContext.Progress.WriteLineAsync($"Initialized {SdkLanguage} SDK test environment");
         await TestContext.Progress.WriteLineAsync($"Platform: {PlatformService.PlatformName} ({PlatformService.ArchitectureName})");
         await TestContext.Progress.WriteLineAsync($"Test Mode: {SdkTestConfiguration.TestMode}");
-        await TestContext.Progress.WriteLineAsync($"SDK Source: {SdkTestConfiguration.SdkSource}");
     }
 
     /// <summary>
@@ -62,7 +61,6 @@ public abstract class SdkTestBase : TestBase
             JsonOutput = true, // Always use JSON for better parsing
             Verbose = IsVerboseMode(),
             TimeoutMs = TestConfig.Timeouts.DefaultTimeoutMs,
-            SdkSource = TestConfig.Configuration.SdkSource,
             PythonVersion = SdkLanguage == "Python"
                 ? TestConfig.Configuration.PythonVersion
                 : null,

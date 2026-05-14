@@ -30,7 +30,6 @@ public record TestConfig
             Configuration = new ConfigurationSettings
             {
                 TestMode = configuration["configuration:TEST_MODE"] ?? throw new InvalidOperationException("TEST_MODE not found in configuration"),
-                SdkSource = configuration["configuration:SDK_SOURCE"] ?? throw new InvalidOperationException("SDK_SOURCE not found in configuration"),
                 BuildSdk = configuration.GetValue<bool>("configuration:BUILD_SDK"),
                 AutoStartFakeServer = configuration.GetValue<bool>("configuration:AUTO_START_FAKE_SERVER"),
                 FakeServerPort = configuration.GetValue<int>("configuration:FAKE_SERVER_PORT"),
@@ -62,9 +61,6 @@ public record ConfigurationSettings
 {
     [JsonPropertyName("TEST_MODE")]
     public required string TestMode { get; init; }
-
-    [JsonPropertyName("SDK_SOURCE")]
-    public required string SdkSource { get; init; }
 
     [JsonPropertyName("BUILD_SDK")]
     public required bool BuildSdk { get; init; }

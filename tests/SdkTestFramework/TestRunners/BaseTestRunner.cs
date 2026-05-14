@@ -53,8 +53,7 @@ public abstract class BaseTestRunner(
     {
         var envVars = new Dictionary<string, string>
         {
-            ["TEST_MODE"] = config.TestMode,
-            ["SDK_SOURCE"] = config.SdkSource ?? "local"
+            ["TEST_MODE"] = config.TestMode
         };
 
         // Copy existing environment variables if present

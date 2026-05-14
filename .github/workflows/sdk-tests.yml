@@ -14,14 +14,6 @@ on:
         options:
           - fake-server
           - real-server
-      sdk_source:
-        description: 'SDK source for testing'
-        required: true
-        default: 'local'
-        type: choice
-        options:
-          - local
-          - latest-main
       verbose:
         description: 'Enable verbose output'
         required: false
@@ -58,7 +50,7 @@ on:
     - cron: '0 2 * * *'
 
 env:
-  DOTNET_VERSION: '8.0.x'
+  DOTNET_VERSION: '10.0.x'
   PYTHON_VERSION: '3.12'
   GO_VERSION: '1.23'
   NODE_VERSION: '20'
@@ -183,7 +175,6 @@ jobs:
           IDENTITY_URL=${{ github.event.inputs.test_mode == 'real-server' && secrets.IDENTITY_URL || 'http://localhost:4000/identity' }}
           STATE_FILE=${{ runner.temp }}/sdk-state.json
           TEST_MODE=${{ github.event.inputs.test_mode || 'fake-server' }}
-          SDK_SOURCE=${{ github.event.inputs.sdk_source || 'local' }}
           NO_BUILD=${{ github.event.inputs.no_build || 'false' }}
           VERBOSE=${{ github.event.inputs.verbose || 'false' }}
           EOF
@@ -200,7 +191,6 @@ jobs:
             --results-directory TestResults
         env:
           TEST_MODE: ${{ github.event.inputs.test_mode || 'fake-server' }}
-          SDK_SOURCE: ${{ github.event.inputs.sdk_source || 'local' }}
           NO_BUILD: ${{ github.event.inputs.no_build || 'false' }}
         continue-on-error: true
 
@@ -250,7 +240,6 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Configuration" >> $GITHUB_STEP_SUMMARY
           echo "- Test Mode: ${{ github.event.inputs.test_mode || 'fake-server' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- SDK Source: ${{ github.event.inputs.sdk_source || 'local' }}" >> $GITHUB_STEP_SUMMARY
           echo "- No Build: ${{ github.event.inputs.no_build || 'false' }}" >> $GITHUB_STEP_SUMMARY
         shell: bash
         continue-on-error: true

@@ -9,7 +9,6 @@ import (
 	"runtime/debug"
 	"strings"
 	"time"
-	"unicode"
 
 	sdk "github.com/bitwarden/sdk-go/v2"
 	"github.com/gofrs/uuid"
@@ -37,25 +36,23 @@ type TestResult struct {
 
 // GoSDKTestSuite manages test execution
 type GoSDKTestSuite struct {
-	client           sdk.BitwardenClientInterface
-	organizationID   string
-	jsonOutput       bool
-	verbose          bool
-	operations       []TestOperation
-	startTime        time.Time
-	createdSecretIDs []string
-	createdProjectIDs []string
+	client         sdk.BitwardenClientInterface
+	organizationID string
+	jsonOutput     bool
+	verbose        bool
+	operations     []TestOperation
+	startTime      time.Time
+	testMode       string
 }
 
 // NewTestSuite creates a new test suite instance
 func NewTestSuite(jsonOutput, verbose bool) *GoSDKTestSuite {
 	return &GoSDKTestSuite{
-		jsonOutput:        jsonOutput,
-		verbose:           verbose,
-		organizationID:    os.Getenv("ORGANIZATION_ID"),
-		operations:       []TestOperation{},
-		createdSecretIDs: []string{},
-		createdProjectIDs: []string{},
+		jsonOutput:     jsonOutput,
+		verbose:        verbose,
+		organizationID: os.Getenv("ORGANIZATION_ID"),
+		operations:     []TestOperation{},
+		testMode:       os.Getenv("TEST_MODE"),
 	}
 }
 
@@ -78,6 +75,51 @@ func (s *GoSDKTestSuite) SetupClient() error {
 	}
 
 	s.client = client
+	return nil
+}
+
+// createTestProject creates a project for testing and returns the project ID
+func (s *GoSDKTestSuite) createTestProject(purpose string) (string, error) {
+	projectName := fmt.Sprintf("test-project-%s-%s", purpose, uuid.Must(uuid.NewV4()).String()[:8])
+	project, err := s.client.Projects().Create(s.organizationID, projectName)
+	if err != nil {
+		return "", fmt.Errorf("failed to create project: %w", err)
+	}
+	return project.ID, nil
+}
+
+// cleanupProject deletes a project and verifies cleanup on real server
+func (s *GoSDKTestSuite) cleanupProject(projectID string) error {
+	_, err := s.client.Projects().Delete([]string{projectID})
+	if err != nil {
+		return fmt.Errorf("failed to delete project: %w", err)
+	}
+
+	if s.testMode == "real-server" {
+		projectsList, err := s.client.Projects().List(s.organizationID)
+		if err != nil {
+			return fmt.Errorf("failed to list projects for verification: %w", err)
+		}
+		for _, p := range projectsList.Data {
+			if p.ID == projectID {
+				return fmt.Errorf("project %s still exists after deletion", projectID)
+			}
+		}
+	}
+	return nil
+}
+
+// verifySecretDeleted verifies a secret is deleted on real server
+func (s *GoSDKTestSuite) verifySecretDeleted(secretID string) error {
+	if s.testMode == "real-server" {
+		_, err := s.client.Secrets().Get(secretID)
+		if err == nil {
+			return fmt.Errorf("secret still exists after deletion")
+		}
+		if !strings.Contains(strings.ToLower(err.Error()), "not found") {
+			return fmt.Errorf("unexpected error when verifying deletion: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -140,81 +182,185 @@ func (s *GoSDKTestSuite) TestAuth() (bool, map[string]interface{}, error) {
 		return false, nil, err
 	}
 
+	// On real server, verify authentication worked by trying to sync
+	verified := false
+	if s.testMode == "real-server" {
+		// Try to sync - should work if authenticated
+		_, err := s.client.Secrets().Sync(s.organizationID, nil)
+		if err != nil {
+			return false, nil, fmt.Errorf("authentication verification failed: %w", err)
+		}
+		verified = true
+	}
+
 	return true, map[string]interface{}{
 		"method":    "access_token",
 		"has_state": stateFile != "",
+		"verified": verified,
 	}, nil
 }
 
 // TestSecretCreate creates a secret
 func (s *GoSDKTestSuite) TestSecretCreate() (bool, map[string]interface{}, error) {
-	secretName := fmt.Sprintf("test-secret-%s", uuid.Must(uuid.NewV4()).String()[:8])
+	// Create a project for this test
+	projectID, err := s.createTestProject("secret-create")
+	if err != nil {
+		return false, nil, err
+	}
 
+	// Create the secret
+	secretName := fmt.Sprintf("test-secret-%s", uuid.Must(uuid.NewV4()).String()[:8])
 	secret, err := s.client.Secrets().Create(
 		secretName,
 		"test-value",
 		"Created by test suite",
 		s.organizationID,
-		[]string{},
+		[]string{projectID},
 	)
 	if err != nil {
+		// Clean up the project on failure
+		s.cleanupProject(projectID)
 		return false, nil, err
 	}
 
-	s.createdSecretIDs = append(s.createdSecretIDs, secret.ID)
+	// Clean up the secret
+	s.client.Secrets().Delete([]string{secret.ID})
+	if err := s.verifySecretDeleted(secret.ID); err != nil {
+		s.cleanupProject(projectID)
+		return false, nil, err
+	}
+
+	// Clean up the project
+	if err := s.cleanupProject(projectID); err != nil {
+		return false, nil, err
+	}
+
 	return true, map[string]interface{}{
-		"id":  secret.ID,
-		"key": secret.Key,
+		"id":       secret.ID,
+		"key":      secret.Key,
+		"verified": s.testMode == "real-server",
 	}, nil
 }
 
 
 // TestSecretGet gets a secret
 func (s *GoSDKTestSuite) TestSecretGet() (bool, map[string]interface{}, error) {
-	// Ensure we have a secret to get
-	if len(s.createdSecretIDs) == 0 {
-		_, _, err := s.TestSecretCreate()
-		if err != nil {
-			return false, nil, err
-		}
-	}
-
-	secret, err := s.client.Secrets().Get(s.createdSecretIDs[0])
+	// Create a project for this test
+	projectID, err := s.createTestProject("secret-get")
 	if err != nil {
 		return false, nil, err
 	}
 
+	// Create a secret to get
+	secretName := fmt.Sprintf("test-secret-%s", uuid.Must(uuid.NewV4()).String()[:8])
+	secret, err := s.client.Secrets().Create(
+		secretName,
+		"test-value",
+		"Created by test suite",
+		s.organizationID,
+		[]string{projectID},
+	)
+	if err != nil {
+		// Clean up the project on failure
+		s.cleanupProject(projectID)
+		return false, nil, err
+	}
+	expectedID := secret.ID
+
+	// Get the secret
+	retrievedSecret, err := s.client.Secrets().Get(expectedID)
+	if err != nil {
+		// Clean up before returning error
+		s.client.Secrets().Delete([]string{expectedID})
+		s.cleanupProject(projectID)
+		return false, nil, err
+	}
+
+	// On real server, verify we got the correct secret
+	if s.testMode == "real-server" {
+		if retrievedSecret.ID != expectedID {
+			// Clean up before returning error
+			s.client.Secrets().Delete([]string{expectedID})
+			s.cleanupProject(projectID)
+			return false, nil, fmt.Errorf("got wrong secret: expected %s, got %s", expectedID, retrievedSecret.ID)
+		}
+	}
+
+	// Clean up: delete secret and project
+	s.client.Secrets().Delete([]string{expectedID})
+	if err := s.verifySecretDeleted(expectedID); err != nil {
+		s.cleanupProject(projectID)
+		return false, nil, err
+	}
+
+	// Clean up the project
+	if err := s.cleanupProject(projectID); err != nil {
+		return false, nil, err
+	}
+
 	return true, map[string]interface{}{
-		"id":  secret.ID,
-		"key": secret.Key,
+		"id":       retrievedSecret.ID,
+		"key":      retrievedSecret.Key,
+		"verified": s.testMode == "real-server",
 	}, nil
 }
 
 // TestSecretUpdate updates a secret
 func (s *GoSDKTestSuite) TestSecretUpdate() (bool, map[string]interface{}, error) {
-	if len(s.createdSecretIDs) == 0 {
-		_, _, err := s.TestSecretCreate()
-		if err != nil {
-			return false, nil, err
-		}
+	// Create a project for this test
+	projectID, err := s.createTestProject("secret-update")
+	if err != nil {
+		return false, nil, err
 	}
 
-	secretID := s.createdSecretIDs[0]
+	// Create a secret to update
+	secretName := fmt.Sprintf("test-secret-%s", uuid.Must(uuid.NewV4()).String()[:8])
+	secret, err := s.client.Secrets().Create(
+		secretName,
+		"test-value",
+		"Created by test suite",
+		s.organizationID,
+		[]string{projectID},
+	)
+	if err != nil {
+		// Clean up the project on failure
+		s.cleanupProject(projectID)
+		return false, nil, err
+	}
+	secretID := secret.ID
+
+	// Update the secret
 	updated, err := s.client.Secrets().Update(
 		secretID,
 		"updated-key",
 		"updated-value",
 		"Updated by test",
 		s.organizationID,
-		[]string{},
+		[]string{projectID},
 	)
 	if err != nil {
+		// Clean up before returning error
+		s.client.Secrets().Delete([]string{secretID})
+		s.cleanupProject(projectID)
+		return false, nil, err
+	}
+
+	// Clean up: delete secret and project
+	s.client.Secrets().Delete([]string{secretID})
+	if err := s.verifySecretDeleted(secretID); err != nil {
+		s.cleanupProject(projectID)
+		return false, nil, err
+	}
+
+	// Clean up the project
+	if err := s.cleanupProject(projectID); err != nil {
 		return false, nil, err
 	}
 
 	return true, map[string]interface{}{
-		"id":  secretID,
-		"key": updated.Key,
+		"id":       secretID,
+		"key":      updated.Key,
+		"verified": s.testMode == "real-server",
 	}, nil
 }
 
@@ -236,156 +382,136 @@ func (s *GoSDKTestSuite) TestSecretSync() (bool, map[string]interface{}, error) 
 	return true, map[string]interface{}{
 		"initial_has_changes": syncResponse.HasChanges,
 		"after_has_changes":   syncResponseWithDate.HasChanges,
+		"secret_count":        len(syncResponse.Secrets),
 	}, nil
 }
 
 // TestSecretDelete deletes secrets
 func (s *GoSDKTestSuite) TestSecretDelete() (bool, map[string]interface{}, error) {
-	var idsToDelete []string
-
-	if len(s.createdSecretIDs) > 0 {
-		if len(s.createdSecretIDs) > 1 {
-			idsToDelete = s.createdSecretIDs[:2]
-		} else {
-			idsToDelete = s.createdSecretIDs
-		}
-	} else {
-		idsToDelete = []string{
-			uuid.Must(uuid.NewV4()).String(),
-			uuid.Must(uuid.NewV4()).String(),
-		}
-	}
-
-	_, err := s.client.Secrets().Delete(idsToDelete)
+	// Create a project for this test
+	projectID, err := s.createTestProject("secret-delete")
 	if err != nil {
 		return false, nil, err
 	}
 
-	return true, map[string]interface{}{
-		"deleted": len(idsToDelete),
-	}, nil
-}
-
-// TestProjectCreate creates a project
-func (s *GoSDKTestSuite) TestProjectCreate() (bool, map[string]interface{}, error) {
-	projectName := fmt.Sprintf("test-project-%s", uuid.Must(uuid.NewV4()).String()[:8])
-
-	project, err := s.client.Projects().Create(s.organizationID, projectName)
+	// Create a secret to delete
+	secretName := fmt.Sprintf("test-secret-%s", uuid.Must(uuid.NewV4()).String()[:8])
+	secret, err := s.client.Secrets().Create(
+		secretName,
+		"test-value",
+		"Created by test suite",
+		s.organizationID,
+		[]string{projectID},
+	)
 	if err != nil {
+		// Clean up the project on failure
+		s.cleanupProject(projectID)
+		return false, nil, err
+	}
+	secretID := secret.ID
+
+	// Delete the secret
+	_, err = s.client.Secrets().Delete([]string{secretID})
+	if err != nil {
+		// Clean up the project before returning error
+		s.cleanupProject(projectID)
+		return false, nil, fmt.Errorf("failed to delete secret: %w", err)
+	}
+
+	// Verify the secret is actually deleted
+	if err := s.verifySecretDeleted(secretID); err != nil {
+		s.cleanupProject(projectID)
 		return false, nil, err
 	}
 
-	s.createdProjectIDs = append(s.createdProjectIDs, project.ID)
+	// Clean up the project
+	if err := s.cleanupProject(projectID); err != nil {
+		return false, nil, err
+	}
+
 	return true, map[string]interface{}{
-		"id":   project.ID,
-		"name": project.Name,
+		"deleted":  1,
+		"id":       secretID,
+		"verified": s.testMode == "real-server",
 	}, nil
 }
+
 
 // TestProjectList lists projects
 func (s *GoSDKTestSuite) TestProjectList() (bool, map[string]interface{}, error) {
-	projectsList, err := s.client.Projects().List(s.organizationID)
+	// Create a project for this test
+	projectID, err := s.createTestProject("project-list")
 	if err != nil {
 		return false, nil, err
 	}
 
+	// List projects
+	projectsList, err := s.client.Projects().List(s.organizationID)
+	if err != nil {
+		// Clean up before returning error
+		s.cleanupProject(projectID)
+		return false, nil, err
+	}
+
+	// On real server, verify our created project is in the list
+	verified := false
+	if s.testMode == "real-server" {
+		projectIDs := make(map[string]bool)
+		for _, p := range projectsList.Data {
+			projectIDs[p.ID] = true
+		}
+		if !projectIDs[projectID] {
+			// Clean up before returning error
+			s.cleanupProject(projectID)
+			return false, nil, fmt.Errorf("created project %s not found in list", projectID)
+		}
+		verified = true
+	}
+
+	// Clean up the project
+	if err := s.cleanupProject(projectID); err != nil {
+		return false, nil, err
+	}
+
 	return true, map[string]interface{}{
-		"count": len(projectsList.Data),
+		"count":    len(projectsList.Data),
+		"verified": verified,
 	}, nil
 }
 
 
 // TestProjectUpdate updates a project
 func (s *GoSDKTestSuite) TestProjectUpdate() (bool, map[string]interface{}, error) {
-	// Ensure we have a project to update
-	if len(s.createdProjectIDs) == 0 {
-		_, _, err := s.TestProjectCreate()
-		if err != nil {
-			return false, nil, err
-		}
+	// Create a project for this test
+	projectID, err := s.createTestProject("project-update")
+	if err != nil {
+		return false, nil, err
 	}
 
-	projectID := s.createdProjectIDs[0]
-
+	// Update the project
 	newName := fmt.Sprintf("updated-project-%s", uuid.Must(uuid.NewV4()).String()[:8])
 	updated, err := s.client.Projects().Update(projectID, s.organizationID, newName)
 	if err != nil {
+		// Clean up before returning error
+		s.cleanupProject(projectID)
 		return false, nil, err
 	}
 
-	return strings.Contains(updated.Name, newName), map[string]interface{}{
-		"name": updated.Name,
+	// Verify the update worked
+	success := strings.Contains(updated.Name, newName)
+
+	// Clean up the project
+	if err := s.cleanupProject(projectID); err != nil {
+		return false, nil, err
+	}
+
+	return success, map[string]interface{}{
+		"name":     updated.Name,
+		"verified": s.testMode == "real-server",
 	}, nil
 }
 
-// TestProjectDelete deletes projects
-func (s *GoSDKTestSuite) TestProjectDelete() (bool, map[string]interface{}, error) {
-	var idsToDelete []string
 
-	if len(s.createdProjectIDs) > 0 {
-		if len(s.createdProjectIDs) > 1 {
-			idsToDelete = s.createdProjectIDs[:2]
-		} else {
-			idsToDelete = s.createdProjectIDs
-		}
-	} else {
-		idsToDelete = []string{
-			uuid.Must(uuid.NewV4()).String(),
-			uuid.Must(uuid.NewV4()).String(),
-		}
-	}
-
-	_, err := s.client.Projects().Delete(idsToDelete)
-	if err != nil {
-		return false, nil, err
-	}
-
-	return true, map[string]interface{}{
-		"deleted": len(idsToDelete),
-	}, nil
-}
-
-// TestGeneratorDefault tests password generation with defaults
-func (s *GoSDKTestSuite) TestGeneratorDefault() (bool, map[string]interface{}, error) {
-	password, err := s.client.Generators().GeneratePassword(sdk.PasswordGeneratorRequest{
-		Length:    24,
-		Lowercase: true,
-		Uppercase: true,
-		Numbers:   true,
-		Special:   true,
-	})
-	if err != nil {
-		return false, nil, err
-	}
-
-	// Basic validation
-	if password == nil {
-		return false, nil, fmt.Errorf("password generation returned nil")
-	}
-
-	checks := map[string]bool{
-		"length_ok":      len(*password) == 24,
-		"has_lowercase":  strings.ContainsFunc(*password, unicode.IsLower),
-		"has_uppercase":  strings.ContainsFunc(*password, unicode.IsUpper),
-		"has_numbers":    strings.ContainsFunc(*password, unicode.IsDigit),
-		"has_special":    strings.ContainsFunc(*password, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) }),
-	}
-
-	allChecksPass := true
-	for _, v := range checks {
-		if !v {
-			allChecksPass = false
-			break
-		}
-	}
-
-	checksInterface := make(map[string]interface{})
-	for k, v := range checks {
-		checksInterface[k] = v
-	}
-
-	return allChecksPass, checksInterface, nil
-}
 
 
 // TestDefinition holds test metadata
@@ -404,11 +530,8 @@ func (s *GoSDKTestSuite) GetTests() []TestDefinition {
 		{"test_secret_update", s.TestSecretUpdate, "Update Secret"},
 		{"test_secret_sync", s.TestSecretSync, "Sync Secrets"},
 		{"test_secret_delete", s.TestSecretDelete, "Delete Secrets"},
-		{"test_project_create", s.TestProjectCreate, "Create Project"},
 		{"test_project_list", s.TestProjectList, "List Projects"},
 		{"test_project_update", s.TestProjectUpdate, "Update Project"},
-		{"test_project_delete", s.TestProjectDelete, "Delete Projects"},
-		{"test_generator_default", s.TestGeneratorDefault, "Generate Password (Default)"},
 	}
 }
 

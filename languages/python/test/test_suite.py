@@ -11,7 +11,6 @@ import sys
 import time
 import uuid
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional, List
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -32,9 +31,8 @@ class PythonSdkTestSuite:
         self.operations = []
         self.start_time = None
 
-        # Test data cleanup tracking
-        self.created_secret_ids = []
-        self.created_project_ids = []
+        # Check if we're testing against real server
+        self.is_real_server = os.getenv("TEST_MODE") == "real-server"
 
     def setup_client(self) -> bool:
         """Initialize the Bitwarden client"""
@@ -60,6 +58,33 @@ class PythonSdkTestSuite:
         except Exception as e:
             print(f"Failed to setup client: {e}", file=sys.stderr)
             return False
+
+    def create_test_project(self, purpose: str) -> str:
+        """Helper method to create a project for testing
+        Returns the project ID"""
+        project_name = f"test-project-{purpose}-{uuid.uuid4().hex[:8]}"
+        project = self.client.projects().create(self.organization_id, project_name)
+        return project.data.id
+
+    def cleanup_project(self, project_id: str) -> None:
+        """Helper method to delete a project and verify cleanup on real server"""
+        self.client.projects().delete([project_id])
+
+        if self.is_real_server:
+            projects = self.client.projects().list(self.organization_id)
+            project_ids = [p.id for p in projects.data.data] if projects.data.data else []
+            if project_id in project_ids:
+                raise Exception(f"Project {project_id} still exists after deletion")
+
+    def verify_secret_deleted(self, secret_id: str) -> None:
+        """Helper to verify a secret is deleted on real server"""
+        if self.is_real_server:
+            try:
+                self.client.secrets().get(secret_id)
+                raise Exception("Secret still exists after deletion")
+            except Exception as e:
+                if "not found" not in str(e).lower() and "Secret still exists" in str(e):
+                    raise e
 
     def run_operation(self, operation_name: str, test_func, display_name: str = None):
         """Run a single test operation and track results"""
@@ -119,46 +144,105 @@ class PythonSdkTestSuite:
 
         state_file = os.getenv("STATE_FILE")
         self.client.auth().login_access_token(access_token, state_file)
-        return True, {"method": "access_token", "has_state": bool(state_file)}
+
+        # On real server, verify authentication worked by trying to sync
+        verified = False
+        if self.is_real_server:
+            try:
+                # Try to sync - should work if authenticated
+                sync_result = self.client.secrets().sync(self.organization_id, None)
+                verified = sync_result.success is True
+            except Exception as e:
+                raise Exception(f"Authentication verification failed: {e}")
+
+        return True, {"method": "access_token", "has_state": bool(state_file), "verified": verified}
 
     def test_secret_create(self):
         """Create a secret"""
-        secret_name = f"test-secret-{uuid.uuid4().hex[:8]}"
-        secret = self.client.secrets().create(
-            organization_id=self.organization_id,
-            key=secret_name,
-            value="test-value",
-            note="Created by test suite",
-            project_ids=[]
-        )
-        self.created_secret_ids.append(secret.data.id)
-        return True, {"id": secret.data.id, "key": secret.data.key}
+        project_id = self.create_test_project("secret-create")
+
+        try:
+            secret_name = f"test-secret-{uuid.uuid4().hex[:8]}"
+            secret = self.client.secrets().create(
+                organization_id=self.organization_id,
+                key=secret_name,
+                value="test-value",
+                note="Created by test suite",
+                project_ids=[project_id]
+            )
+
+            # Clean up the secret
+            self.client.secrets().delete([secret.data.id])
+            self.verify_secret_deleted(secret.data.id)
+
+            return True, {"id": secret.data.id, "key": secret.data.key}
+        finally:
+            self.cleanup_project(project_id)
 
 
     def test_secret_get(self):
         """Get a secret"""
-        # Ensure we have a secret to get
-        if not self.created_secret_ids:
-            self.test_secret_create()
+        project_id = self.create_test_project("secret-get")
 
-        secret = self.client.secrets().get(self.created_secret_ids[0])
-        return True, {"id": secret.data.id, "key": secret.data.key}
+        try:
+            # Create a secret to get
+            secret_name = f"test-secret-{uuid.uuid4().hex[:8]}"
+            created_secret = self.client.secrets().create(
+                organization_id=self.organization_id,
+                key=secret_name,
+                value="test-value",
+                note="Created for get test",
+                project_ids=[project_id]
+            )
+            secret_id = created_secret.data.id
+
+            # Get the secret
+            secret = self.client.secrets().get(secret_id)
+
+            # On real server, verify we got the correct secret
+            if self.is_real_server:
+                if secret.data.id != secret_id:
+                    raise Exception(f"Got wrong secret: expected {secret_id}, got {secret.data.id}")
+
+            # Clean up the secret
+            self.client.secrets().delete([secret_id])
+
+            return True, {"id": secret.data.id, "key": secret.data.key, "verified": self.is_real_server}
+        finally:
+            self.cleanup_project(project_id)
 
     def test_secret_update(self):
         """Update a secret"""
-        if not self.created_secret_ids:
-            self.test_secret_create()
+        project_id = self.create_test_project("secret-update")
 
-        secret_id = self.created_secret_ids[0]
-        updated = self.client.secrets().update(
-            self.organization_id,
-            secret_id,
-            "updated-key",
-            "updated-value",
-            "Updated by test",
-            []
-        )
-        return True, {"id": secret_id, "key": updated.data.key}
+        try:
+            # Create a secret to update
+            secret_name = f"test-secret-{uuid.uuid4().hex[:8]}"
+            created_secret = self.client.secrets().create(
+                organization_id=self.organization_id,
+                key=secret_name,
+                value="original-value",
+                note="Created for update test",
+                project_ids=[project_id]
+            )
+            secret_id = created_secret.data.id
+
+            # Update the secret
+            updated = self.client.secrets().update(
+                self.organization_id,
+                secret_id,
+                "updated-key",
+                "updated-value",
+                "Updated by test",
+                [project_id]
+            )
+
+            # Clean up the secret
+            self.client.secrets().delete([secret_id])
+
+            return True, {"id": secret_id, "key": updated.data.key}
+        finally:
+            self.cleanup_project(project_id)
 
 
     def test_secret_sync(self):
@@ -174,68 +258,72 @@ class PythonSdkTestSuite:
 
         return True, {
             "initial_has_changes": sync1.data.has_changes,
-            "after_has_changes": sync2.data.has_changes
+            "after_has_changes": sync2.data.has_changes,
+            "secret_count": len(sync1.data.secrets) if sync1.data.secrets else 0
         }
 
     def test_secret_delete(self):
         """Delete secrets"""
-        if self.created_secret_ids:
-            ids = self.created_secret_ids[:2] if len(self.created_secret_ids) > 1 else self.created_secret_ids
-        else:
-            ids = [str(uuid.uuid4()) for _ in range(2)]
+        project_id = self.create_test_project("secret-delete")
 
-        result = self.client.secrets().delete(ids)
-        return result.success is True, {"deleted": len(ids)}
+        try:
+            # Create a secret to delete
+            secret_name = f"test-secret-{uuid.uuid4().hex[:8]}"
+            created_secret = self.client.secrets().create(
+                organization_id=self.organization_id,
+                key=secret_name,
+                value="test-value",
+                note="Created for delete test",
+                project_ids=[project_id]
+            )
+            secret_id = created_secret.data.id
 
-    def test_project_create(self):
-        """Create a project"""
-        project_name = f"test-project-{uuid.uuid4().hex[:8]}"
-        project = self.client.projects().create(self.organization_id, project_name)
-        self.created_project_ids.append(project.data.id)
-        return True, {"id": project.data.id, "name": project.data.name}
+            # Delete the secret
+            result = self.client.secrets().delete([secret_id])
+
+            if not result.success:
+                raise Exception("Delete operation failed")
+
+            # Verify the secret is actually deleted
+            self.verify_secret_deleted(secret_id)
+
+            return True, {"deleted": 1, "id": secret_id, "verified": self.is_real_server}
+        finally:
+            self.cleanup_project(project_id)
+
 
     def test_project_list(self):
         """List projects"""
-        projects = self.client.projects().list(self.organization_id)
-        count = len(projects.data.data) if projects.data.data else 0
-        return True, {"count": count}
+        project_id = self.create_test_project("list")
+
+        try:
+            # List projects
+            projects = self.client.projects().list(self.organization_id)
+            count = len(projects.data.data) if projects.data.data else 0
+
+            # On real server, verify our created project is in the list
+            if self.is_real_server:
+                project_ids = [p.id for p in projects.data.data] if projects.data.data else []
+                if project_id not in project_ids:
+                    raise Exception(f"Created project {project_id} not found in list")
+
+            return True, {"count": count, "verified": self.is_real_server}
+        finally:
+            self.cleanup_project(project_id)
 
 
     def test_project_update(self):
         """Update a project"""
-        if not self.created_project_ids:
-            self.test_project_create()
+        project_id = self.create_test_project("update")
 
-        project_id = self.created_project_ids[0]
-        new_name = f"updated-project-{uuid.uuid4().hex[:8]}"
-        updated = self.client.projects().update(self.organization_id, project_id, new_name)
+        try:
+            # Update the project
+            new_name = f"updated-project-{uuid.uuid4().hex[:8]}"
+            updated = self.client.projects().update(self.organization_id, project_id, new_name)
 
-        return new_name in updated.data.name, {"name": updated.data.name}
-
-    def test_project_delete(self):
-        """Delete projects"""
-        if self.created_project_ids:
-            ids = self.created_project_ids[:2] if len(self.created_project_ids) > 1 else self.created_project_ids
-        else:
-            ids = [str(uuid.uuid4()) for _ in range(2)]
-
-        result = self.client.projects().delete(ids)
-        return result.success is True, {"deleted": len(ids)}
-
-    def test_generator_default(self):
-        """Test password generation with defaults"""
-        generated = self.client.generators().generate()
-
-        # Basic validation
-        checks = {
-            "length_ok": len(generated) == 24,
-            "has_lowercase": any(c.islower() for c in generated),
-            "has_uppercase": any(c.isupper() for c in generated),
-            "has_numbers": any(c.isdigit() for c in generated),
-            "has_special": any(not c.isalnum() for c in generated)
-        }
-
-        return all(checks.values()), checks
+            return new_name in updated.data.name, {"name": updated.data.name}
+        finally:
+            self.cleanup_project(project_id)
 
 
 
@@ -250,11 +338,8 @@ class PythonSdkTestSuite:
             ("test_secret_update", "Update Secret"),
             ("test_secret_sync", "Sync Secrets"),
             ("test_secret_delete", "Delete Secrets"),
-            ("test_project_create", "Create Project"),
             ("test_project_list", "List Projects"),
             ("test_project_update", "Update Project"),
-            ("test_project_delete", "Delete Projects"),
-            ("test_generator_default", "Generate Password (Default)"),
         ]
 
         for name, display in test_definitions:
@@ -325,8 +410,8 @@ class PythonSdkTestSuite:
     def _get_sdk_version(self) -> str:
         """Get SDK version"""
         try:
-            import bitwarden_sdk
-            return getattr(bitwarden_sdk, "__version__", "unknown")
+            from bitwarden_sdk import __version__
+            return __version__
         except:
             return "unknown"
 

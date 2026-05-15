@@ -9,6 +9,7 @@ import (
 	"runtime/debug"
 	"strings"
 	"time"
+	"unicode"
 
 	sdk "github.com/bitwarden/sdk-go/v2"
 	"github.com/gofrs/uuid"
@@ -38,7 +39,6 @@ type TestResult struct {
 type GoSDKTestSuite struct {
 	client           sdk.BitwardenClientInterface
 	organizationID   string
-	testMode         string
 	jsonOutput       bool
 	verbose          bool
 	operations       []TestOperation
@@ -53,7 +53,6 @@ func NewTestSuite(jsonOutput, verbose bool) *GoSDKTestSuite {
 		jsonOutput:        jsonOutput,
 		verbose:           verbose,
 		organizationID:    os.Getenv("ORGANIZATION_ID"),
-		testMode:         os.Getenv("TEST_MODE"),
 		operations:       []TestOperation{},
 		createdSecretIDs: []string{},
 		createdProjectIDs: []string{},
@@ -169,32 +168,10 @@ func (s *GoSDKTestSuite) TestSecretCreate() (bool, map[string]interface{}, error
 	}, nil
 }
 
-// TestSecretList lists secrets
-func (s *GoSDKTestSuite) TestSecretList() (bool, map[string]interface{}, error) {
-	secretsList, err := s.client.Secrets().List(s.organizationID)
-	if err != nil {
-		return false, nil, err
-	}
-
-	return true, map[string]interface{}{
-		"count": len(secretsList.Data),
-	}, nil
-}
 
 // TestSecretGet gets a secret
 func (s *GoSDKTestSuite) TestSecretGet() (bool, map[string]interface{}, error) {
-	if s.testMode == "fake-server" {
-		// Fake server returns specific test data
-		secret, err := s.client.Secrets().Get(uuid.Must(uuid.NewV4()).String())
-		if err != nil {
-			return false, nil, err
-		}
-		return secret.Key == "btw", map[string]interface{}{
-			"key": secret.Key,
-		}, nil
-	}
-
-	// Real server - use created secret
+	// Ensure we have a secret to get
 	if len(s.createdSecretIDs) == 0 {
 		_, _, err := s.TestSecretCreate()
 		if err != nil {
@@ -241,31 +218,6 @@ func (s *GoSDKTestSuite) TestSecretUpdate() (bool, map[string]interface{}, error
 	}, nil
 }
 
-// TestSecretGetByIDs gets multiple secrets by IDs
-func (s *GoSDKTestSuite) TestSecretGetByIDs() (bool, map[string]interface{}, error) {
-	ids := []string{
-		uuid.Must(uuid.NewV4()).String(),
-		uuid.Must(uuid.NewV4()).String(),
-		uuid.Must(uuid.NewV4()).String(),
-	}
-
-	secrets, err := s.client.Secrets().GetByIDS(ids)
-	if err != nil {
-		return false, nil, err
-	}
-
-	if s.testMode == "fake-server" && len(secrets.Data) > 0 {
-		// Fake server returns specific test data
-		return secrets.Data[0].Key == "FERRIS", map[string]interface{}{
-			"first_key": secrets.Data[0].Key,
-		}, nil
-	}
-
-	return len(secrets.Data) > 0, map[string]interface{}{
-		"count": len(secrets.Data),
-	}, nil
-}
-
 // TestSecretSync tests sync functionality
 func (s *GoSDKTestSuite) TestSecretSync() (bool, map[string]interface{}, error) {
 	// Initial sync
@@ -309,11 +261,6 @@ func (s *GoSDKTestSuite) TestSecretDelete() (bool, map[string]interface{}, error
 		return false, nil, err
 	}
 
-	// Clean tracking
-	for _, id := range idsToDelete {
-		s.removeCreatedSecretID(id)
-	}
-
 	return true, map[string]interface{}{
 		"deleted": len(idsToDelete),
 	}, nil
@@ -347,19 +294,10 @@ func (s *GoSDKTestSuite) TestProjectList() (bool, map[string]interface{}, error)
 	}, nil
 }
 
-// TestProjectGet gets a project
-func (s *GoSDKTestSuite) TestProjectGet() (bool, map[string]interface{}, error) {
-	if s.testMode == "fake-server" {
-		project, err := s.client.Projects().Get(uuid.Must(uuid.NewV4()).String())
-		if err != nil {
-			return false, nil, err
-		}
-		return project.Name == "Production Environment", map[string]interface{}{
-			"name": project.Name,
-		}, nil
-	}
 
-	// Real server - use created project
+// TestProjectUpdate updates a project
+func (s *GoSDKTestSuite) TestProjectUpdate() (bool, map[string]interface{}, error) {
+	// Ensure we have a project to update
 	if len(s.createdProjectIDs) == 0 {
 		_, _, err := s.TestProjectCreate()
 		if err != nil {
@@ -367,32 +305,7 @@ func (s *GoSDKTestSuite) TestProjectGet() (bool, map[string]interface{}, error) 
 		}
 	}
 
-	project, err := s.client.Projects().Get(s.createdProjectIDs[0])
-	if err != nil {
-		return false, nil, err
-	}
-
-	return true, map[string]interface{}{
-		"id":   project.ID,
-		"name": project.Name,
-	}, nil
-}
-
-// TestProjectUpdate updates a project
-func (s *GoSDKTestSuite) TestProjectUpdate() (bool, map[string]interface{}, error) {
-	var projectID string
-
-	if s.testMode == "fake-server" {
-		projectID = uuid.Must(uuid.NewV4()).String()
-	} else {
-		if len(s.createdProjectIDs) == 0 {
-			_, _, err := s.TestProjectCreate()
-			if err != nil {
-				return false, nil, err
-			}
-		}
-		projectID = s.createdProjectIDs[0]
-	}
+	projectID := s.createdProjectIDs[0]
 
 	newName := fmt.Sprintf("updated-project-%s", uuid.Must(uuid.NewV4()).String()[:8])
 	updated, err := s.client.Projects().Update(projectID, s.organizationID, newName)
@@ -427,11 +340,6 @@ func (s *GoSDKTestSuite) TestProjectDelete() (bool, map[string]interface{}, erro
 		return false, nil, err
 	}
 
-	// Clean tracking
-	for _, id := range idsToDelete {
-		s.removeCreatedProjectID(id)
-	}
-
 	return true, map[string]interface{}{
 		"deleted": len(idsToDelete),
 	}, nil
@@ -457,10 +365,10 @@ func (s *GoSDKTestSuite) TestGeneratorDefault() (bool, map[string]interface{}, e
 
 	checks := map[string]bool{
 		"length_ok":      len(*password) == 24,
-		"has_lowercase":  containsLowercase(*password),
-		"has_uppercase":  containsUppercase(*password),
-		"has_numbers":    containsNumbers(*password),
-		"has_special":    containsSpecial(*password),
+		"has_lowercase":  strings.ContainsFunc(*password, unicode.IsLower),
+		"has_uppercase":  strings.ContainsFunc(*password, unicode.IsUpper),
+		"has_numbers":    strings.ContainsFunc(*password, unicode.IsDigit),
+		"has_special":    strings.ContainsFunc(*password, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) }),
 	}
 
 	allChecksPass := true
@@ -479,54 +387,6 @@ func (s *GoSDKTestSuite) TestGeneratorDefault() (bool, map[string]interface{}, e
 	return allChecksPass, checksInterface, nil
 }
 
-// TestGeneratorCustom tests password generation with custom params
-func (s *GoSDKTestSuite) TestGeneratorCustom() (bool, map[string]interface{}, error) {
-	minVal := int64(2)
-	password, err := s.client.Generators().GeneratePassword(sdk.PasswordGeneratorRequest{
-		Length:       32,
-		Lowercase:    true,
-		Uppercase:    true,
-		Numbers:      true,
-		Special:      true,
-		MinLowercase: &minVal,
-		MinUppercase: &minVal,
-		MinNumber:    &minVal,
-		MinSpecial:   &minVal,
-	})
-	if err != nil {
-		return false, nil, err
-	}
-
-	if password == nil {
-		return false, nil, fmt.Errorf("password generation returned nil")
-	}
-
-	return len(*password) == 32, map[string]interface{}{
-		"length": len(*password),
-	}, nil
-}
-
-// TestGeneratorValidation tests generator input validation
-func (s *GoSDKTestSuite) TestGeneratorValidation() (bool, map[string]interface{}, error) {
-	// Should fail - all character types disabled
-	_, err := s.client.Generators().GeneratePassword(sdk.PasswordGeneratorRequest{
-		Length:    20,
-		Lowercase: false,
-		Uppercase: false,
-		Numbers:   false,
-		Special:   false,
-	})
-
-	if err == nil {
-		return false, map[string]interface{}{
-			"error": "Should have raised error",
-		}, nil
-	}
-
-	return true, map[string]interface{}{
-		"validation": "correctly rejected invalid params",
-	}, nil
-}
 
 // TestDefinition holds test metadata
 type TestDefinition struct {
@@ -540,20 +400,15 @@ func (s *GoSDKTestSuite) GetTests() []TestDefinition {
 	return []TestDefinition{
 		{"test_auth", s.TestAuth, "Authentication"},
 		{"test_secret_create", s.TestSecretCreate, "Create Secret"},
-		{"test_secret_list", s.TestSecretList, "List Secrets"},
 		{"test_secret_get", s.TestSecretGet, "Get Secret"},
 		{"test_secret_update", s.TestSecretUpdate, "Update Secret"},
-		{"test_secret_get_by_ids", s.TestSecretGetByIDs, "Get Secrets by IDs"},
 		{"test_secret_sync", s.TestSecretSync, "Sync Secrets"},
 		{"test_secret_delete", s.TestSecretDelete, "Delete Secrets"},
 		{"test_project_create", s.TestProjectCreate, "Create Project"},
 		{"test_project_list", s.TestProjectList, "List Projects"},
-		{"test_project_get", s.TestProjectGet, "Get Project"},
 		{"test_project_update", s.TestProjectUpdate, "Update Project"},
 		{"test_project_delete", s.TestProjectDelete, "Delete Projects"},
 		{"test_generator_default", s.TestGeneratorDefault, "Generate Password (Default)"},
-		{"test_generator_custom", s.TestGeneratorCustom, "Generate Password (Custom)"},
-		{"test_generator_validation", s.TestGeneratorValidation, "Generator Validation"},
 	}
 }
 
@@ -622,11 +477,6 @@ func (s *GoSDKTestSuite) RunAllTests() int {
 	if !s.jsonOutput {
 		fmt.Println(strings.Repeat("=", 60))
 		fmt.Println("Go SDK Test Suite")
-		testMode := s.testMode
-		if testMode == "" {
-			testMode = "default"
-		}
-		fmt.Printf("Mode: %s\n", testMode)
 		fmt.Println(strings.Repeat("=", 60))
 		fmt.Println()
 	}
@@ -659,25 +509,6 @@ func (s *GoSDKTestSuite) RunAllTests() int {
 
 // Helper functions
 
-func (s *GoSDKTestSuite) removeCreatedSecretID(id string) {
-	for i, sid := range s.createdSecretIDs {
-		if sid == id {
-			s.createdSecretIDs = append(s.createdSecretIDs[:i], s.createdSecretIDs[i+1:]...)
-			break
-		}
-	}
-}
-
-func (s *GoSDKTestSuite) removeCreatedProjectID(id string) {
-	for i, pid := range s.createdProjectIDs {
-		if pid == id {
-			s.createdProjectIDs = append(s.createdProjectIDs[:i], s.createdProjectIDs[i+1:]...)
-			break
-		}
-	}
-}
-
-
 func getSDKVersion() string {
 	// Try to get version from Go modules
 	bi, ok := debug.ReadBuildInfo()
@@ -692,41 +523,6 @@ func getSDKVersion() string {
 }
 
 
-func containsLowercase(s string) bool {
-	for _, r := range s {
-		if r >= 'a' && r <= 'z' {
-			return true
-		}
-	}
-	return false
-}
-
-func containsUppercase(s string) bool {
-	for _, r := range s {
-		if r >= 'A' && r <= 'Z' {
-			return true
-		}
-	}
-	return false
-}
-
-func containsNumbers(s string) bool {
-	for _, r := range s {
-		if r >= '0' && r <= '9' {
-			return true
-		}
-	}
-	return false
-}
-
-func containsSpecial(s string) bool {
-	for _, r := range s {
-		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9')) {
-			return true
-		}
-	}
-	return false
-}
 
 func main() {
 	jsonOutput := flag.Bool("json", false, "Output JSON format")

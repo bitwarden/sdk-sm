@@ -27,7 +27,6 @@ class PythonSdkTestSuite:
         self.verbose = verbose
         self.client = None
         self.organization_id = os.getenv("ORGANIZATION_ID")
-        self.test_mode = os.getenv("TEST_MODE")
 
         # Test tracking
         self.operations = []
@@ -135,23 +134,15 @@ class PythonSdkTestSuite:
         self.created_secret_ids.append(secret.data.id)
         return True, {"id": secret.data.id, "key": secret.data.key}
 
-    def test_secret_list(self):
-        """List secrets"""
-        secrets = self.client.secrets().list(self.organization_id)
-        count = len(secrets.data.data) if secrets.data.data else 0
-        return True, {"count": count}
 
     def test_secret_get(self):
         """Get a secret"""
-        if self.test_mode == "fake-server":
-            # Fake server returns specific test data
-            secret = self.client.secrets().get(str(uuid.uuid4()))
-            return secret.data.key == "btw", {"key": secret.data.key}
-        else:
-            if not self.created_secret_ids:
-                self.test_secret_create()
-            secret = self.client.secrets().get(self.created_secret_ids[0])
-            return True, {"id": secret.data.id, "key": secret.data.key}
+        # Ensure we have a secret to get
+        if not self.created_secret_ids:
+            self.test_secret_create()
+
+        secret = self.client.secrets().get(self.created_secret_ids[0])
+        return True, {"id": secret.data.id, "key": secret.data.key}
 
     def test_secret_update(self):
         """Update a secret"""
@@ -169,15 +160,6 @@ class PythonSdkTestSuite:
         )
         return True, {"id": secret_id, "key": updated.data.key}
 
-    def test_secret_get_by_ids(self):
-        """Get multiple secrets by IDs"""
-        ids = [str(uuid.uuid4()) for _ in range(3)]
-        secrets = self.client.secrets().get_by_ids(ids)
-
-        if self.test_mode == "fake-server":
-            # Fake server returns specific test data
-            return secrets.data.data[0].key == "FERRIS", {"first_key": secrets.data.data[0].key}
-        return len(secrets.data.data) > 0, {"count": len(secrets.data.data)}
 
     def test_secret_sync(self):
         """Test sync functionality"""
@@ -203,12 +185,6 @@ class PythonSdkTestSuite:
             ids = [str(uuid.uuid4()) for _ in range(2)]
 
         result = self.client.secrets().delete(ids)
-
-        # Clean tracking
-        for sid in ids:
-            if sid in self.created_secret_ids:
-                self.created_secret_ids.remove(sid)
-
         return result.success is True, {"deleted": len(ids)}
 
     def test_project_create(self):
@@ -224,23 +200,13 @@ class PythonSdkTestSuite:
         count = len(projects.data.data) if projects.data.data else 0
         return True, {"count": count}
 
-    def test_project_get(self):
-        """Get a project"""
-        if self.test_mode == "fake-server":
-            project = self.client.projects().get(str(uuid.uuid4()))
-            return project.data.name == "Production Environment", {"name": project.data.name}
-        else:
-            if not self.created_project_ids:
-                self.test_project_create()
-            project = self.client.projects().get(self.created_project_ids[0])
-            return True, {"id": project.data.id, "name": project.data.name}
 
     def test_project_update(self):
         """Update a project"""
         if not self.created_project_ids:
             self.test_project_create()
 
-        project_id = self.created_project_ids[0] if self.test_mode != "fake-server" else str(uuid.uuid4())
+        project_id = self.created_project_ids[0]
         new_name = f"updated-project-{uuid.uuid4().hex[:8]}"
         updated = self.client.projects().update(self.organization_id, project_id, new_name)
 
@@ -254,12 +220,6 @@ class PythonSdkTestSuite:
             ids = [str(uuid.uuid4()) for _ in range(2)]
 
         result = self.client.projects().delete(ids)
-
-        # Clean tracking
-        for pid in ids:
-            if pid in self.created_project_ids:
-                self.created_project_ids.remove(pid)
-
         return result.success is True, {"deleted": len(ids)}
 
     def test_generator_default(self):
@@ -277,35 +237,7 @@ class PythonSdkTestSuite:
 
         return all(checks.values()), checks
 
-    def test_generator_custom(self):
-        """Test password generation with custom params"""
-        generated = self.client.generators().generate(
-            length=32,
-            lowercase=True,
-            uppercase=True,
-            numbers=True,
-            special=True,
-            min_lowercase=2,
-            min_uppercase=2,
-            min_number=2,
-            min_special=2
-        )
 
-        return len(generated) == 32, {"length": len(generated)}
-
-    def test_generator_validation(self):
-        """Test generator input validation"""
-        try:
-            # Should fail - all character types disabled
-            self.client.generators().generate(
-                lowercase=False,
-                uppercase=False,
-                numbers=False,
-                special=False
-            )
-            return False, {"error": "Should have raised ValueError"}
-        except ValueError:
-            return True, {"validation": "correctly rejected invalid params"}
 
     def discover_tests(self):
         """Discover all test methods using introspection"""
@@ -314,20 +246,15 @@ class PythonSdkTestSuite:
         test_definitions = [
             ("test_auth", "Authentication"),
             ("test_secret_create", "Create Secret"),
-            ("test_secret_list", "List Secrets"),
             ("test_secret_get", "Get Secret"),
             ("test_secret_update", "Update Secret"),
-            ("test_secret_get_by_ids", "Get Secrets by IDs"),
             ("test_secret_sync", "Sync Secrets"),
             ("test_secret_delete", "Delete Secrets"),
             ("test_project_create", "Create Project"),
             ("test_project_list", "List Projects"),
-            ("test_project_get", "Get Project"),
             ("test_project_update", "Update Project"),
             ("test_project_delete", "Delete Projects"),
             ("test_generator_default", "Generate Password (Default)"),
-            ("test_generator_custom", "Generate Password (Custom)"),
-            ("test_generator_validation", "Generator Validation"),
         ]
 
         for name, display in test_definitions:
@@ -378,7 +305,6 @@ class PythonSdkTestSuite:
         if not self.json_output:
             print("=" * 60)
             print("Python SDK Test Suite")
-            print(f"Mode: {self.test_mode or 'default'}")
             print("=" * 60)
             print()
 

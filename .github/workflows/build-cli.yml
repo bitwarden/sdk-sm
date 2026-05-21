@@ -84,7 +84,7 @@ jobs:
       - name: Build
         env:
           TARGET: ${{ matrix.settings.target }}
-        run: cargo build -p bws --release --target=${{ matrix.settings.target }}
+        run: cargo build --locked -p bws --release --target=${{ matrix.settings.target }}
 
       - name: Log in to Azure
         if: ${{ needs.setup.outputs.sign == 'true' }}
@@ -183,7 +183,7 @@ jobs:
       - name: Build
         env:
           TARGET: ${{ matrix.settings.target }}
-        run: cargo build -p bws --release --target=${{ matrix.settings.target }}
+        run: cargo build --locked -p bws --release --target=${{ matrix.settings.target }}
 
       - name: Log in to Azure
         uses: bitwarden/gh-actions/azure-login@main

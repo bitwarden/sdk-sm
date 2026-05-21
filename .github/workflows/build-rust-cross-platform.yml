@@ -78,7 +78,7 @@ jobs:
         if: ${{ matrix.settings.target == 'x86_64-pc-windows-gnu' }}
         env:
           RUSTFLAGS: "-D warnings"
-        run: cargo build -p bitwarden-c --target ${{ matrix.settings.target }} --profile=release-windows
+        run: cargo build --locked -p bitwarden-c --target ${{ matrix.settings.target }} --profile=release-windows
 
       # Build Rust for !musl && !windows-gnu
       - name: Build Rust for - ${{ matrix.settings.target }}
@@ -86,7 +86,7 @@ jobs:
         env:
           RUSTFLAGS: "-D warnings"
           MACOSX_DEPLOYMENT_TARGET: "10.14" # allows using new macos runner versions while still supporting older systems
-        run: cargo build -p bitwarden-c --target ${{ matrix.settings.target }} --release
+        run: cargo build --locked -p bitwarden-c --target ${{ matrix.settings.target }} --release
 
       - name: Upload Artifact
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0

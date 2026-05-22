@@ -29,6 +29,7 @@ wasm = [] # WASM support
 [dependencies]
 bitwarden-core = { workspace = true }
 bitwarden-generators = { workspace = true, optional = true }
+ml-dsa = "=0.1.0-rc.9"
 bitwarden-sm = { workspace = true, optional = true }
 thiserror = "2.0.18"
 

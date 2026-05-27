@@ -91,6 +91,7 @@ pub mod secrets {
     }
 
     #[derive(Debug, Deserialize, Serialize)]
+    #[serde(rename_all = "camelCase")]
     pub struct UpdateSecretRequest {
         pub key: String,
         pub value: String,

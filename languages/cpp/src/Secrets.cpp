@@ -120,7 +120,7 @@ SecretResponse Secrets::update(const boost::uuids::uuid& organizationId, const b
         throw ex;
     }
 
-    bool valueChanged = value != oldSecret.value;
+    bool valueChanged = value != oldSecret.get_value();
 
     Command command;
     SecretsCommand secretsCommand;

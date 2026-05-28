@@ -97,6 +97,7 @@ pub mod secrets {
         pub value: String,
         pub note: String,
         pub project_ids: Option<Vec<Uuid>>,
+        #[serde(default)]
         pub value_changed: bool,
     }
 

@@ -42,11 +42,38 @@ public static class PathUtilities
     }
 
     /// <summary>
-    /// Finds the SDK root by looking for Cargo.toml file
+    /// Finds the SDK root by looking for Cargo.toml file with [workspace] marker
     /// </summary>
     private static string? FindSdkRoot(string startPath)
     {
-        return FindRootPath(startPath, "Cargo.toml", isDirectory: false);
+        var dir = new DirectoryInfo(startPath);
+
+        while (dir != null)
+        {
+            var cargoTomlPath = Path.Combine(dir.FullName, "Cargo.toml");
+
+            if (File.Exists(cargoTomlPath))
+            {
+                // Read the file and check for [workspace] marker
+                try
+                {
+                    var content = File.ReadAllText(cargoTomlPath);
+                    if (content.Contains("[workspace]"))
+                    {
+                        // This is the workspace root
+                        return dir.FullName;
+                    }
+                }
+                catch
+                {
+                    // If we can't read the file, continue searching
+                }
+            }
+
+            dir = dir.Parent;
+        }
+
+        return null;
     }
 
     /// <summary>

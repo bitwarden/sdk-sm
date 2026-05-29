@@ -57,6 +57,9 @@ namespace SdkTestFramework.Tests
                 throw new InvalidOperationException($"TestMode is null or empty. Configuration section exists but TestMode property was not loaded.");
             }
 
+            // Check and generate schemas if needed
+            await EnsureSchemasAsync();
+
             // Start fake server if needed
             if (_testConfig.Configuration.IsFakeServerMode())
             {
@@ -156,6 +159,121 @@ namespace SdkTestFramework.Tests
             }
 
             await TestContext.Progress.WriteLineAsync("✅ Global teardown complete");
+        }
+
+        /// <summary>
+        /// Ensure schema files exist, optionally generating them if missing
+        /// </summary>
+        private static async Task EnsureSchemasAsync()
+        {
+            await TestContext.Progress.WriteLineAsync("Checking schema files...");
+
+            // Get repo root
+            var repoRoot = GetRepoRoot();
+
+            // Check for critical schema files
+            var schemaFiles = new[]
+            {
+                Path.Combine(repoRoot, "languages", "python", "bitwarden_sdk", "schemas.py"),
+                Path.Combine(repoRoot, "languages", "go", "schema.go"),
+                Path.Combine(repoRoot, "languages", "csharp", "Bitwarden.Sdk", "schemas.cs"),
+                Path.Combine(repoRoot, "languages", "js", "sdk-client", "src", "schemas.ts")
+            };
+
+            var missingSchemas = schemaFiles.Where(f => !File.Exists(f)).ToList();
+
+            if (missingSchemas.Any())
+            {
+                await TestContext.Progress.WriteLineAsync($"  ⚠️  Missing schema files: {missingSchemas.Count}");
+
+                // Check if we should auto-generate
+                var autoGenerate = ConfigurationService.GetValue("AUTO_GENERATE_SCHEMAS")?.ToLower() == "true" ||
+                                  _testConfig?.Configuration.AutoGenerateSchemas == true;
+
+                if (!autoGenerate)
+                {
+                    await TestContext.Progress.WriteLineAsync(
+                        "❌ Schema files are missing! Run 'npm run schemas' from repository root.\n" +
+                        "   To auto-generate, set AUTO_GENERATE_SCHEMAS=true");
+                    throw new InvalidOperationException(
+                        "Schema files are missing. Run 'npm run schemas' or set AUTO_GENERATE_SCHEMAS=true");
+                }
+
+                // Auto-generate schemas
+                await GenerateSchemasAsync(repoRoot);
+            }
+            else
+            {
+                await TestContext.Progress.WriteLineAsync("  ✓ Schema files found");
+            }
+        }
+
+        private static async Task GenerateSchemasAsync(string repoRoot)
+        {
+            await TestContext.Progress.WriteLineAsync("  🔧 Auto-generating schemas (this may take 10-30 seconds)...");
+
+            try
+            {
+                // Check if node_modules exists
+                var nodeModulesPath = Path.Combine(repoRoot, "node_modules");
+                if (!Directory.Exists(nodeModulesPath))
+                {
+                    await TestContext.Progress.WriteLineAsync("  📦 Installing npm dependencies first...");
+                    throw new InvalidOperationException(
+                        "npm dependencies not installed. Please run 'npm install' from repository root first.\n" +
+                        "Auto-generation requires npm packages to be installed.");
+                }
+
+                // Run npm run schemas
+                using var process = new System.Diagnostics.Process();
+                process.StartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "npm",
+                    Arguments = "run schemas",
+                    WorkingDirectory = repoRoot,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                process.Start();
+
+                var completed = process.WaitForExit(60000); // 60 second timeout
+
+                if (!completed)
+                {
+                    process.Kill();
+                    throw new InvalidOperationException("Schema generation timed out after 60 seconds");
+                }
+
+                if (process.ExitCode != 0)
+                {
+                    var error = await process.StandardError.ReadToEndAsync();
+                    throw new InvalidOperationException($"Schema generation failed: {error}");
+                }
+
+                await TestContext.Progress.WriteLineAsync("  ✓ Schemas generated successfully");
+            }
+            catch (Exception ex)
+            {
+                await TestContext.Progress.WriteLineAsync($"  ❌ Failed to generate schemas: {ex.Message}");
+                throw;
+            }
+        }
+
+        private static string GetRepoRoot()
+        {
+            var current = Directory.GetCurrentDirectory();
+            while (!string.IsNullOrEmpty(current))
+            {
+                if (Directory.Exists(Path.Combine(current, ".git")))
+                {
+                    return current;
+                }
+                current = Directory.GetParent(current)?.FullName;
+            }
+            throw new InvalidOperationException("Could not find repository root");
         }
 
         /// <summary>

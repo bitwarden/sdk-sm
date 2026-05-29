@@ -8,14 +8,27 @@ A .NET-based test framework for validating Bitwarden SDK implementations across 
 
 You'll need these tools installed on your system:
 
-| Tool | Required For | Installation |
-|------|-------------|--------------|
-| **.NET 10** | Running tests | [Download](https://dotnet.microsoft.com/download/dotnet/10.0) |
-| **Rust** | Building SDKs & fake-server | `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \| sh` |
-| **Node.js 20+** | Generating schemas | [Download](https://nodejs.org/) or `brew install node` |
-| **Python 3.12+** | Python SDK tests | Usually pre-installed, or `brew install python@3.12` |
-| **Go 1.23+** | Go SDK tests | `brew install go` or [Download](https://go.dev/dl/) |
-| **uv** | Python package manager | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+- **.NET 10** - Required for running tests
+  - [Download .NET 10](https://dotnet.microsoft.com/download/dotnet/10.0)
+
+- **Rust** - Required for building SDKs & fake-server
+  ```bash
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+  ```
+
+- **Node.js 20+** - Required for generating schemas
+  - [Download Node.js](https://nodejs.org/) or `brew install node`
+
+- **Python 3.12+** - Required for Python SDK tests
+  - Usually pre-installed, or `brew install python@3.12`
+
+- **Go 1.23+** - Required for Go SDK tests
+  - `brew install go` or [Download Go](https://go.dev/dl/)
+
+- **uv** - Python package manager
+  ```bash
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  ```
 
 #### Verify Installation
 ```bash
@@ -47,6 +60,9 @@ cp SdkTestFramework.Tests/Configuration/.env.example \
 
 ### Step 3: Run Tests
 
+You can run the tests in two ways:
+
+#### Option A: Using .NET Framework (Recommended)
 ```bash
 cd tests
 dotnet test
@@ -54,6 +70,27 @@ dotnet test
 # Or run specific language tests
 dotnet test --filter "Category=Python"
 dotnet test --filter "Category=Go"
+
+# Run individual test operations
+dotnet test --filter "Name=Python_Secret_Create"
+dotnet test --filter "Name=Go_Auth"
+
+# Run with verbose output
+dotnet test --logger "console;verbosity=detailed"
+```
+
+#### Option B: Without .NET (Direct Language Tests)
+```bash
+# Using bootstrap script (starts fake-server automatically)
+./scripts/bootstrap.sh test python
+./scripts/bootstrap.sh test go
+
+# Or run language tests directly
+cd languages/python
+python test/test_suite.py --json
+
+cd languages/go
+go run test/test_suite.go --json
 ```
 
 That's it! The tests should now run successfully. 🎉
@@ -64,7 +101,7 @@ The framework tests these SDK operations:
 - Authentication with access tokens
 - Secret CRUD operations (Create, Read, Update, Delete)
 - Project CRUD operations
-- Password generation
+- Secret generation
 - Secret synchronization
 
 ## 🔧 Configuration
@@ -193,7 +230,7 @@ dotnet test -- TestRunParameters.Parameter(name="verbose", value="true")
 
 ```
 tests/
-├── SdkTestFramework/           # Core framework library
+├── SdkTestFramework/          # Core framework library
 │   ├── Config/                # Configuration management
 │   ├── Models/                # Test result models
 │   ├── Platform/              # Platform detection
@@ -202,7 +239,7 @@ tests/
 │       ├── PythonTestRunner.cs
 │       └── GoTestRunner.cs
 │
-├── SdkTestFramework.Tests/    # Test project
+├── SdkTestFramework.Tests/   # Test project
 │   ├── Configuration/
 │   │   ├── .env              # Environment variables (create from .env.example)
 │   │   ├── .env.example      # Template for .env
@@ -267,6 +304,88 @@ Successful test run output:
      ├─ ✅ test_secret_list (18ms)
      └─ ... more tests
 ```
+
+## 🔄 Flexible Test Execution
+
+The test framework supports two execution modes:
+
+### Mode 1: With .NET Framework (Recommended for CI/CD)
+Provides comprehensive test management, reporting, and parallel execution:
+
+```bash
+# Run all tests
+cd tests
+dotnet test
+
+# Run specific language
+dotnet test --filter "Category=Python"
+dotnet test --filter "Category=Go"
+
+# Run specific test operations
+dotnet test --filter "Name=Python_Secret_Create"
+dotnet test --filter "Name=Go_Generator_Custom"
+
+# Run with detailed output
+dotnet test --logger "console;verbosity=detailed"
+
+# Run tests in parallel
+dotnet test --parallel
+```
+
+**Benefits:**
+- ✅ Unified test reporting across languages
+- ✅ Individual test case visibility in CI
+- ✅ Automatic dependency management
+- ✅ Cross-platform consistency
+- ✅ Test result caching for efficiency
+
+### Mode 2: Without .NET (Direct Execution)
+For quick development testing and environments without .NET:
+
+```bash
+# Using bootstrap script (recommended - handles setup automatically)
+./scripts/bootstrap.sh test python
+./scripts/bootstrap.sh test go
+./scripts/bootstrap.sh test all  # Run both languages
+
+# Direct execution (requires manual setup)
+cd languages/python
+python test/test_suite.py --json --verbose
+
+cd languages/go
+go run test/test_suite.go --json --verbose
+
+# With custom environment variables
+ACCESS_TOKEN=xxx ORGANIZATION_ID=yyy python test/test_suite.py
+```
+
+**Benefits:**
+- ✅ No .NET dependency required
+- ✅ Faster startup for single-language tests
+- ✅ Direct access to language-specific debugging
+- ✅ Simpler CI pipeline setup
+
+### Environment Variables
+Both modes support configuration via environment variables:
+
+```bash
+# Set test mode
+export TEST_MODE=fake-server  # or real-server
+
+# For real server testing
+export ACCESS_TOKEN=your-access-token
+export ORGANIZATION_ID=your-org-id
+export API_URL=your-api-url
+export IDENTITY_URL=your-identity-url
+
+# Optional: Custom state file location
+export STATE_FILE=/tmp/sdk-test-state.json
+
+# Auto-generate schemas if missing
+export AUTO_GENERATE_SCHEMAS=true
+```
+
+The framework exposes each test operation as an individual test case for better CI visibility using dynamic test generation (see `PythonTests.cs` and `GoTests.cs`)
 
 ## ➕ Adding a New Language
 

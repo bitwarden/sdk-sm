@@ -32,6 +32,7 @@ public record TestConfig
                 TestMode = configuration["configuration:TEST_MODE"] ?? throw new InvalidOperationException("TEST_MODE not found in configuration"),
                 BuildSdk = configuration.GetValue<bool>("configuration:BUILD_SDK"),
                 AutoStartFakeServer = configuration.GetValue<bool>("configuration:AUTO_START_FAKE_SERVER"),
+                AutoGenerateSchemas = configuration.GetValue<bool>("configuration:AUTO_GENERATE_SCHEMAS"),
                 FakeServerPort = configuration.GetValue<int>("configuration:FAKE_SERVER_PORT"),
                 PythonVersion = configuration["configuration:PYTHON_VERSION"] ?? "3.13",
                 EnabledLanguages = configuration.GetSection("configuration:ENABLED_LANGUAGES").Get<List<string>>()?.AsReadOnly() ?? new List<string>().AsReadOnly()
@@ -72,6 +73,9 @@ public record ConfigurationSettings
 
     [JsonPropertyName("AUTO_START_FAKE_SERVER")]
     public required bool AutoStartFakeServer { get; init; }
+
+    [JsonPropertyName("AUTO_GENERATE_SCHEMAS")]
+    public bool AutoGenerateSchemas { get; init; }
 
     [JsonPropertyName("FAKE_SERVER_PORT")]
     public required int FakeServerPort { get; init; }

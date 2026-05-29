@@ -4,9 +4,10 @@
     "version": "1.0.0"
   },
   "configuration": {
-    "TEST_MODE": "fake-server",
+    "TEST_MODE": "real-server",
     "BUILD_SDK": true,
     "AUTO_START_FAKE_SERVER": true,
+    "AUTO_GENERATE_SCHEMAS": false,
     "FAKE_SERVER_PORT": 4000,
     "PYTHON_VERSION": "3.13",
     "ENABLED_LANGUAGES": ["python", "go"]

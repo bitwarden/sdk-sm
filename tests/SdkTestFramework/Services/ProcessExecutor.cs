@@ -54,11 +54,23 @@ public class ProcessExecutor(IPlatformService platformService, ILogger<ProcessEx
             _logger.LogError(ex, "Failed to execute command: {Command}. Exception type: {ExceptionType}, Message: {ExceptionMessage}",
                 request.Command, ex.GetType().Name, ex.Message);
 
+            // Log the formatted command for debugging
+            var (fileName, arguments) = _platformService.FormatCommand(request.Command, request.Arguments);
+            _logger.LogError("Formatted command was: FileName={FileName}, Arguments={Arguments}", fileName, arguments);
+            _logger.LogError("Working directory: {WorkingDirectory}", request.WorkingDirectory ?? "current directory");
+
             // Log inner exception if present
             if (ex.InnerException != null)
             {
                 _logger.LogError("Inner exception: {InnerType}: {InnerMessage}",
                     ex.InnerException.GetType().Name, ex.InnerException.Message);
+
+                if (ex.InnerException.InnerException != null)
+                {
+                    _logger.LogError("Inner inner exception: {Type}: {Message}",
+                        ex.InnerException.InnerException.GetType().Name,
+                        ex.InnerException.InnerException.Message);
+                }
             }
 
             throw new InvalidOperationException($"Failed to execute command: {request.Command}", ex);

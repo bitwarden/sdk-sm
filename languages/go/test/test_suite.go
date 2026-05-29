@@ -126,8 +126,7 @@ func (s *GoSDKTestSuite) verifySecretDeleted(secretID string) error {
 // RunOperation executes a test operation and tracks the result
 func (s *GoSDKTestSuite) RunOperation(name string, testFunc func() (bool, map[string]interface{}, error), displayName string) bool {
 	if displayName == "" {
-		displayName = strings.ReplaceAll(name, "_", " ")
-		displayName = strings.Title(displayName)
+		displayName = name
 	}
 
 	start := time.Now()
@@ -182,21 +181,14 @@ func (s *GoSDKTestSuite) TestAuth() (bool, map[string]interface{}, error) {
 		return false, nil, err
 	}
 
-	// On real server, verify authentication worked by trying to sync
-	verified := false
-	if s.testMode == "real-server" {
-		// Try to sync - should work if authenticated
-		_, err := s.client.Secrets().Sync(s.organizationID, nil)
-		if err != nil {
-			return false, nil, fmt.Errorf("authentication verification failed: %w", err)
-		}
-		verified = true
+	// Verify authentication worked by trying to sync
+	_, err = s.client.Secrets().Sync(s.organizationID, nil)
+	if err != nil {
+		return false, nil, fmt.Errorf("authentication verification failed: %w", err)
 	}
 
 	return true, map[string]interface{}{
-		"method":    "access_token",
 		"has_state": stateFile != "",
-		"verified": verified,
 	}, nil
 }
 
@@ -241,7 +233,6 @@ func (s *GoSDKTestSuite) TestSecretCreate() (bool, map[string]interface{}, error
 		"verified": s.testMode == "real-server",
 	}, nil
 }
-
 
 // TestSecretGet gets a secret
 func (s *GoSDKTestSuite) TestSecretGet() (bool, map[string]interface{}, error) {
@@ -366,23 +357,38 @@ func (s *GoSDKTestSuite) TestSecretUpdate() (bool, map[string]interface{}, error
 
 // TestSecretSync tests sync functionality
 func (s *GoSDKTestSuite) TestSecretSync() (bool, map[string]interface{}, error) {
-	// Initial sync
+	// Initial sync with nil date - should return all secrets
 	syncResponse, err := s.client.Secrets().Sync(s.organizationID, nil)
 	if err != nil {
 		return false, nil, err
 	}
 
-	// Sync with current date
+	// Verify initial sync returns data (has_changes should be true for first sync)
+	if !syncResponse.HasChanges {
+		return false, nil, fmt.Errorf("initial sync should return has_changes=true")
+	}
+
+	// Sync with current date - should return no changes (nothing changed since now)
 	now := time.Now()
 	syncResponseWithDate, err := s.client.Secrets().Sync(s.organizationID, &now)
 	if err != nil {
 		return false, nil, err
 	}
 
-	return true, map[string]interface{}{
-		"initial_has_changes": syncResponse.HasChanges,
-		"after_has_changes":   syncResponseWithDate.HasChanges,
-		"secret_count":        len(syncResponse.Secrets),
+	// For fake-server, the behavior is currently inverted due to implementation
+	// For real-server, this should properly return false for no changes
+	expectedNoChanges := false
+	if s.testMode == "fake-server" {
+		// Fake server incorrectly returns false for any past date
+		expectedNoChanges = syncResponseWithDate.HasChanges == false
+	} else {
+		// Real server should return false when no changes since the given date
+		expectedNoChanges = syncResponseWithDate.HasChanges == false
+	}
+
+	return expectedNoChanges, map[string]interface{}{
+		"sync_succeeded":  true,
+		"initial_secrets": len(syncResponse.Secrets),
 	}, nil
 }
 
@@ -429,13 +435,11 @@ func (s *GoSDKTestSuite) TestSecretDelete() (bool, map[string]interface{}, error
 		return false, nil, err
 	}
 
+	// If we got here, deletion succeeded and was verified (for real-server)
 	return true, map[string]interface{}{
-		"deleted":  1,
-		"id":       secretID,
-		"verified": s.testMode == "real-server",
+		"deletion_succeeded": true,
 	}, nil
 }
-
 
 // TestProjectList lists projects
 func (s *GoSDKTestSuite) TestProjectList() (bool, map[string]interface{}, error) {
@@ -479,7 +483,6 @@ func (s *GoSDKTestSuite) TestProjectList() (bool, map[string]interface{}, error)
 	}, nil
 }
 
-
 // TestProjectUpdate updates a project
 func (s *GoSDKTestSuite) TestProjectUpdate() (bool, map[string]interface{}, error) {
 	// Create a project for this test
@@ -511,8 +514,164 @@ func (s *GoSDKTestSuite) TestProjectUpdate() (bool, map[string]interface{}, erro
 	}, nil
 }
 
+// TestGeneratorDefault tests password generator with default parameters
+func (s *GoSDKTestSuite) TestGeneratorDefault() (bool, map[string]interface{}, error) {
+	// Define character sets
+	const (
+		lowercaseChars = "abcdefghijklmnopqrstuvwxyz"
+		uppercaseChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		numericChars   = "0123456789"
+		specialChars   = "!@#$%^&*()-_=+[]{};:'\",.<>/?\\|`~"
+	)
 
+	generated := s.client.Generators().Generate(sdk.GenerateRequest{})
 
+	// Should be exactly 24 chars
+	if len(generated) != 24 {
+		return false, nil, fmt.Errorf("expected length 24, got %d", len(generated))
+	}
+
+	// Should contain lowercase chars
+	if !containsAnyChar(generated, lowercaseChars) {
+		return false, nil, fmt.Errorf("generated secret missing lowercase characters")
+	}
+
+	// Should contain uppercase chars
+	if !containsAnyChar(generated, uppercaseChars) {
+		return false, nil, fmt.Errorf("generated secret missing uppercase characters")
+	}
+
+	// Should contain numeric chars
+	if !containsAnyChar(generated, numericChars) {
+		return false, nil, fmt.Errorf("generated secret missing numeric characters")
+	}
+
+	// Should contain special chars
+	if !containsAnyChar(generated, specialChars) {
+		return false, nil, fmt.Errorf("generated secret missing special characters")
+	}
+
+	return true, map[string]interface{}{
+		"length":        len(generated),
+		"has_all_types": true,
+	}, nil
+}
+
+// TestGeneratorCustom tests password generator with custom parameters
+func (s *GoSDKTestSuite) TestGeneratorCustom() (bool, map[string]interface{}, error) {
+	// Define character sets
+	const (
+		lowercaseChars  = "abcdefghijklmnopqrstuvwxyz"
+		uppercaseChars  = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		numericChars    = "0123456789"
+		specialChars    = "!@#$%^&*()-_=+[]{};:'\",.<>/?\\|`~"
+		ambiguousChars  = "0O1lI"
+	)
+
+	length := uint8(128)
+	avoidAmbiguous := false
+	lowercase := true
+	uppercase := true
+	numbers := true
+	special := true
+	minLowercase := uint8(2)
+	minUppercase := uint8(2)
+	minNumber := uint8(4)
+	minSpecial := uint8(4)
+
+	generated := s.client.Generators().Generate(sdk.GenerateRequest{
+		Length:         &length,
+		AvoidAmbiguous: &avoidAmbiguous,
+		Lowercase:      &lowercase,
+		Uppercase:      &uppercase,
+		Numbers:        &numbers,
+		Special:        &special,
+		MinLowercase:   &minLowercase,
+		MinUppercase:   &minUppercase,
+		MinNumber:      &minNumber,
+		MinSpecial:     &minSpecial,
+	})
+
+	// Should be exactly 128 chars
+	if len(generated) != 128 {
+		return false, nil, fmt.Errorf("expected length 128, got %d", len(generated))
+	}
+
+	// Should contain ambiguous chars
+	if !containsAnyChar(generated, ambiguousChars) {
+		return false, nil, fmt.Errorf("generated secret missing ambiguous characters")
+	}
+
+	// Should contain lowercase chars
+	if !containsAnyChar(generated, lowercaseChars) {
+		return false, nil, fmt.Errorf("generated secret missing lowercase characters")
+	}
+
+	// Should contain uppercase chars
+	if !containsAnyChar(generated, uppercaseChars) {
+		return false, nil, fmt.Errorf("generated secret missing uppercase characters")
+	}
+
+	// Should contain special chars
+	if !containsAnyChar(generated, specialChars) {
+		return false, nil, fmt.Errorf("generated secret missing special characters")
+	}
+
+	// Count character types
+	lowercaseCount := countCharsInSet(generated, lowercaseChars)
+	uppercaseCount := countCharsInSet(generated, uppercaseChars)
+	numericCount := countCharsInSet(generated, numericChars)
+	specialCount := countCharsInSet(generated, specialChars)
+
+	// Should contain at least 2 lowercase chars
+	if lowercaseCount < 2 {
+		return false, nil, fmt.Errorf("expected at least 2 lowercase, got %d", lowercaseCount)
+	}
+
+	// Should contain at least 2 uppercase chars
+	if uppercaseCount < 2 {
+		return false, nil, fmt.Errorf("expected at least 2 uppercase, got %d", uppercaseCount)
+	}
+
+	// Should contain at least 4 numeric chars
+	if numericCount < 4 {
+		return false, nil, fmt.Errorf("expected at least 4 numeric, got %d", numericCount)
+	}
+
+	// Should contain at least 4 special chars
+	if specialCount < 4 {
+		return false, nil, fmt.Errorf("expected at least 4 special, got %d", specialCount)
+	}
+
+	return true, map[string]interface{}{
+		"length":          len(generated),
+		"lowercase_count": lowercaseCount,
+		"uppercase_count": uppercaseCount,
+		"numeric_count":   numericCount,
+		"special_count":   specialCount,
+	}, nil
+}
+
+// Helper function to check if string contains any character from a set
+func containsAnyChar(str, charset string) bool {
+	for _, c := range str {
+		if strings.ContainsRune(charset, c) {
+			return true
+		}
+	}
+	return false
+}
+
+// Helper function to count characters in a set
+func countCharsInSet(str, charset string) int {
+	count := 0
+	for _, c := range str {
+		if strings.ContainsRune(charset, c) {
+			count++
+		}
+	}
+	return count
+}
 
 // TestDefinition holds test metadata
 type TestDefinition struct {
@@ -532,6 +691,8 @@ func (s *GoSDKTestSuite) GetTests() []TestDefinition {
 		{"test_secret_delete", s.TestSecretDelete, "Delete Secrets"},
 		{"test_project_list", s.TestProjectList, "List Projects"},
 		{"test_project_update", s.TestProjectUpdate, "Update Project"},
+		{"test_generator_default", s.TestGeneratorDefault, "Generator Default"},
+		{"test_generator_custom", s.TestGeneratorCustom, "Generator Custom"},
 	}
 }
 
@@ -624,7 +785,7 @@ func (s *GoSDKTestSuite) RunAllTests() int {
 		}
 	}
 
-	if allPassed || s.jsonOutput {
+	if allPassed {
 		return 0
 	}
 	return 1
@@ -644,8 +805,6 @@ func getSDKVersion() string {
 	}
 	return "unknown"
 }
-
-
 
 func main() {
 	jsonOutput := flag.Bool("json", false, "Output JSON format")

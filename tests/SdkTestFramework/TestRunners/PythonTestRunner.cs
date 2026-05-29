@@ -118,36 +118,90 @@ public class PythonTestRunner : BaseTestRunner
         {
             Logger.LogInformation("Creating virtual environment at {Path}", _venvDir);
 
-            // Create venv using system Python
-            var venvResult = await ExecuteProcessAsync(
-                PythonCommand,
-                $"-m venv {_venvDir}",
-                _pythonDir,  // Create venv from Python directory
-                null,
-                TimeSpan.FromMilliseconds(Config.Timeouts.PipInstallTimeoutMs),
-                cancellationToken,
-                throwOnError: false);
+            // First check if we have uv available
+            var hasUv = await CheckToolAsync("uv", "--version", cancellationToken);
 
-            if (!venvResult.Success)
+            if (hasUv)
             {
-                Logger.LogWarning("Failed to create virtual environment: {Error}. Will continue with system Python", venvResult.StandardError);
-                return;
-            }
-
-            Logger.LogInformation("Virtual environment created successfully");
-
-            // Upgrade pip in the venv
-            if (File.Exists(_pythonExecutable))
-            {
-                Logger.LogDebug("Upgrading pip in virtual environment");
-                await ExecuteProcessAsync(
-                    _pythonExecutable,
-                    "-m pip install --upgrade pip",
+                // Use uv to create venv (like test.sh does)
+                Logger.LogDebug("Creating virtual environment with uv");
+                var venvResult = await ExecuteProcessAsync(
+                    "uv",
+                    $"venv \"{_venvDir}\" --python {PythonCommand}",
                     _pythonDir,
                     null,
                     TimeSpan.FromMilliseconds(Config.Timeouts.PipInstallTimeoutMs),
                     cancellationToken,
                     throwOnError: false);
+
+                if (!venvResult.Success)
+                {
+                    Logger.LogWarning("Failed to create virtual environment with uv: {Error}", venvResult.StandardError);
+                    // Fall back to standard venv
+                    venvResult = await ExecuteProcessAsync(
+                        PythonCommand,
+                        $"-m venv \"{_venvDir}\"",
+                        _pythonDir,
+                        null,
+                        TimeSpan.FromMilliseconds(Config.Timeouts.PipInstallTimeoutMs),
+                        cancellationToken,
+                        throwOnError: false);
+
+                    if (!venvResult.Success)
+                    {
+                        Logger.LogWarning("Failed to create virtual environment: {Error}. Will continue with system Python", venvResult.StandardError);
+                        return;
+                    }
+                }
+            }
+            else
+            {
+                // Fall back to standard Python venv
+                var venvResult = await ExecuteProcessAsync(
+                    PythonCommand,
+                    $"-m venv \"{_venvDir}\"",
+                    _pythonDir,
+                    null,
+                    TimeSpan.FromMilliseconds(Config.Timeouts.PipInstallTimeoutMs),
+                    cancellationToken,
+                    throwOnError: false);
+
+                if (!venvResult.Success)
+                {
+                    Logger.LogWarning("Failed to create virtual environment: {Error}. Will continue with system Python", venvResult.StandardError);
+                    return;
+                }
+            }
+
+            Logger.LogInformation("Virtual environment created successfully");
+
+            // Upgrade pip in the venv using uv if available
+            if (File.Exists(_pythonExecutable))
+            {
+                if (hasUv)
+                {
+                    Logger.LogDebug("Upgrading pip in virtual environment with uv");
+                    await ExecuteProcessAsync(
+                        "uv",
+                        $"pip install -p \"{_pythonExecutable}\" --upgrade pip",
+                        _pythonDir,
+                        null,
+                        TimeSpan.FromMilliseconds(Config.Timeouts.PipInstallTimeoutMs),
+                        cancellationToken,
+                        throwOnError: false);
+                }
+                else
+                {
+                    Logger.LogDebug("Upgrading pip in virtual environment");
+                    await ExecuteProcessAsync(
+                        _pythonExecutable,
+                        "-m pip install --upgrade pip",
+                        _pythonDir,
+                        null,
+                        TimeSpan.FromMilliseconds(Config.Timeouts.PipInstallTimeoutMs),
+                        cancellationToken,
+                        throwOnError: false);
+                }
             }
         }
         else
@@ -179,12 +233,18 @@ public class PythonTestRunner : BaseTestRunner
             // For now, continue anyway as python3 exists on the system
         }
 
-        // Check for schemas.py
+        // Schema files are now checked globally in Global.cs
+        // The global setup will either auto-generate them or fail fast
         var schemasPath = Path.Combine(_pythonDir, "bitwarden_sdk", "schemas.py");
-        if (!CheckFileExists(schemasPath, "schemas.py"))
+        if (!File.Exists(schemasPath))
         {
-            Logger.LogWarning("Run 'npm run schemas' from repository root to generate schemas");
+            // This should not happen as Global.cs checks schemas first
+            // But if it does, fail immediately with clear message
+            throw new InvalidOperationException(
+                $"schemas.py not found at {schemasPath}\n" +
+                "This should have been caught by global setup. Please check your configuration.");
         }
+        Logger.LogDebug("schemas.py found at: {Path}", schemasPath);
     }
 
     private async Task BuildPythonSdkAsync(CancellationToken cancellationToken)
@@ -202,8 +262,31 @@ public class PythonTestRunner : BaseTestRunner
         var hasMaturin = await CheckForMaturinAsync(pythonCommand, cancellationToken);
         if (!hasMaturin)
         {
-            const string errorMsg = "maturin is required to build the Python SDK but was not found. Install it with: pip install maturin";
-            Logger.LogError("maturin is required to build the Python SDK but was not found. Install it with: pip install maturin");
+            // Log more details about what Python we're using
+            Logger.LogError("Maturin not found. Python command: {PythonCommand}, Venv Python: {VenvPython}",
+                pythonCommand, _pythonExecutable);
+
+            // Try to see what's installed in the venv
+            if (File.Exists(_pythonExecutable))
+            {
+                var listResult = await ExecuteProcessAsync(
+                    _pythonExecutable,
+                    "-m pip list",
+                    _pythonDir,
+                    null,
+                    TimeSpan.FromMilliseconds(Config.Timeouts.ToolCheckTimeoutMs),
+                    cancellationToken,
+                    throwOnError: false);
+
+                Logger.LogError("Installed packages in venv: {Packages}", listResult.StandardOutput);
+            }
+
+            const string errorMsg = "maturin is required to build the Python SDK but was not found.\n" +
+                                   "Please install it using one of these methods:\n" +
+                                   "  - System-wide: pip install maturin\n" +
+                                   "  - With uv: uv pip install maturin\n" +
+                                   "  - Or ensure .[dev] dependencies are installed: pip install -e .[dev]";
+            Logger.LogError(errorMsg);
             throw new InvalidOperationException(errorMsg);
         }
 
@@ -246,10 +329,20 @@ public class PythonTestRunner : BaseTestRunner
     {
         if (hasUv)
         {
-            Logger.LogDebug("Installing Python dependencies with uv");
+            Logger.LogDebug("Installing Python dependencies with uv into venv");
+
+            // If we have a venv, we need to tell uv to install into it
+            // Use -p shorthand and quote the path to handle spaces
+            // Note: we pass the deps directly, uv will handle the .[dev] syntax
+            var uvArgs = File.Exists(_pythonExecutable)
+                ? $"pip install -p \"{_pythonExecutable}\" \"{deps}\""
+                : $"pip install \"{deps}\"";
+
+            Logger.LogDebug("Running uv with args: {Args}", uvArgs);
+
             var installResult = await ExecuteProcessAsync(
                 "uv",
-                $"pip install {deps}",
+                uvArgs,
                 _pythonDir,
                 null,
                 TimeSpan.FromMilliseconds(Config.Timeouts.BuildTimeoutMs),
@@ -257,7 +350,10 @@ public class PythonTestRunner : BaseTestRunner
                 throwOnError: false);
 
             if (installResult.Success)
+            {
+                Logger.LogDebug("Successfully installed dependencies with uv");
                 return;
+            }
 
             Logger.LogWarning("Failed to install dependencies with uv: {Error}", installResult.StandardError);
             Logger.LogDebug("Falling back to pip for dependency installation");
@@ -272,27 +368,35 @@ public class PythonTestRunner : BaseTestRunner
 
     private async Task<bool> CheckForMaturinAsync(string pythonCommand, CancellationToken cancellationToken)
     {
-        // Check in venv first
-        if (!File.Exists(_pythonExecutable))
+        // First try system maturin (most common case)
+        var systemMaturin = await CheckToolAsync("maturin", "--version", cancellationToken);
+        if (systemMaturin)
         {
-            // Try system maturin as fallback
-            return await CheckToolAsync("maturin", "--version", cancellationToken);
+            Logger.LogDebug("Found system maturin");
+            return true;
         }
 
-        var maturinCheckResult = await ExecuteProcessAsync(
-            pythonCommand,
-            "-m maturin --version",
-            _pythonDir,
-            null,
-            TimeSpan.FromMilliseconds(Config.Timeouts.ToolCheckTimeoutMs),
-            cancellationToken,
-            throwOnError: false);
+        // If venv exists, check for maturin as a Python module
+        if (File.Exists(_pythonExecutable))
+        {
+            var maturinCheckResult = await ExecuteProcessAsync(
+                pythonCommand,
+                "-m maturin --version",
+                _pythonDir,
+                null,
+                TimeSpan.FromMilliseconds(Config.Timeouts.ToolCheckTimeoutMs),
+                cancellationToken,
+                throwOnError: false);
 
-        if (maturinCheckResult.Success)
-            return true;
+            if (maturinCheckResult.Success)
+            {
+                Logger.LogDebug("Found maturin in virtual environment");
+                return true;
+            }
+        }
 
-        // Try system maturin as fallback
-        return await CheckToolAsync("maturin", "--version", cancellationToken);
+        Logger.LogDebug("Maturin not found in system PATH or virtual environment");
+        return false;
     }
 
     private async Task BuildWithMaturinAsync(string pythonCommand, CancellationToken cancellationToken)
@@ -305,37 +409,21 @@ public class PythonTestRunner : BaseTestRunner
             Logger.LogDebug("Setting VIRTUAL_ENV to: {VenvDir}", _venvDir);
         }
 
-        ProcessResult maturinResult;
+        // Try running maturin as a Python module first (works with both venv and system installs)
+        Logger.LogDebug("Attempting to build with maturin using Python: {Python}", pythonCommand);
+        var maturinResult = await ExecuteProcessAsync(
+            pythonCommand,
+            "-m maturin develop",
+            _pythonDir,
+            maturinEnv,
+            TimeSpan.FromMilliseconds(Config.Timeouts.BuildTimeoutMs),
+            cancellationToken,
+            throwOnError: false);
 
-        // Try venv maturin first if available
-        if (File.Exists(_pythonExecutable))
+        // If module not found, try system maturin command
+        if (!maturinResult.Success && maturinResult.StandardError.Contains("No module named maturin"))
         {
-            maturinResult = await ExecuteProcessAsync(
-                pythonCommand,
-                "-m maturin develop",
-                _pythonDir,
-                maturinEnv,
-                TimeSpan.FromMilliseconds(Config.Timeouts.BuildTimeoutMs),
-                cancellationToken,
-                throwOnError: false);
-
-            // Fall back to system maturin if venv maturin not found
-            if (!maturinResult.Success && maturinResult.StandardError.Contains("No module named maturin"))
-            {
-                Logger.LogDebug("Falling back to system maturin");
-                maturinResult = await ExecuteProcessAsync(
-                    "maturin",
-                    "develop",
-                    _pythonDir,
-                    maturinEnv,
-                    TimeSpan.FromMilliseconds(Config.Timeouts.BuildTimeoutMs),
-                    cancellationToken,
-                    throwOnError: false);
-            }
-        }
-        else
-        {
-            // Use system maturin directly
+            Logger.LogDebug("Maturin not found as Python module, trying system maturin command");
             maturinResult = await ExecuteProcessAsync(
                 "maturin",
                 "develop",
@@ -351,6 +439,8 @@ public class PythonTestRunner : BaseTestRunner
             Logger.LogError("Failed to build Python SDK with maturin: {Error}", maturinResult.StandardError);
             throw new InvalidOperationException($"Failed to build Python SDK with maturin: {maturinResult.StandardError}");
         }
+
+        Logger.LogDebug("Successfully built Python SDK with maturin");
     }
 
     private async Task InstallWithPipAsync(string deps, CancellationToken cancellationToken)
@@ -364,7 +454,7 @@ public class PythonTestRunner : BaseTestRunner
 
         var pipResult = await ExecuteProcessAsync(
             pipCommand,
-            $"install {deps}",
+            $"install \"{deps}\"",
             _pythonDir,
             null,
             TimeSpan.FromMilliseconds(Config.Timeouts.BuildTimeoutMs),

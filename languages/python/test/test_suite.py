@@ -89,7 +89,7 @@ class PythonSdkTestSuite:
     def run_operation(self, operation_name: str, test_func, display_name: str = None):
         """Run a single test operation and track results"""
         if display_name is None:
-            display_name = operation_name.replace("_", " ").title()
+            display_name = operation_name
 
         start = time.time()
         operation = {
@@ -145,17 +145,15 @@ class PythonSdkTestSuite:
         state_file = os.getenv("STATE_FILE")
         self.client.auth().login_access_token(access_token, state_file)
 
-        # On real server, verify authentication worked by trying to sync
-        verified = False
-        if self.is_real_server:
-            try:
-                # Try to sync - should work if authenticated
-                sync_result = self.client.secrets().sync(self.organization_id, None)
-                verified = sync_result.success is True
-            except Exception as e:
-                raise Exception(f"Authentication verification failed: {e}")
+        # Verify authentication worked by trying to sync
+        try:
+            sync_result = self.client.secrets().sync(self.organization_id, None)
+            if not sync_result.success:
+                raise Exception("Sync returned unsuccessful status")
+        except Exception as e:
+            raise Exception(f"Authentication verification failed: {e}")
 
-        return True, {"method": "access_token", "has_state": bool(state_file), "verified": verified}
+        return True, {"has_state": bool(state_file)}
 
     def test_secret_create(self):
         """Create a secret"""
@@ -247,19 +245,34 @@ class PythonSdkTestSuite:
 
     def test_secret_sync(self):
         """Test sync functionality"""
-        # Initial sync
+        # Initial sync with None date - should return all secrets
         sync1 = self.client.secrets().sync(self.organization_id, None)
 
-        # Sync with current date
+        # Verify initial sync returns data (has_changes should be true for first sync)
+        if not sync1.data.has_changes:
+            raise Exception("Initial sync should return has_changes=True")
+
+        # Sync with current date - should return no changes (nothing changed since now)
         sync2 = self.client.secrets().sync(
             self.organization_id,
             datetime.now(tz=timezone.utc)
         )
 
+        # For fake-server, the behavior is currently inverted due to implementation
+        # For real-server, this should properly return false for no changes
+        if self.is_real_server:
+            # Real server should return false when no changes since the given date
+            expected_no_changes = not sync2.data.has_changes
+        else:
+            # Fake server incorrectly returns false for any past date
+            expected_no_changes = not sync2.data.has_changes
+
+        if not expected_no_changes:
+            raise Exception("Sync with current date should return has_changes=False")
+
         return True, {
-            "initial_has_changes": sync1.data.has_changes,
-            "after_has_changes": sync2.data.has_changes,
-            "secret_count": len(sync1.data.secrets) if sync1.data.secrets else 0
+            "sync_succeeded": True,
+            "initial_secrets": len(sync1.data.secrets) if sync1.data.secrets else 0
         }
 
     def test_secret_delete(self):
@@ -287,7 +300,8 @@ class PythonSdkTestSuite:
             # Verify the secret is actually deleted
             self.verify_secret_deleted(secret_id)
 
-            return True, {"deleted": 1, "id": secret_id, "verified": self.is_real_server}
+            # If we got here, deletion succeeded and was verified (for real-server)
+            return True, {"deletion_succeeded": True}
         finally:
             self.cleanup_project(project_id)
 
@@ -325,6 +339,108 @@ class PythonSdkTestSuite:
         finally:
             self.cleanup_project(project_id)
 
+    def test_generator_default(self):
+        """Test password generator with default parameters"""
+        # Define character sets
+        LOWERCASE_CHARACTERS = "abcdefghijklmnopqrstuvwxyz"
+        UPPERCASE_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        NUMERIC_CHARACTERS = "0123456789"
+        SPECIAL_CHARACTERS = "!@#$%^&*()-_=+[]{};:'\",.<>/?\\|`~"
+
+        generated_secret = self.client.generators().generate()
+
+        # Should be exactly 24 chars
+        if len(generated_secret) != 24:
+            raise Exception(f"Expected length 24, got {len(generated_secret)}")
+
+        # Should contain lowercase chars
+        if not any(c in LOWERCASE_CHARACTERS for c in generated_secret):
+            raise Exception("Generated secret missing lowercase characters")
+
+        # Should contain uppercase chars
+        if not any(c in UPPERCASE_CHARACTERS for c in generated_secret):
+            raise Exception("Generated secret missing uppercase characters")
+
+        # Should contain numeric chars
+        if not any(c in NUMERIC_CHARACTERS for c in generated_secret):
+            raise Exception("Generated secret missing numeric characters")
+
+        # Should contain special chars
+        if not any(c in SPECIAL_CHARACTERS for c in generated_secret):
+            raise Exception("Generated secret missing special characters")
+
+        return True, {"length": len(generated_secret), "has_all_types": True}
+
+    def test_generator_custom(self):
+        """Test password generator with custom parameters"""
+        # Define character sets
+        LOWERCASE_CHARACTERS = "abcdefghijklmnopqrstuvwxyz"
+        UPPERCASE_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        NUMERIC_CHARACTERS = "0123456789"
+        SPECIAL_CHARACTERS = "!@#$%^&*()-_=+[]{};:'\",.<>/?\\|`~"
+        AMBIGUOUS_CHARACTERS = "0O1lI"
+
+        very_strong_secret = self.client.generators().generate(
+            length=128,
+            avoid_ambiguous=False,
+            lowercase=True,
+            uppercase=True,
+            numbers=True,
+            special=True,
+            min_lowercase=2,
+            min_uppercase=2,
+            min_number=4,
+            min_special=4,
+        )
+
+        # Should be exactly 128 chars
+        if len(very_strong_secret) != 128:
+            raise Exception(f"Expected length 128, got {len(very_strong_secret)}")
+
+        # Should contain ambiguous chars
+        if not any(c in AMBIGUOUS_CHARACTERS for c in very_strong_secret):
+            raise Exception("Generated secret missing ambiguous characters")
+
+        # Should contain lowercase chars
+        if not any(c in LOWERCASE_CHARACTERS for c in very_strong_secret):
+            raise Exception("Generated secret missing lowercase characters")
+
+        # Should contain uppercase chars
+        if not any(c in UPPERCASE_CHARACTERS for c in very_strong_secret):
+            raise Exception("Generated secret missing uppercase characters")
+
+        # Should contain special chars
+        if not any(c in SPECIAL_CHARACTERS for c in very_strong_secret):
+            raise Exception("Generated secret missing special characters")
+
+        # Should contain at least 2 lowercase chars
+        lowercase_count = sum(1 for c in very_strong_secret if c in LOWERCASE_CHARACTERS)
+        if lowercase_count < 2:
+            raise Exception(f"Expected at least 2 lowercase, got {lowercase_count}")
+
+        # Should contain at least 2 uppercase chars
+        uppercase_count = sum(1 for c in very_strong_secret if c in UPPERCASE_CHARACTERS)
+        if uppercase_count < 2:
+            raise Exception(f"Expected at least 2 uppercase, got {uppercase_count}")
+
+        # Should contain at least 4 numeric chars
+        numeric_count = sum(1 for c in very_strong_secret if c in NUMERIC_CHARACTERS)
+        if numeric_count < 4:
+            raise Exception(f"Expected at least 4 numeric, got {numeric_count}")
+
+        # Should contain at least 4 special chars
+        special_count = sum(1 for c in very_strong_secret if c in SPECIAL_CHARACTERS)
+        if special_count < 4:
+            raise Exception(f"Expected at least 4 special, got {special_count}")
+
+        return True, {
+            "length": len(very_strong_secret),
+            "lowercase_count": lowercase_count,
+            "uppercase_count": uppercase_count,
+            "numeric_count": numeric_count,
+            "special_count": special_count
+        }
+
 
 
     def discover_tests(self):
@@ -340,6 +456,8 @@ class PythonSdkTestSuite:
             ("test_secret_delete", "Delete Secrets"),
             ("test_project_list", "List Projects"),
             ("test_project_update", "Update Project"),
+            ("test_generator_default", "Generator Default"),
+            ("test_generator_custom", "Generator Custom"),
         ]
 
         for name, display in test_definitions:
@@ -405,7 +523,7 @@ class PythonSdkTestSuite:
 
         # Return appropriate exit code
         all_passed = all(op["success"] for op in self.operations)
-        return 0 if (all_passed or self.json_output) else 1
+        return 0 if all_passed else 1
 
     def _get_sdk_version(self) -> str:
         """Get SDK version"""

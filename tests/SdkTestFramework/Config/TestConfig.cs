@@ -112,4 +112,3 @@ public record TimeoutSettings
     [JsonPropertyName("PROCESS_EXIT_WAIT_MS")]
     public int ProcessExitWaitMs { get; init; } = 5000;
 }
-

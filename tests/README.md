@@ -12,6 +12,7 @@ You'll need these tools installed on your system:
   - [Download .NET 10](https://dotnet.microsoft.com/download/dotnet/10.0)
 
 - **Rust** - Required for building SDKs & fake-server
+
   ```bash
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
   ```
@@ -31,6 +32,7 @@ You'll need these tools installed on your system:
   ```
 
 #### Verify Installation
+
 ```bash
 dotnet --version  # Should show 10.x.x
 cargo --version   # Should show 1.x.x
@@ -63,6 +65,7 @@ cp SdkTestFramework.Tests/Configuration/.env.example \
 You can run the tests in two ways:
 
 #### Option A: Using .NET Framework (Recommended)
+
 ```bash
 cd tests
 dotnet test
@@ -80,6 +83,7 @@ dotnet test --logger "console;verbosity=detailed"
 ```
 
 #### Option B: Without .NET (Direct Language Tests)
+
 ```bash
 # Using bootstrap script (starts fake-server automatically)
 ./scripts/bootstrap.sh test python
@@ -98,6 +102,7 @@ That's it! The tests should now run successfully. 🎉
 ## 📋 What Gets Tested
 
 The framework tests these SDK operations:
+
 - Authentication with access tokens
 - Secret CRUD operations (Create, Read, Update, Delete)
 - Project CRUD operations
@@ -110,10 +115,10 @@ The framework tests these SDK operations:
 
 The framework supports two test modes, configured in `test-config.json`:
 
-| Mode | Description | When to Use |
-|------|-------------|-------------|
-| `fake-server` | Uses local mock server | Development, CI/CD (default) |
-| `real-server` | Uses actual Bitwarden server | Integration testing |
+| Mode          | Description                  | When to Use                  |
+| ------------- | ---------------------------- | ---------------------------- |
+| `fake-server` | Uses local mock server       | Development, CI/CD (default) |
+| `real-server` | Uses actual Bitwarden server | Integration testing          |
 
 ### Configuration File
 
@@ -122,8 +127,8 @@ Edit `tests/SdkTestFramework.Tests/Configuration/test-config.json`:
 ```json
 {
   "configuration": {
-    "TEST_MODE": "fake-server",    // or "real-server"
-    "BUILD_SDK": true,              // Build SDKs before testing
+    "TEST_MODE": "fake-server", // or "real-server"
+    "BUILD_SDK": true, // Build SDKs before testing
     "AUTO_START_FAKE_SERVER": true, // Auto-start fake server
     "FAKE_SERVER_PORT": 4000,
     "ENABLED_LANGUAGES": ["python", "go"]
@@ -134,6 +139,7 @@ Edit `tests/SdkTestFramework.Tests/Configuration/test-config.json`:
 ### Environment Variables
 
 For real server testing, update `.env` with your credentials:
+
 ```bash
 # Real server credentials
 ACCESS_TOKEN=your-access-token
@@ -144,7 +150,9 @@ IDENTITY_URL=https://identity.bitwarden.com
 
 #### Getting an Access Token
 
-To obtain an access token for real server testing, you'll need to create a machine account in Bitwarden. See the official documentation: [Managing Access Tokens](https://bitwarden.com/help/access-tokens/)
+To obtain an access token for real server testing, you'll need to create a machine account in
+Bitwarden. See the official documentation:
+[Managing Access Tokens](https://bitwarden.com/help/access-tokens/)
 
 ## 🐛 Troubleshooting
 
@@ -154,49 +162,61 @@ To obtain an access token for real server testing, you'll need to create a machi
 <summary><b>"Failed to start fake server"</b></summary>
 
 The fake-server needs to be built first:
+
 ```bash
 cargo build -p fake-server
 ```
+
 If cargo is not found, ensure Rust is installed and in your PATH:
+
 ```bash
 source "$HOME/.cargo/env"
 ```
+
 </details>
 
 <details>
 <summary><b>"schemas.py not found"</b></summary>
 
 Generate the required schemas:
+
 ```bash
 # From repository root
 npm install
 npm run schemas
 ```
+
 </details>
 
 <details>
 <summary><b>"uv is required but not installed"</b></summary>
 
 Install uv (Python package manager):
+
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
 source $HOME/.local/bin/env  # Add to PATH
 ```
+
 </details>
 
 <details>
 <summary><b>"maturin not found"</b></summary>
 
-Maturin (Python build tool) will be installed automatically by the test framework if uv is available. If you need to install it manually:
+Maturin (Python build tool) will be installed automatically by the test framework if uv is
+available. If you need to install it manually:
+
 ```bash
 pip install maturin
 ```
+
 </details>
 
 <details>
 <summary><b>Tests timeout on first run</b></summary>
 
 First-time setup can be slow due to dependency downloads. Pre-build everything:
+
 ```bash
 # Build fake-server
 cargo build -p fake-server
@@ -210,11 +230,13 @@ maturin develop
 cd ../go
 go mod download
 ```
+
 </details>
 
 ### Debug Mode
 
 For detailed output during test runs:
+
 ```bash
 # Verbose test output
 dotnet test --logger "console;verbosity=detailed"
@@ -281,6 +303,7 @@ gh workflow run sdk-tests.yml \
 ## 📊 Test Output
 
 Successful test run output:
+
 ```
 ═══════════════════════════════════════════════════════════════════
   Python SDK Test Results
@@ -310,6 +333,7 @@ Successful test run output:
 The test framework supports two execution modes:
 
 ### Mode 1: With .NET Framework (Recommended for CI/CD)
+
 Provides comprehensive test management, reporting, and parallel execution:
 
 ```bash
@@ -333,6 +357,7 @@ dotnet test --parallel
 ```
 
 **Benefits:**
+
 - ✅ Unified test reporting across languages
 - ✅ Individual test case visibility in CI
 - ✅ Automatic dependency management
@@ -340,6 +365,7 @@ dotnet test --parallel
 - ✅ Test result caching for efficiency
 
 ### Mode 2: Without .NET (Direct Execution)
+
 For quick development testing and environments without .NET:
 
 ```bash
@@ -360,12 +386,14 @@ ACCESS_TOKEN=xxx ORGANIZATION_ID=yyy python test/test_suite.py
 ```
 
 **Benefits:**
+
 - ✅ No .NET dependency required
 - ✅ Faster startup for single-language tests
 - ✅ Direct access to language-specific debugging
 - ✅ Simpler CI pipeline setup
 
 ### Environment Variables
+
 Both modes support configuration via environment variables:
 
 ```bash
@@ -385,7 +413,8 @@ export STATE_FILE=/tmp/sdk-test-state.json
 export AUTO_GENERATE_SCHEMAS=true
 ```
 
-The framework exposes each test operation as an individual test case for better CI visibility using dynamic test generation (see `PythonTests.cs` and `GoTests.cs`)
+The framework exposes each test operation as an individual test case for better CI visibility using
+dynamic test generation (see `PythonTests.cs` and `GoTests.cs`)
 
 ## ➕ Adding a New Language
 

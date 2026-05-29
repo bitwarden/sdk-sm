@@ -9,7 +9,6 @@ import json
 import os
 import sys
 import time
-import uuid
 from datetime import datetime, timezone
 
 # Add parent directory to path for imports
@@ -62,7 +61,7 @@ class PythonSdkTestSuite:
     def create_test_project(self, purpose: str) -> str:
         """Helper method to create a project for testing
         Returns the project ID"""
-        project_name = f"test-project-{purpose}-{uuid.uuid4().hex[:8]}"
+        project_name = f"test-project-{purpose}"
         project = self.client.projects().create(self.organization_id, project_name)
         return project.data.id
 
@@ -160,7 +159,7 @@ class PythonSdkTestSuite:
         project_id = self.create_test_project("secret-create")
 
         try:
-            secret_name = f"test-secret-{uuid.uuid4().hex[:8]}"
+            secret_name = "test-secret-create"
             secret = self.client.secrets().create(
                 organization_id=self.organization_id,
                 key=secret_name,
@@ -184,7 +183,7 @@ class PythonSdkTestSuite:
 
         try:
             # Create a secret to get
-            secret_name = f"test-secret-{uuid.uuid4().hex[:8]}"
+            secret_name = "test-secret-get"
             created_secret = self.client.secrets().create(
                 organization_id=self.organization_id,
                 key=secret_name,
@@ -215,7 +214,7 @@ class PythonSdkTestSuite:
 
         try:
             # Create a secret to update
-            secret_name = f"test-secret-{uuid.uuid4().hex[:8]}"
+            secret_name = "test-secret-update"
             created_secret = self.client.secrets().create(
                 organization_id=self.organization_id,
                 key=secret_name,
@@ -281,7 +280,7 @@ class PythonSdkTestSuite:
 
         try:
             # Create a secret to delete
-            secret_name = f"test-secret-{uuid.uuid4().hex[:8]}"
+            secret_name = "test-secret-delete"
             created_secret = self.client.secrets().create(
                 organization_id=self.organization_id,
                 key=secret_name,
@@ -332,7 +331,7 @@ class PythonSdkTestSuite:
 
         try:
             # Update the project
-            new_name = f"updated-project-{uuid.uuid4().hex[:8]}"
+            new_name = "updated-project-name"
             updated = self.client.projects().update(self.organization_id, project_id, new_name)
 
             return new_name in updated.data.name, {"name": updated.data.name}

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	sdk "github.com/bitwarden/sdk-go/v2"
-	"github.com/gofrs/uuid"
 )
 
 // TestOperation represents a single test operation result
@@ -80,7 +79,7 @@ func (s *GoSDKTestSuite) SetupClient() error {
 
 // createTestProject creates a project for testing and returns the project ID
 func (s *GoSDKTestSuite) createTestProject(purpose string) (string, error) {
-	projectName := fmt.Sprintf("test-project-%s-%s", purpose, uuid.Must(uuid.NewV4()).String()[:8])
+	projectName := fmt.Sprintf("test-project-%s", purpose)
 	project, err := s.client.Projects().Create(s.organizationID, projectName)
 	if err != nil {
 		return "", fmt.Errorf("failed to create project: %w", err)
@@ -201,7 +200,7 @@ func (s *GoSDKTestSuite) TestSecretCreate() (bool, map[string]interface{}, error
 	}
 
 	// Create the secret
-	secretName := fmt.Sprintf("test-secret-%s", uuid.Must(uuid.NewV4()).String()[:8])
+	secretName := "test-secret-create"
 	secret, err := s.client.Secrets().Create(
 		secretName,
 		"test-value",
@@ -243,7 +242,7 @@ func (s *GoSDKTestSuite) TestSecretGet() (bool, map[string]interface{}, error) {
 	}
 
 	// Create a secret to get
-	secretName := fmt.Sprintf("test-secret-%s", uuid.Must(uuid.NewV4()).String()[:8])
+	secretName := "test-secret-get"
 	secret, err := s.client.Secrets().Create(
 		secretName,
 		"test-value",
@@ -305,7 +304,7 @@ func (s *GoSDKTestSuite) TestSecretUpdate() (bool, map[string]interface{}, error
 	}
 
 	// Create a secret to update
-	secretName := fmt.Sprintf("test-secret-%s", uuid.Must(uuid.NewV4()).String()[:8])
+	secretName := "test-secret-update"
 	secret, err := s.client.Secrets().Create(
 		secretName,
 		"test-value",
@@ -401,7 +400,7 @@ func (s *GoSDKTestSuite) TestSecretDelete() (bool, map[string]interface{}, error
 	}
 
 	// Create a secret to delete
-	secretName := fmt.Sprintf("test-secret-%s", uuid.Must(uuid.NewV4()).String()[:8])
+	secretName := "test-secret-delete"
 	secret, err := s.client.Secrets().Create(
 		secretName,
 		"test-value",
@@ -492,7 +491,7 @@ func (s *GoSDKTestSuite) TestProjectUpdate() (bool, map[string]interface{}, erro
 	}
 
 	// Update the project
-	newName := fmt.Sprintf("updated-project-%s", uuid.Must(uuid.NewV4()).String()[:8])
+	newName := "updated-project-name"
 	updated, err := s.client.Projects().Update(projectID, s.organizationID, newName)
 	if err != nil {
 		// Clean up before returning error

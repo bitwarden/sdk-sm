@@ -25,6 +25,7 @@
     "quicktype-core": "23.2.6",
     "rimraf": "6.1.2",
     "ts-node": "10.9.2",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "wasm-pack": "^0.15.0"
   }
 }

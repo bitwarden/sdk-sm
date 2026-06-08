@@ -45,7 +45,7 @@ jobs:
         uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
 
       - name: Build
-        run: cargo build -p ${{ matrix.package }} --release
+        run: cargo build --locked -p ${{ matrix.package }} --release
         env:
           RUSTFLAGS: "-D warnings"
 

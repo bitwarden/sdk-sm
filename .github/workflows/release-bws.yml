@@ -58,7 +58,7 @@ jobs:
           PKG_VERSION: ${{ steps.version.outputs.version }}
         run: |
           cd packages
-          sha256sum *.zip > bws-sha256-checksums-${PKG_VERSION}.txt
+          sha256sum ./*.zip > bws-sha256-checksums-${PKG_VERSION}.txt
           echo "Generated checksums:"
           cat bws-sha256-checksums-${PKG_VERSION}.txt
 

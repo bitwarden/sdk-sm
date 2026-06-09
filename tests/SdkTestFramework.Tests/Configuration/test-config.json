@@ -4,7 +4,7 @@
     "version": "1.0.0"
   },
   "configuration": {
-    "TEST_MODE": "real-server",
+    "TEST_MODE": "fake-server",
     "BUILD_SDK": true,
     "AUTO_START_FAKE_SERVER": true,
     "AUTO_GENERATE_SCHEMAS": false,

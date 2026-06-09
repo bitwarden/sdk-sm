@@ -1,3 +1,4 @@
+using System.Linq;
 using Microsoft.Extensions.Logging;
 using SdkTestFramework.Config;
 using SdkTestFramework.Models;
@@ -21,7 +22,7 @@ public class GoTestRunner : BaseTestRunner
         TestConfig testConfig)
         : base(logger, processExecutor, platformService, testConfig)
     {
-        _goDir = Path.Combine(RepoRoot, "languages", "go");
+        _goDir = Path.Join(RepoRoot, "languages", "go");
         InitializeGoCommand();
     }
 
@@ -36,14 +37,12 @@ public class GoTestRunner : BaseTestRunner
             "/usr/bin/go"                // System installation
         };
 
-        foreach (var goPath in commonPaths)
+        var goPath = commonPaths.FirstOrDefault(File.Exists);
+        if (!string.IsNullOrEmpty(goPath))
         {
-            if (File.Exists(goPath))
-            {
-                Logger.LogInformation("Found go at {Path}, will use full path for execution", goPath);
-                _goCommand = goPath;
-                return;
-            }
+            Logger.LogInformation("Found go at {Path}, will use full path for execution", goPath);
+            _goCommand = goPath;
+            return;
         }
 
         // If not found in common paths, assume it might be in PATH

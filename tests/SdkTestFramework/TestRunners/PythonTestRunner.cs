@@ -26,22 +26,22 @@ public class PythonTestRunner : BaseTestRunner
         TestConfig testConfig)
         : base(logger, processExecutor, platformService, testConfig)
     {
-        _pythonDir = Path.Combine(RepoRoot, "languages", "python");
+        _pythonDir = Path.Join(RepoRoot, "languages", "python");
 
         // Set up virtual environment paths
         var tempDir = Path.GetTempPath();
-        _venvDir = Path.Combine(tempDir, $".venv-{PythonCommand}");
+        _venvDir = Path.Join(tempDir, $".venv-{PythonCommand}");
 
         // Platform-specific Python and pip paths in venv
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            _pythonExecutable = Path.Combine(_venvDir, "Scripts", "python.exe");
-            _pipExecutable = Path.Combine(_venvDir, "Scripts", "pip.exe");
+            _pythonExecutable = Path.Join(_venvDir, "Scripts", "python.exe");
+            _pipExecutable = Path.Join(_venvDir, "Scripts", "pip.exe");
         }
         else
         {
-            _pythonExecutable = Path.Combine(_venvDir, "bin", "python");
-            _pipExecutable = Path.Combine(_venvDir, "bin", "pip");
+            _pythonExecutable = Path.Join(_venvDir, "bin", "python");
+            _pipExecutable = Path.Join(_venvDir, "bin", "pip");
         }
     }
 
@@ -69,7 +69,7 @@ public class PythonTestRunner : BaseTestRunner
             }
 
             // Run the Python test suite directly
-            var testScriptPath = Path.Combine(_pythonDir, "test", "test_suite.py");
+            var testScriptPath = Path.Join(_pythonDir, "test", "test_suite.py");
             var args = new List<string> { testScriptPath };
 
             if (config.JsonOutput) args.Add("--json");

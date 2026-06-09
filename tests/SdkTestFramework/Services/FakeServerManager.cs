@@ -224,6 +224,11 @@ public sealed class FakeServerManager(TestConfig config, ILogger<FakeServerManag
             ? "fake-server.exe"
             : "fake-server";
 
+        if (Path.IsPathRooted(executableName))
+        {
+            throw new InvalidOperationException("Executable name must be a relative file name.");
+        }
+
         return Path.Combine(basePath, "target", "debug", executableName);
     }
 

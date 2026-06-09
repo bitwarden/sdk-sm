@@ -529,7 +529,7 @@ class PythonSdkTestSuite:
         try:
             from bitwarden_sdk import __version__
             return __version__
-        except:
+        except Exception:
             return "unknown"
 
 

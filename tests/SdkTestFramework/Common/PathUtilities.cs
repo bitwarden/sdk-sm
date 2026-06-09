@@ -15,6 +15,11 @@ public static class PathUtilities
     /// <returns>The root path, or null if not found</returns>
     private static string? FindRootPath(string startPath, string marker, bool isDirectory = false)
     {
+        if (Path.IsPathRooted(marker))
+        {
+            throw new ArgumentException("Marker must be a relative path.", nameof(marker));
+        }
+
         var dir = new DirectoryInfo(startPath);
 
         while (dir != null)

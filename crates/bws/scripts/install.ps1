@@ -23,17 +23,17 @@ function Test-BwsInstallation {
   if ($null -ne $existingBws) {
     $userInput = Read-Host "bws is already installed at $($existingBws.Source). Do you want to overwrite it? (Y/N)"
     if ($userInput -ne "Y") {
-      Write-Host "Installation cancelled by user."
+      Write-Output "Installation cancelled by user."
       exit
     }
   }
 }
 
 function Invoke-BwsDownload {
-  Write-Host "Detected architecture: $arch"
+  Write-Output "Detected architecture: $arch"
 
   $bwsUrl = "https://github.com/bitwarden/sdk-sm/releases/download/bws-v$bwsVersion/bws-$arch-pc-windows-msvc-$bwsVersion.zip"
-  Write-Host "Downloading bws from: $bwsUrl"
+  Write-Output "Downloading bws from: $bwsUrl"
   $outputPath = Join-Path $env:TEMP "bws.zip"
   Invoke-WebRequest -Uri $bwsUrl -OutFile $outputPath
   return $outputPath
@@ -41,7 +41,7 @@ function Invoke-BwsDownload {
 
 function Test-Checksum {
   param($zipPath)
-  Write-Host "Validating checksum..."
+  Write-Output "Validating checksum..."
 
   $checksumUrl = "https://github.com/bitwarden/sdk-sm/releases/download/bws-v$bwsVersion/bws-sha256-checksums-$bwsVersion.txt"
   $checksumFile = Join-Path $env:TEMP "bws-checksums.txt"
@@ -53,47 +53,47 @@ function Test-Checksum {
   if ($actualChecksum -ne $expectedChecksum) {
     throw "Checksum validation failed. Expected: $expectedChecksum, Actual: $actualChecksum"
   } else {
-    Write-Host "Checksum validation successful."
+    Write-Output "Checksum validation successful."
   }
 }
 
 function Install-Bws {
   param($zipPath)
-  Write-Host "Installing bws..."
+  Write-Output "Installing bws..."
   New-Item -ItemType Directory -Force -Path $installDir | Out-Null
   Expand-Archive -Force $zipPath -DestinationPath $installDir
-  Write-Host "bws installed to $installDir"
+  Write-Output "bws installed to $installDir"
   setx PATH "$env:PATH;$installDir"
-  Write-Host "$installDir has been added to your PATH"
-  Write-Host "Please restart your shell to use bws"
+  Write-Output "$installDir has been added to your PATH"
+  Write-Output "Please restart your shell to use bws"
 }
 
 function Test-Bws {
-  Write-Host "Checking bws..."
+  Write-Output "Checking bws..."
   $bwsPath = Join-Path $installDir "bws.exe"
   if (Test-Path $bwsPath) {
-    Write-Host "bws is installed at $bwsPath"
+    Write-Output "bws is installed at $bwsPath"
   } else {
     throw "bws is not installed"
   }
 }
 
 function Remove-Bws {
-  Write-Host "Uninstalling bws..."
+  Write-Output "Uninstalling bws..."
 
   if (Test-Path $installDir) {
     Remove-Item -Path $installDir -Recurse -Force
-    Write-Host "bws uninstalled from $installDir"
+    Write-Output "bws uninstalled from $installDir"
   } else {
-    Write-Host "bws installation directory not found at $installDir. Skipping removal."
+    Write-Output "bws installation directory not found at $installDir. Skipping removal."
   }
 
   $configDir = "$env:USERPROFILE\.bws"
   if (Test-Path $configDir -PathType Container) {
     Remove-Item -Path $configDir -Recurse -Force
-    Write-Host "bws config directory removed from $configDir"
+    Write-Output "bws config directory removed from $configDir"
   } else {
-    Write-Host "bws config directory not found at $configDir. Skipping removal."
+    Write-Output "bws config directory not found at $configDir. Skipping removal."
   }
 }
 

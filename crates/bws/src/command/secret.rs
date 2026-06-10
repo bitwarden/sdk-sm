@@ -171,18 +171,24 @@ pub(crate) async fn edit(
         .get(&SecretGetRequest { id: secret.id })
         .await?;
 
+    let value_changed = secret
+        .value
+        .as_ref()
+        .map_or(false, |v| v != &old_secret.value);
+
     let new_secret = client
         .secrets()
         .update(&SecretPutRequest {
             id: secret.id,
             organization_id: organization_id.into(),
             key: secret.key.unwrap_or(old_secret.key),
-            value: secret.value.unwrap_or(old_secret.value),
+            value: secret.value.unwrap_or(old_secret.value.clone()),
             note: secret.note.unwrap_or(old_secret.note),
             project_ids: secret
                 .project_id
                 .or(old_secret.project_id)
                 .map(|id| vec![id]),
+            value_changed,
         })
         .await?;
     serialize_response(new_secret, output_settings);

@@ -33,7 +33,7 @@ jobs:
           - os: macos-15
             target: x86_64-apple-darwin
             build: |
-              npm run build
+              npm run build-x64
               strip -x *.node
 
           - os: macos-15

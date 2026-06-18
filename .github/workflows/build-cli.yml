@@ -446,7 +446,7 @@ jobs:
 
       - name: Install cargo-about
         run: |
-          cargo install cargo-about --locked
+          cargo install cargo-about --locked --retry 3
           cargo about --version
 
       - name: Generate THIRDPARTY.html

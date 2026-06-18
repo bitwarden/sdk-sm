@@ -444,9 +444,9 @@ jobs:
         with:
           key: cargo-cli-about
 
-      - name: Install cargo-about@0.6.3
+      - name: Install cargo-about
         run: |
-          cargo install cargo-about --locked --version 0.6.3
+          cargo install cargo-about --locked
           cargo about --version
 
       - name: Generate THIRDPARTY.html

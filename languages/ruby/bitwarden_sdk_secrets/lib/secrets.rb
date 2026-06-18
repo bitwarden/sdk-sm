@@ -85,9 +85,17 @@ module BitwardenSDKSecrets
     end
 
     def update(organization_id, id, key, value, note, project_ids)
+      begin
+        old_secret = get(id)
+      rescue => e
+        raise BitwardenError, "Cannot update secret: failed to fetch current value for version history: #{e.message}"
+      end
+
+      value_changed = value != old_secret['value']
+
       command = create_command(
         update: SecretPutRequest.new(
-          id: id, key: key, note: note, organization_id: organization_id, project_ids: project_ids, value: value
+          id: id, key: key, note: note, organization_id: organization_id, project_ids: project_ids, value: value, value_changed: value_changed
         )
       )
       response = run_command(command)

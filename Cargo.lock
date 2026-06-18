@@ -359,8 +359,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-api-api"
 version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adb0450a5689b3bbe477762fe917250cd1697e8cd0e50d82fc011718991b23f3"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=cc824ddc07c3e0b65b782b1c47d029c2af24f535#cc824ddc07c3e0b65b782b1c47d029c2af24f535"
 dependencies = [
  "async-trait",
  "bitwarden-api-base",
@@ -376,8 +375,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-api-base"
 version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a96424b08296acd48bbb1668fb875c40866fbb33669c82264c3fc5cc1904fd62"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=cc824ddc07c3e0b65b782b1c47d029c2af24f535#cc824ddc07c3e0b65b782b1c47d029c2af24f535"
 dependencies = [
  "http",
  "reqwest",
@@ -390,8 +388,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-api-identity"
 version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7588f8df51e01007ce95e8e20f1be672ea5ff73c090d662026180ec63b05c56f"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=cc824ddc07c3e0b65b782b1c47d029c2af24f535#cc824ddc07c3e0b65b782b1c47d029c2af24f535"
 dependencies = [
  "async-trait",
  "bitwarden-api-base",
@@ -407,8 +404,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-api-key-connector"
 version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d26eb6247cc775bc297dc1c9215596a3eb7449e57ccb6b7a60e94f8afcbb2a6"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=cc824ddc07c3e0b65b782b1c47d029c2af24f535#cc824ddc07c3e0b65b782b1c47d029c2af24f535"
 dependencies = [
  "async-trait",
  "bitwarden-api-base",
@@ -423,8 +419,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-auth"
 version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b8faa2eb9504ed7579cb53375cb717d4ce5ae88a6d6db70f35f5b2e856e0b6e"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=cc824ddc07c3e0b65b782b1c47d029c2af24f535#cc824ddc07c3e0b65b782b1c47d029c2af24f535"
 dependencies = [
  "async-trait",
  "bitwarden-api-api",
@@ -444,6 +439,7 @@ dependencies = [
  "serde_bytes",
  "serde_repr",
  "thiserror 2.0.18",
+ "tokio",
  "tracing",
  "tsify",
  "uuid",
@@ -463,8 +459,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-cli"
 version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67d4e94d913fb3589803d2f81ffd22b6c0812e18c7310dc14ce6325713c27f78"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=cc824ddc07c3e0b65b782b1c47d029c2af24f535#cc824ddc07c3e0b65b782b1c47d029c2af24f535"
 dependencies = [
  "clap",
  "color-eyre",
@@ -475,8 +470,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-core"
 version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "907b3f566558ac42627858d49de569166fb14f48cb10aec3dae2f9cc62a44f95"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=cc824ddc07c3e0b65b782b1c47d029c2af24f535#cc824ddc07c3e0b65b782b1c47d029c2af24f535"
 dependencies = [
  "async-trait",
  "bitwarden-api-api",
@@ -503,6 +497,7 @@ dependencies = [
  "rustls-platform-verifier",
  "schemars 1.2.1",
  "serde",
+ "serde-wasm-bindgen",
  "serde_bytes",
  "serde_json",
  "serde_qs",
@@ -520,8 +515,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-core-macro"
 version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7844e3e0b9532e65b7921b79a4bcb3b494b59fe9464704e18a34499b75ebdc85"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=cc824ddc07c3e0b65b782b1c47d029c2af24f535#cc824ddc07c3e0b65b782b1c47d029c2af24f535"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -531,8 +525,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-crypto"
 version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a579f9e3d5071274cc23513123e0b83246aa88648f6fac99b535d578b5af0a1c"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=cc824ddc07c3e0b65b782b1c47d029c2af24f535#cc824ddc07c3e0b65b782b1c47d029c2af24f535"
 dependencies = [
  "aes",
  "argon2 0.6.0-rc.8",
@@ -575,8 +568,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-encoding"
 version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b22f801f43e2ce2a10f37e59219feadcbaab6df8c579f171eb1a2098e6103512"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=cc824ddc07c3e0b65b782b1c47d029c2af24f535#cc824ddc07c3e0b65b782b1c47d029c2af24f535"
 dependencies = [
  "data-encoding",
  "data-encoding-macro",
@@ -589,8 +581,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-error"
 version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61af829d037cda3277a7194ea197769b61b3778a9b48c0dd38973aeaca22ccda"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=cc824ddc07c3e0b65b782b1c47d029c2af24f535#cc824ddc07c3e0b65b782b1c47d029c2af24f535"
 dependencies = [
  "bitwarden-error-macro",
  "js-sys",
@@ -601,8 +592,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-error-macro"
 version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb57d7b8ea31cc1f1eb99dec53984464759a6f0aa77be5c45716644549c4d6c1"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=cc824ddc07c3e0b65b782b1c47d029c2af24f535#cc824ddc07c3e0b65b782b1c47d029c2af24f535"
 dependencies = [
  "darling 0.20.11",
  "proc-macro2",
@@ -613,8 +603,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-generators"
 version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3a347d2149100f3f294bcab2e08fec937e0d6c283bc79490c17c23e8bfec2fa"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=cc824ddc07c3e0b65b782b1c47d029c2af24f535#cc824ddc07c3e0b65b782b1c47d029c2af24f535"
 dependencies = [
  "bitwarden-core",
  "bitwarden-crypto",
@@ -656,8 +645,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-organizations"
 version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86b70ff87c4fd87ef3081b091623101b473e0b84bc345297a369f2d8a3e7dc8b"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=cc824ddc07c3e0b65b782b1c47d029c2af24f535#cc824ddc07c3e0b65b782b1c47d029c2af24f535"
 dependencies = [
  "bitwarden-core",
  "chrono",
@@ -671,13 +659,14 @@ dependencies = [
 [[package]]
 name = "bitwarden-policies"
 version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "974f955fb488eeb25f89119f279bd1e53c95b39c723846a073d899ef21646e6a"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=cc824ddc07c3e0b65b782b1c47d029c2af24f535#cc824ddc07c3e0b65b782b1c47d029c2af24f535"
 dependencies = [
  "bitwarden-api-api",
  "bitwarden-core",
  "bitwarden-organizations",
+ "chrono",
  "serde",
+ "serde_repr",
  "tsify",
  "uuid",
  "wasm-bindgen",
@@ -698,8 +687,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-sm"
 version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fd093ae9ee853c5cc393fa144d34518654ad50c83fa2b32e6eb218a625cbe0d"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=cc824ddc07c3e0b65b782b1c47d029c2af24f535#cc824ddc07c3e0b65b782b1c47d029c2af24f535"
 dependencies = [
  "bitwarden-api-api",
  "bitwarden-auth",
@@ -719,8 +707,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-state"
 version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa8768927fc7bab99c056bea287e0eed3496dd394fd4fa841a1f061414a4f8da"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=cc824ddc07c3e0b65b782b1c47d029c2af24f535#cc824ddc07c3e0b65b782b1c47d029c2af24f535"
 dependencies = [
  "async-trait",
  "bitwarden-error",
@@ -738,8 +725,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-state-bridge-macro"
 version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d1943e87742d20318473b3b6a5952513a5fe172a12ae4b2507ba4a6cd09a7fd"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=cc824ddc07c3e0b65b782b1c47d029c2af24f535#cc824ddc07c3e0b65b782b1c47d029c2af24f535"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -749,8 +735,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-threading"
 version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ae20ac43ef5e1d09c5c3e9adc4428e4bda251c11d65693a2c4eafda86bb7eba"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=cc824ddc07c3e0b65b782b1c47d029c2af24f535#cc824ddc07c3e0b65b782b1c47d029c2af24f535"
 dependencies = [
  "bitwarden-error",
  "gloo-timers",
@@ -767,8 +752,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-uuid"
 version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "653ad2a22428743d5873d23b341ac53d7954951cfba661d55071e7d9e05e6179"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=cc824ddc07c3e0b65b782b1c47d029c2af24f535#cc824ddc07c3e0b65b782b1c47d029c2af24f535"
 dependencies = [
  "bitwarden-uuid-macro",
 ]
@@ -776,8 +760,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-uuid-macro"
 version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "495a968b0e84fdf8509d11e44b15ca93860eb04d3a12a274f42009c8c92f562d"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=cc824ddc07c3e0b65b782b1c47d029c2af24f535#cc824ddc07c3e0b65b782b1c47d029c2af24f535"
 dependencies = [
  "quote",
  "syn",
@@ -2198,9 +2181,9 @@ dependencies = [
 
 [[package]]
 name = "hyper"
-version = "1.9.0"
+version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6299f016b246a94207e63da54dbe807655bf9e00044f73ded42c3ac5305fbcca"
+checksum = "eb92f162bf56536459fc83c79b974bb12837acfed43d6bc370a7916d0ae15ecc"
 dependencies = [
  "atomic-waker",
  "bytes",
@@ -2628,9 +2611,9 @@ checksum = "b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981"
 
 [[package]]
 name = "libredox"
-version = "0.1.16"
+version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e02f3bb43d335493c96bf3fd3a321600bf6bd07ed34bc64118e9293bdffea46c"
+checksum = "f02ab6bace2054fb888a3c16f990117b579d14a3088e472d63c6011fa185c9d3"
 dependencies = [
  "libc",
 ]
@@ -5615,18 +5598,18 @@ dependencies = [
 
 [[package]]
 name = "zerocopy"
-version = "0.8.48"
+version = "0.8.49"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eed437bf9d6692032087e337407a86f04cd8d6a16a37199ed57949d415bd68e9"
+checksum = "bce33a6288fa3f072a8c2c7d0f2fdbb90e28298f0135c1f99b96c3db2efcc60b"
 dependencies = [
  "zerocopy-derive",
 ]
 
 [[package]]
 name = "zerocopy-derive"
-version = "0.8.48"
+version = "0.8.49"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70e3cd084b1788766f53af483dd21f93881ff30d7320490ec3ef7526d203bad4"
+checksum = "8fd425244944f4ab65ccff928e7323354c5a018c75838362fdce749dfad2ee1e"
 dependencies = [
  "proc-macro2",
  "quote",

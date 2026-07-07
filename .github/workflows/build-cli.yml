@@ -445,7 +445,9 @@ jobs:
           key: cargo-cli-about
 
       - name: Install cargo-about
-        run: cargo install cargo-about --locked --features cli
+        run: |
+          cargo install cargo-about --version 0.9.0 --locked --features cli
+          cargo about --version
 
       - name: Generate THIRDPARTY.html
         working-directory: ./crates/bws

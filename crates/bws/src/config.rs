@@ -15,7 +15,7 @@ pub(crate) struct Config {
     pub profiles: HashMap<String, Profile>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct Profile {
     #[serde(deserialize_with = "deserialize_trimmed_url", default)]
     pub server_base: Option<String>,
@@ -23,8 +23,20 @@ pub(crate) struct Profile {
     pub server_api: Option<String>,
     #[serde(deserialize_with = "deserialize_trimmed_url", default)]
     pub server_identity: Option<String>,
-    pub state_dir: Option<String>,
+    pub state_dir: Option<PathBuf>,
     pub state_opt_out: Option<String>,
+}
+
+impl Default for Profile {
+    fn default() -> Self {
+        Self {
+            server_base: Some("https://bitwarden.com".to_owned()),
+            server_api: Some("https://api.bitwarden.com".to_owned()),
+            server_identity: Some("https://identity.bitwarden.com".to_owned()),
+            state_dir: None,
+            state_opt_out: Some("false".to_owned()),
+        }
+    }
 }
 
 fn deserialize_trimmed_url<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
@@ -50,7 +62,7 @@ impl ProfileKey {
             ProfileKey::server_base => p.server_base = Some(value),
             ProfileKey::server_api => p.server_api = Some(value),
             ProfileKey::server_identity => p.server_identity = Some(value),
-            ProfileKey::state_dir => p.state_dir = Some(value),
+            ProfileKey::state_dir => p.state_dir = Some(value.into()),
             ProfileKey::state_opt_out => p.state_opt_out = Some(value),
         }
     }
@@ -82,13 +94,28 @@ fn get_config_path(config_file: Option<&Path>, ensure_folder_exists: bool) -> Re
 pub(crate) fn load_config(config_file: Option<&Path>, must_exist: bool) -> Result<Config> {
     let file = get_config_path(config_file, false)?;
 
-    let content = match file.exists() {
-        true => read_to_string(file),
-        false if must_exist => bail!("Config file doesn't exist"),
-        false => return Ok(Config::default()),
-    };
+    // In Docker, auto-create a default config if the file doesn't exist or is empty,
+    // since containers typically don't have a pre-existing config file.
+    if PathBuf::from("/.dockerenv").exists()
+        && (!file.exists() || read_to_string(&file)?.trim().is_empty())
+    {
+        let default = toml::to_string_pretty(&Config::default())?;
+        if let Some(parent) = file.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::write(&file, default)?;
+        return Ok(Config::default());
+    }
 
-    let config: Config = toml::from_str(&content?)?;
+    if !file.exists() {
+        if must_exist {
+            bail!("Config file doesn't exist");
+        }
+        return Ok(Config::default());
+    }
+
+    let content = read_to_string(&file)?;
+    let config: Config = toml::from_str(&content)?;
     Ok(config)
 }
 

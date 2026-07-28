@@ -97,17 +97,22 @@ pub(crate) fn load_config(config_file: Option<&Path>, must_exist: bool) -> Resul
     // In Docker, auto-create a default config if the file doesn't exist or is empty,
     // since containers typically don't have a pre-existing config file.
     if PathBuf::from("/.dockerenv").exists()
-        && (!file.exists() || read_to_string(&file)?.trim().is_empty())
+        && file.exists()
+        && read_to_string(&file)?.trim().is_empty()
     {
-        let default = toml::to_string_pretty(&Config::default())?;
-        if let Some(parent) = file.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-        std::fs::write(&file, default)?;
-        return Ok(Config::default());
+        std::fs::write(&file, toml::to_string_pretty(&Config::default())?)?;
     }
 
     if !file.exists() {
+        // In Docker, create a default config file on disk so callers that
+        // read and write the config (e.g. `config server-base`) have a persisted file.
+        // Skip this when must_exist is true so the contract is preserved.
+        if PathBuf::from("/.dockerenv").exists() && !must_exist {
+            if let Some(parent) = file.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            std::fs::write(&file, toml::to_string_pretty(&Config::default())?)?;
+        }
         if must_exist {
             bail!("Config file doesn't exist");
         }

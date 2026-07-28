@@ -8,7 +8,10 @@ use color_eyre::eyre::{Result, bail};
 use directories::BaseDirs;
 use serde::{Deserialize, Serialize};
 
-use crate::cli::{DEFAULT_CONFIG_DIRECTORY, DEFAULT_CONFIG_FILENAME, ProfileKey};
+use crate::{
+    cli::{DEFAULT_CONFIG_DIRECTORY, DEFAULT_CONFIG_FILENAME, ProfileKey},
+    state::DEFAULT_STATE_DIRECTORY,
+};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub(crate) struct Config {
@@ -29,11 +32,12 @@ pub(crate) struct Profile {
 
 impl Default for Profile {
     fn default() -> Self {
+        let state_dir = BaseDirs::new().map(|d| d.home_dir().join(DEFAULT_STATE_DIRECTORY));
         Self {
             server_base: Some("https://bitwarden.com".to_owned()),
             server_api: Some("https://api.bitwarden.com".to_owned()),
             server_identity: Some("https://identity.bitwarden.com".to_owned()),
-            state_dir: None,
+            state_dir,
             state_opt_out: Some("false".to_owned()),
         }
     }
@@ -97,8 +101,9 @@ pub(crate) fn load_config(config_file: Option<&Path>, must_exist: bool) -> Resul
     // In Docker, auto-create a default config if the file doesn't exist or is empty,
     // since containers typically don't have a pre-existing config file.
     if PathBuf::from("/.dockerenv").exists()
-        && file.exists()
-        && read_to_string(&file)?.trim().is_empty()
+        || PathBuf::from("/run/.containerenv").exists()
+            && file.exists()
+            && read_to_string(&file)?.trim().is_empty()
     {
         std::fs::write(&file, toml::to_string_pretty(&Config::default())?)?;
     }
@@ -107,7 +112,9 @@ pub(crate) fn load_config(config_file: Option<&Path>, must_exist: bool) -> Resul
         // In Docker, create a default config file on disk so callers that
         // read and write the config (e.g. `config server-base`) have a persisted file.
         // Skip this when must_exist is true so the contract is preserved.
-        if PathBuf::from("/.dockerenv").exists() && !must_exist {
+        if PathBuf::from("/.dockerenv").exists()
+            || PathBuf::from("/run/.containerenv").exists() && !must_exist
+        {
             if let Some(parent) = file.parent() {
                 std::fs::create_dir_all(parent)?;
             }

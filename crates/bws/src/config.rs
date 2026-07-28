@@ -32,7 +32,11 @@ pub(crate) struct Profile {
 
 impl Default for Profile {
     fn default() -> Self {
-        let state_dir = BaseDirs::new().map(|d| d.home_dir().join(DEFAULT_STATE_DIRECTORY));
+        let state_dir = BaseDirs::new().map(|d| {
+            d.home_dir()
+                .join(DEFAULT_CONFIG_DIRECTORY)
+                .join(DEFAULT_STATE_DIRECTORY)
+        });
         Self {
             server_base: Some("https://bitwarden.com".to_owned()),
             server_api: Some("https://api.bitwarden.com".to_owned()),
@@ -97,24 +101,21 @@ fn get_config_path(config_file: Option<&Path>, ensure_folder_exists: bool) -> Re
 
 pub(crate) fn load_config(config_file: Option<&Path>, must_exist: bool) -> Result<Config> {
     let file = get_config_path(config_file, false)?;
+    let in_container =
+        PathBuf::from("/.dockerenv").exists() || PathBuf::from("/run/.containerenv").exists();
 
-    // In Docker, auto-create a default config if the file doesn't exist or is empty,
-    // since containers typically don't have a pre-existing config file.
-    if PathBuf::from("/.dockerenv").exists()
-        || PathBuf::from("/run/.containerenv").exists()
-            && file.exists()
-            && read_to_string(&file)?.trim().is_empty()
-    {
+    // In a container, auto-populate an empty config file where an empty mounted file is a common
+    // scenario.
+    if in_container && file.exists() && read_to_string(&file)?.trim().is_empty() {
         std::fs::write(&file, toml::to_string_pretty(&Config::default())?)?;
     }
 
     if !file.exists() {
-        // In Docker, create a default config file on disk so callers that
-        // read and write the config (e.g. `config server-base`) have a persisted file.
-        // Skip this when must_exist is true so the contract is preserved.
-        if PathBuf::from("/.dockerenv").exists()
-            || PathBuf::from("/run/.containerenv").exists() && !must_exist
-        {
+        // In a container, create a default config file on disk so callers
+        // that read and write the config (e.g. `config server-base`) have a
+        // persisted file. Skip this when must_exist is true so the contract
+        // is preserved.
+        if in_container && !must_exist {
             if let Some(parent) = file.parent() {
                 std::fs::create_dir_all(parent)?;
             }

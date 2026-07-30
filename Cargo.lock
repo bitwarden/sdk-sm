@@ -465,7 +465,7 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_repr",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tokio",
  "tracing",
  "tsify",
@@ -529,7 +529,7 @@ dependencies = [
  "serde_json",
  "serde_qs",
  "serde_repr",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tracing",
  "tsify",
  "url",
@@ -588,7 +588,7 @@ dependencies = [
  "sha1",
  "sha2",
  "subtle",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tokio",
  "tracing",
  "tsify",
@@ -608,7 +608,7 @@ dependencies = [
  "data-encoding",
  "data-encoding-macro",
  "serde",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tsify",
  "wasm-bindgen",
 ]
@@ -650,7 +650,7 @@ dependencies = [
  "schemars 1.2.1",
  "serde",
  "serde_json",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tsify",
  "wasm-bindgen",
 ]
@@ -751,7 +751,7 @@ source = "git+https://github.com/bitwarden/sdk-internal?rev=15ab4caf17fc7b9f1c80
 dependencies = [
  "bitwarden-error",
  "rand",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "uuid",
 ]
 
@@ -777,7 +777,7 @@ dependencies = [
  "schemars 1.2.1",
  "serde",
  "serde_json",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tracing",
  "uuid",
  "validator",
@@ -796,7 +796,7 @@ dependencies = [
  "rusqlite",
  "serde",
  "serde_json",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tokio",
  "tracing",
  "tsify",
@@ -821,7 +821,7 @@ dependencies = [
  "gloo-timers",
  "js-sys",
  "serde",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tokio",
  "tokio-util",
  "tracing",
@@ -1219,7 +1219,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
 dependencies = [
  "lazy_static",
- "windows-sys 0.48.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -1859,7 +1859,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tower",
- "tower-http",
+ "tower-http 0.7.0",
  "tracing",
  "tracing-subscriber",
  "uuid",
@@ -3595,7 +3595,7 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tower",
- "tower-http",
+ "tower-http 0.6.11",
  "tower-service",
  "url",
  "wasm-bindgen",
@@ -4620,8 +4620,24 @@ dependencies = [
  "tower",
  "tower-layer",
  "tower-service",
- "tracing",
  "url",
+]
+
+[[package]]
+name = "tower-http"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b11f75e912b0c2be01b63d8cf8057b8c3f97cf34abb3d431a3a4c8675498e233"
+dependencies = [
+ "bitflags 2.11.1",
+ "bytes",
+ "http",
+ "http-body",
+ "percent-encoding",
+ "pin-project-lite",
+ "tower-layer",
+ "tower-service",
+ "tracing",
 ]
 
 [[package]]

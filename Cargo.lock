@@ -459,7 +459,7 @@ dependencies = [
 [[package]]
 name = "bitwarden-cli"
 version = "3.0.0"
-source = "git+https://github.com/bitwarden/sdk-internal?rev=cc824ddc07c3e0b65b782b1c47d029c2af24f535#cc824ddc07c3e0b65b782b1c47d029c2af24f535"
+source = "git+https://github.com/bitwarden/sdk-internal?rev=15ab4caf17fc7b9f1c80a1141d4341dd80432562#15ab4caf17fc7b9f1c80a1141d4341dd80432562"
 dependencies = [
  "clap",
  "color-eyre",

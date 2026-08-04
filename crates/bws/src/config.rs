@@ -15,6 +15,7 @@ use crate::{
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub(crate) struct Config {
+    #[serde(default)]
     pub profiles: HashMap<String, Profile>,
 }
 
@@ -101,26 +102,8 @@ fn get_config_path(config_file: Option<&Path>, ensure_folder_exists: bool) -> Re
 
 pub(crate) fn load_config(config_file: Option<&Path>, must_exist: bool) -> Result<Config> {
     let file = get_config_path(config_file, false)?;
-    let in_container =
-        PathBuf::from("/.dockerenv").exists() || PathBuf::from("/run/.containerenv").exists();
-
-    // In a container, auto-populate an empty config file where an empty mounted file is a common
-    // scenario.
-    if in_container && file.exists() && read_to_string(&file)?.trim().is_empty() {
-        std::fs::write(&file, toml::to_string_pretty(&Config::default())?)?;
-    }
 
     if !file.exists() {
-        // In a container, create a default config file on disk so callers
-        // that read and write the config (e.g. `config server-base`) have a
-        // persisted file. Skip this when must_exist is true so the contract
-        // is preserved.
-        if in_container && !must_exist {
-            if let Some(parent) = file.parent() {
-                std::fs::create_dir_all(parent)?;
-            }
-            std::fs::write(&file, toml::to_string_pretty(&Config::default())?)?;
-        }
         if must_exist {
             bail!("Config file doesn't exist");
         }

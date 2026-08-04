@@ -119,6 +119,13 @@ pub(crate) fn load_config(config_file: Option<&Path>, must_exist: bool) -> Resul
         return Ok(Config::default());
     }
 
+    if file.is_dir() {
+        bail!(
+            "Config file path is a directory. When mounting a config file into a container, ensure \
+             the host file exists first (e.g. `touch`) so your container engine mounts it as a file."
+        );
+    }
+
     let content = read_to_string(&file)?;
     let config: Config = toml::from_str(&content)?;
     Ok(config)

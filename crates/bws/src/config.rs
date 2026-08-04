@@ -62,7 +62,10 @@ where
     D: serde::Deserializer<'de>,
 {
     let val: Option<toml::Value> = Option::deserialize(deserializer)?;
-    Ok(val.map(|v| v.to_string()))
+    Ok(val.map(|v| match v {
+        toml::Value::String(s) => s,
+        other => other.to_string(),
+    }))
 }
 
 impl ProfileKey {
@@ -250,6 +253,48 @@ mod tests {
 
         let c = load_config(None, false);
         assert!(c.is_ok());
+    }
+
+    #[test]
+    fn config_empty_file_is_valid() {
+        let tmpfile = NamedTempFile::new().unwrap();
+        write!(tmpfile.as_file(), "\n").unwrap();
+
+        let c = load_config(Some(Path::new(tmpfile.as_ref())), true);
+        let config = c.unwrap();
+        assert_eq!(0, config.profiles.len());
+    }
+
+    #[test]
+    fn config_state_opt_out_as_boolean() {
+        let tmpfile = NamedTempFile::new().unwrap();
+        write!(
+            tmpfile.as_file(),
+            "[profiles.default]\nstate_opt_out = true\n"
+        )
+        .unwrap();
+
+        let c = load_config(Some(Path::new(tmpfile.as_ref())), true);
+        assert_eq!(
+            Some("true".to_string()),
+            c.unwrap().profiles["default"].state_opt_out
+        );
+    }
+
+    #[test]
+    fn config_state_opt_out_as_string() {
+        let tmpfile = NamedTempFile::new().unwrap();
+        write!(
+            tmpfile.as_file(),
+            "[profiles.default]\nstate_opt_out = \"false\"\n"
+        )
+        .unwrap();
+
+        let c = load_config(Some(Path::new(tmpfile.as_ref())), true);
+        assert_eq!(
+            Some("false".to_string()),
+            c.unwrap().profiles["default"].state_opt_out
+        );
     }
 
     #[test]

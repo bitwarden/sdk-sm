@@ -28,6 +28,7 @@ pub(crate) struct Profile {
     #[serde(deserialize_with = "deserialize_trimmed_url", default)]
     pub server_identity: Option<String>,
     pub state_dir: Option<PathBuf>,
+    #[serde(deserialize_with = "deserialize_as_string", default)]
     pub state_opt_out: Option<String>,
 }
 
@@ -54,6 +55,14 @@ where
 {
     let opt_string: Option<String> = Option::deserialize(deserializer)?;
     Ok(opt_string.map(|s| s.trim_end_matches('/').to_string()))
+}
+
+fn deserialize_as_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let val: Option<toml::Value> = Option::deserialize(deserializer)?;
+    Ok(val.map(|v| v.to_string()))
 }
 
 impl ProfileKey {

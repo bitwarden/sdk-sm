@@ -17,6 +17,12 @@
     },
     {
       "matchManagers": ["cargo"],
+      "matchPackagePrefixes": ["clap"],
+      "groupName": "clap crates",
+      "groupSlug": "clap"
+    },
+    {
+      "matchManagers": ["cargo"],
       "matchPackagePatterns": ["pyo3*"],
       "matchUpdateTypes": ["minor", "patch"],
       "groupName": "pyo3 non-major"

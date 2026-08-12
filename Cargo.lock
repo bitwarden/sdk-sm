@@ -307,7 +307,7 @@ dependencies = [
  "flate2",
  "globset",
  "indexmap 2.14.0",
- "itertools",
+ "itertools 0.14.0",
  "nu-ansi-term",
  "once_cell",
  "path_abs",
@@ -949,7 +949,7 @@ dependencies = [
  "comfy-table",
  "directories",
  "env_logger",
- "itertools",
+ "itertools 0.15.0",
  "log",
  "regex",
  "serde",
@@ -2578,6 +2578,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b4baf93f58d4425749ca49a51c50ebab072c5df6994d08fed93541c331481dc"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3120,7 +3129,7 @@ version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "80f9f1ea3b803a37c42e84fa581354c8eee6c68b63b4923483d5d5d78286e32a"
 dependencies = [
- "itertools",
+ "itertools 0.14.0",
  "nom",
  "once_cell",
  "pretty-lint",
@@ -3880,7 +3889,7 @@ dependencies = [
  "anyhow",
  "bitwarden",
  "bitwarden-json",
- "itertools",
+ "itertools 0.15.0",
  "schemars 1.2.1",
  "serde_json",
 ]
@@ -5733,7 +5742,7 @@ dependencies = [
  "chrono",
  "derive_builder",
  "fancy-regex 0.18.0",
- "itertools",
+ "itertools 0.14.0",
  "lazy_static",
  "regex",
  "time",

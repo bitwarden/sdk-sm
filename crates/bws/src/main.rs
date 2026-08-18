@@ -166,8 +166,16 @@ fn get_config_profile(
     config_file: &Option<PathBuf>,
     access_token: &str,
 ) -> Result<Option<config::Profile>, color_eyre::Report> {
+    let config = config::load_config(config_file.as_deref(), config_file.is_some())?;
+
     let profile = if let Some(server_url) = server_url {
-        Some(config::Profile::from_url(server_url)?)
+        let mut p = config::Profile::from_url(server_url)?;
+        if p.state_opt_out.is_none() {
+            if let Some(default) = config.select_profile("default", false)? {
+                p.state_opt_out = default.state_opt_out;
+            }
+        }
+        Some(p)
     } else {
         let profile_defined = profile.is_some();
 
@@ -179,7 +187,6 @@ fn get_config_profile(
                 .to_string()
         };
 
-        let config = config::load_config(config_file.as_deref(), config_file.is_some())?;
         config.select_profile(&profile_key, profile_defined)?
     };
     Ok(profile)

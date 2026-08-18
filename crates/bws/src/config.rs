@@ -48,6 +48,7 @@ where
     val.map(|v| -> Result<bool, D::Error> {
         match v {
             toml::Value::Boolean(s) => Ok(s),
+            toml::Value::Integer(n) => Ok(n != 0),
             toml::Value::String(s) => Ok(string_to_bool(&s).unwrap_or_default()),
             _ => Err(<D::Error as serde::de::Error>::custom(
                 "only bools and strings are accepted",

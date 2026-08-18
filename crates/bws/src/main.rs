@@ -170,10 +170,10 @@ fn get_config_profile(
 
     let profile = if let Some(server_url) = server_url {
         let mut p = config::Profile::from_url(server_url)?;
-        if p.state_opt_out.is_none() {
-            if let Some(default) = config.select_profile("default", false)? {
-                p.state_opt_out = default.state_opt_out;
-            }
+        if p.state_opt_out.is_none()
+            && let Some(default) = config.select_profile("default", false)?
+        {
+            p.state_opt_out = default.state_opt_out;
         }
         Some(p)
     } else {

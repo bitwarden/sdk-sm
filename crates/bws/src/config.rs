@@ -84,10 +84,9 @@ fn get_config_path(config_file: Option<&Path>, ensure_folder_exists: bool) -> Re
         }
     };
 
-    if ensure_folder_exists
-        && let Some(parent_folder) = config_file.parent() {
-            std::fs::create_dir_all(parent_folder)?;
-        }
+    if ensure_folder_exists && let Some(parent_folder) = config_file.parent() {
+        std::fs::create_dir_all(parent_folder)?;
+    }
 
     Ok(config_file)
 }

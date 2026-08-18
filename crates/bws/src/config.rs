@@ -64,7 +64,7 @@ impl ProfileKey {
             ProfileKey::server_base => p.server_base = Some(value),
             ProfileKey::server_api => p.server_api = Some(value),
             ProfileKey::server_identity => p.server_identity = Some(value),
-            ProfileKey::state_dir => p.state_dir = Some(value.into()),
+            ProfileKey::state_dir => p.state_dir = Some(value),
             ProfileKey::state_opt_out => p.state_opt_out = Some(value),
         }
     }
@@ -84,11 +84,10 @@ fn get_config_path(config_file: Option<&Path>, ensure_folder_exists: bool) -> Re
         }
     };
 
-    if ensure_folder_exists {
-        if let Some(parent_folder) = config_file.parent() {
+    if ensure_folder_exists
+        && let Some(parent_folder) = config_file.parent() {
             std::fs::create_dir_all(parent_folder)?;
         }
-    }
 
     Ok(config_file)
 }

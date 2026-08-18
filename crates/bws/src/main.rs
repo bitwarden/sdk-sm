@@ -113,7 +113,7 @@ async fn process_commands() -> Result<()> {
         .await?;
 
     let organization_id = match client.get_access_token_organization() {
-        Some(id) => id.into(),
+        Some(id) => id,
         None => {
             error!("Access token isn't associated to an organization.");
             return Ok(());
@@ -186,11 +186,10 @@ fn get_config_profile(
 }
 
 fn get_state_opt_out(profile: &Option<Profile>) -> bool {
-    if let Some(profile) = profile {
-        if let Some(state_opt_out) = &profile.state_opt_out {
+    if let Some(profile) = profile
+        && let Some(state_opt_out) = &profile.state_opt_out {
             return util::string_to_bool(state_opt_out).unwrap_or(false);
         }
-    }
 
     false
 }

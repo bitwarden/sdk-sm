@@ -80,14 +80,13 @@ pub(crate) async fn run(
         .await?
         .data;
 
-    if !uuids_as_keynames {
-        if let Some(duplicate) = secrets.iter().map(|s| &s.key).duplicates().next() {
+    if !uuids_as_keynames
+        && let Some(duplicate) = secrets.iter().map(|s| &s.key).duplicates().next() {
             bail!(
                 "Multiple secrets with name: '{}'. Use --uuids-as-keynames or use unique names for secrets",
                 duplicate
             );
         }
-    }
 
     let environment: HashMap<String, String> = secrets
         .into_iter()

@@ -12,6 +12,7 @@ use crate::cli::{DEFAULT_CONFIG_DIRECTORY, DEFAULT_CONFIG_FILENAME, ProfileKey};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub(crate) struct Config {
+    #[serde(default)]
     pub profiles: HashMap<String, Profile>,
 }
 
@@ -24,6 +25,8 @@ pub(crate) struct Profile {
     #[serde(deserialize_with = "deserialize_trimmed_url", default)]
     pub server_identity: Option<String>,
     pub state_dir: Option<String>,
+    #[serde(deserialize_with = "deserialize_as_string", default)]
+    // treat `state_opt_out = true` as valid
     pub state_opt_out: Option<String>,
 }
 
@@ -33,6 +36,17 @@ where
 {
     let opt_string: Option<String> = Option::deserialize(deserializer)?;
     Ok(opt_string.map(|s| s.trim_end_matches('/').to_string()))
+}
+
+fn deserialize_as_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let val: Option<toml::Value> = Option::deserialize(deserializer)?;
+    Ok(val.map(|v| match v {
+        toml::Value::String(s) => s,
+        other => other.to_string(),
+    }))
 }
 
 impl ProfileKey {
@@ -50,7 +64,7 @@ impl ProfileKey {
             ProfileKey::server_base => p.server_base = Some(value),
             ProfileKey::server_api => p.server_api = Some(value),
             ProfileKey::server_identity => p.server_identity = Some(value),
-            ProfileKey::state_dir => p.state_dir = Some(value),
+            ProfileKey::state_dir => p.state_dir = Some(value.into()),
             ProfileKey::state_opt_out => p.state_opt_out = Some(value),
         }
     }
@@ -81,6 +95,13 @@ fn get_config_path(config_file: Option<&Path>, ensure_folder_exists: bool) -> Re
 
 pub(crate) fn load_config(config_file: Option<&Path>, must_exist: bool) -> Result<Config> {
     let file = get_config_path(config_file, false)?;
+
+    if file.is_dir() {
+        bail!(
+            "Config file path is a directory. Before mounting a config file into a container, ensure \
+             the host file exists first (e.g. `touch`) so your container engine mounts it as a file."
+        );
+    }
 
     let content = match file.exists() {
         true => read_to_string(file),
@@ -211,6 +232,48 @@ mod tests {
 
         let c = load_config(None, false);
         assert!(c.is_ok());
+    }
+
+    #[test]
+    fn config_empty_file_is_valid() {
+        let tmpfile = NamedTempFile::new().unwrap();
+        write!(tmpfile.as_file(), "").unwrap();
+
+        let c = load_config(Some(Path::new(tmpfile.as_ref())), true);
+        let config = c.unwrap();
+        assert_eq!(0, config.profiles.len());
+    }
+
+    #[test]
+    fn config_state_opt_out_as_boolean() {
+        let tmpfile = NamedTempFile::new().unwrap();
+        write!(
+            tmpfile.as_file(),
+            "[profiles.default]\nstate_opt_out = true\n"
+        )
+        .unwrap();
+
+        let c = load_config(Some(Path::new(tmpfile.as_ref())), true);
+        assert_eq!(
+            Some("true".to_string()),
+            c.unwrap().profiles["default"].state_opt_out
+        );
+    }
+
+    #[test]
+    fn config_state_opt_out_as_string() {
+        let tmpfile = NamedTempFile::new().unwrap();
+        write!(
+            tmpfile.as_file(),
+            "[profiles.default]\nstate_opt_out = \"false\"\n"
+        )
+        .unwrap();
+
+        let c = load_config(Some(Path::new(tmpfile.as_ref())), true);
+        assert_eq!(
+            Some("false".to_string()),
+            c.unwrap().profiles["default"].state_opt_out
+        );
     }
 
     #[test]

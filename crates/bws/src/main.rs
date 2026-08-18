@@ -189,7 +189,7 @@ fn get_state_opt_out(profile: &Option<Profile>) -> bool {
     if let Some(profile) = profile
         && let Some(state_opt_out) = &profile.state_opt_out
     {
-        return util::string_to_bool(state_opt_out).unwrap_or(false);
+        return *state_opt_out;
     }
 
     false

@@ -8,7 +8,10 @@ use color_eyre::eyre::{Result, bail};
 use directories::BaseDirs;
 use serde::{Deserialize, Serialize};
 
-use crate::cli::{DEFAULT_CONFIG_DIRECTORY, DEFAULT_CONFIG_FILENAME, ProfileKey};
+use crate::{
+    cli::{DEFAULT_CONFIG_DIRECTORY, DEFAULT_CONFIG_FILENAME, ProfileKey},
+    util::string_to_bool,
+};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub(crate) struct Config {
@@ -25,9 +28,8 @@ pub(crate) struct Profile {
     #[serde(deserialize_with = "deserialize_trimmed_url", default)]
     pub server_identity: Option<String>,
     pub state_dir: Option<String>,
-    #[serde(deserialize_with = "deserialize_as_string", default)]
-    // treat `state_opt_out = true` as valid
-    pub state_opt_out: Option<String>,
+    #[serde(deserialize_with = "allow_string", default)]
+    pub state_opt_out: Option<bool>,
 }
 
 fn deserialize_trimmed_url<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
@@ -38,15 +40,21 @@ where
     Ok(opt_string.map(|s| s.trim_end_matches('/').to_string()))
 }
 
-fn deserialize_as_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+fn allow_string<'de, D>(deserializer: D) -> Result<Option<bool>, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
     let val: Option<toml::Value> = Option::deserialize(deserializer)?;
-    Ok(val.map(|v| match v {
-        toml::Value::String(s) => s,
-        other => other.to_string(),
-    }))
+    val.map(|v| -> Result<bool, D::Error> {
+        match v {
+            toml::Value::Boolean(s) => Ok(s),
+            toml::Value::String(s) => Ok(string_to_bool(&s).unwrap_or_default()),
+            _ => Err(<D::Error as serde::de::Error>::custom(
+                "only bools and strings are accepted",
+            )),
+        }
+    })
+    .transpose()
 }
 
 impl ProfileKey {
@@ -65,7 +73,9 @@ impl ProfileKey {
             ProfileKey::server_api => p.server_api = Some(value),
             ProfileKey::server_identity => p.server_identity = Some(value),
             ProfileKey::state_dir => p.state_dir = Some(value),
-            ProfileKey::state_opt_out => p.state_opt_out = Some(value),
+            ProfileKey::state_opt_out => {
+                p.state_opt_out = Some(string_to_bool(&value).unwrap_or_default())
+            }
         }
     }
 }
@@ -252,10 +262,7 @@ mod tests {
         .unwrap();
 
         let c = load_config(Some(Path::new(tmpfile.as_ref())), true);
-        assert_eq!(
-            Some("true".to_string()),
-            c.unwrap().profiles["default"].state_opt_out
-        );
+        assert_eq!(Some(true), c.unwrap().profiles["default"].state_opt_out);
     }
 
     #[test]
@@ -268,10 +275,7 @@ mod tests {
         .unwrap();
 
         let c = load_config(Some(Path::new(tmpfile.as_ref())), true);
-        assert_eq!(
-            Some("false".to_string()),
-            c.unwrap().profiles["default"].state_opt_out
-        );
+        assert_eq!(Some(false), c.unwrap().profiles["default"].state_opt_out);
     }
 
     #[test]

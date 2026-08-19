@@ -48,7 +48,7 @@ which = "8.0.0"
 bitwarden-cli = { workspace = true }
 clap = { version = "4.5.4", features = ["derive", "string"] }
 clap_complete = "4.5.2"
-clap_mangen = "0.2.20"
+clap_mangen = { version = "0.3.0", features = ["env"] }
 uuid = { version = "1.7.0" }
 
 [dev-dependencies]

@@ -586,7 +586,7 @@ dependencies = [
  "serde_bytes",
  "serde_repr",
  "sha1",
- "sha2",
+ "sha2 0.11.0",
  "subtle",
  "thiserror 2.0.18",
  "tokio",
@@ -753,6 +753,20 @@ dependencies = [
  "rand",
  "thiserror 2.0.18",
  "uuid",
+]
+
+[[package]]
+name = "bitwarden-scan"
+version = "2.1.0"
+dependencies = [
+ "humantime",
+ "ignore",
+ "regex",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
@@ -941,6 +955,7 @@ dependencies = [
  "bat",
  "bitwarden",
  "bitwarden-cli",
+ "bitwarden-scan",
  "chrono",
  "clap",
  "clap_complete",
@@ -1772,7 +1787,7 @@ dependencies = [
  "curve25519-dalek",
  "ed25519",
  "rand_core 0.10.1",
- "sha2",
+ "sha2 0.11.0",
  "subtle",
  "zeroize",
 ]
@@ -2270,6 +2285,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
 
 [[package]]
+name = "humantime"
+version = "2.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "15cdd26707701c53297e2fa6afb323d55fbc1d0810c3aec078ae3ef0424c3c15"
+
+[[package]]
 name = "hybrid-array"
 version = "0.4.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2478,6 +2499,22 @@ checksum = "cb68373c0d6620ef8105e855e7745e18b0d00d3bdb07fb532e434244cdb9a714"
 dependencies = [
  "icu_normalizer",
  "icu_properties",
+]
+
+[[package]]
+name = "ignore"
+version = "0.4.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b17771570a2b94107741a7b033f19132c2eee21d59d21b24d2ced26500bd66e"
+dependencies = [
+ "crossbeam-deque",
+ "globset",
+ "log",
+ "memchr",
+ "regex-automata",
+ "same-file",
+ "walkdir",
+ "winapi-util",
 ]
 
 [[package]]
@@ -4108,6 +4145,17 @@ dependencies = [
  "cfg-if",
  "cpufeatures 0.3.0",
  "digest 0.11.3",
+]
+
+[[package]]
+name = "sha2"
+version = "0.10.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7507d819769d01a365ab707794a4084392c824f54a7a6a7862f8c3d0892b283"
+dependencies = [
+ "cfg-if",
+ "cpufeatures 0.2.17",
+ "digest 0.10.7",
 ]
 
 [[package]]

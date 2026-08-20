@@ -99,6 +99,41 @@ pub(crate) enum Commands {
         #[command(subcommand)]
         cmd: SecretCommand,
     },
+    #[command(
+        long_about = "Scan for hardcoded secrets. Defaults to a worktree scan of PATH \
+            (\".\" if omitted), writing the findings artifact at \
+            <root>/.bitwarden/secret-findings.json. Doesn't require an access token — \
+            purely local.\n\n\
+            Exit codes: 0 = clean, 1 = findings present, 2 = scan error."
+    )]
+    Scan {
+        #[arg(default_value = ".", help = "Directory to scan")]
+        path: PathBuf,
+
+        #[arg(
+            long,
+            conflicts_with = "history",
+            help = "Scan `git diff --cached` added lines instead of the worktree; never writes the artifact"
+        )]
+        staged: bool,
+
+        #[arg(
+            long,
+            conflicts_with = "staged",
+            num_args = 0..=1,
+            require_equals = true,
+            value_name = "RANGE",
+            help = "Scan git history via `git log -p` instead of the worktree, optionally scoped to a revision RANGE (e.g. --history=main..HEAD); never writes the artifact"
+        )]
+        history: Option<Option<String>>,
+
+        #[arg(
+            long,
+            help = "Don't write the .bitwarden/secret-findings.json artifact (worktree mode only)"
+        )]
+        no_write: bool,
+    },
+
     #[command(long_about = "Run a command with secrets injected")]
     Run {
         #[arg(help = "The command to run")]

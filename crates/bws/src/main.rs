@@ -57,6 +57,27 @@ async fn process_commands() -> Result<()> {
                 cli.config_file,
             );
         }
+        Commands::Scan {
+            path,
+            staged,
+            history,
+            no_write,
+        } => {
+            // `scan` is purely local — it never talks to Secrets Manager —
+            // so, unlike every other subcommand below, it must work without
+            // an access token.
+            let exit_code = command::scan::run(
+                command::scan::ScanArgs {
+                    path,
+                    staged,
+                    history,
+                    no_write,
+                },
+                cli.output,
+                color,
+            );
+            std::process::exit(exit_code);
+        }
         _ => (),
     }
 
@@ -154,7 +175,7 @@ async fn process_commands() -> Result<()> {
             std::process::exit(exit_code);
         }
 
-        Commands::Config { .. } | Commands::Completions { .. } => {
+        Commands::Config { .. } | Commands::Completions { .. } | Commands::Scan { .. } => {
             unreachable!()
         }
     }

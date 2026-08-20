@@ -1,5 +1,6 @@
 pub(crate) mod project;
 pub(crate) mod run;
+pub(crate) mod scan;
 pub(crate) mod secret;
 
 use std::{path::PathBuf, str::FromStr};

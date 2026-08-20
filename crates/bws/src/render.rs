@@ -86,7 +86,7 @@ pub(crate) fn serialize_response<T: Serialize + TableSerialize<N>, const N: usiz
     }
 }
 
-fn pretty_print(language: &str, data: &str, color: Color) {
+pub(crate) fn pretty_print(language: &str, data: &str, color: Color) {
     if color.is_enabled() {
         bat::PrettyPrinter::new()
             .input_from_bytes(data.as_bytes())

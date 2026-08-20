@@ -18,6 +18,7 @@ license-file.workspace = true
 bat = { version = "0.26.0", features = ["regex-fancy"], default-features = false }
 bitwarden = { workspace = true, features = ["secrets"] }
 bitwarden-cli = { workspace = true }
+bitwarden-scan = { path = "../bitwarden-scan", version = "=2.1.0" }
 chrono = { version = "0.4.38", features = [
     "clock",
     "std",

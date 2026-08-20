@@ -1,0 +1,29 @@
+[package]
+name = "bitwarden-scan"
+description = """
+Deterministic, non-agentic secret-scanning engine for Bitwarden Secrets Manager
+"""
+keywords = ["bitwarden", "secrets-manager", "secret-scanning"]
+
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license-file.workspace = true
+
+[dependencies]
+humantime = "2.1.0"
+ignore = "0.4.23"
+regex = "1.10.3"
+serde = { version = "1.0.196", features = ["derive"] }
+serde_json = "1.0.113"
+sha2 = "0.10.8"
+thiserror = "2.0.18"
+
+[dev-dependencies]
+tempfile = "3.10.0"
+
+[lints]
+workspace = true

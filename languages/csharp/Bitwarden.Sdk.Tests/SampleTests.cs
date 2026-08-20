@@ -1,4 +1,4 @@
-namespace Bitwarden.Sdk.Tests;
+﻿namespace Bitwarden.Sdk.Tests;
 
 public class SampleTests
 {

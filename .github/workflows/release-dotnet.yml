@@ -68,8 +68,8 @@ jobs:
         with:
           workflow: build-dotnet.yml
           workflow_conclusion: success
-          branch: main
-          artifacts: Bitwarden.Sdk.${{ needs.setup.outputs.version }}.nupkg
+          branch: ${{ github.ref_name }}
+          artifacts: Community.Bitwarden.Secrets.Sdk.Standard.${{ needs.setup.outputs.version }}.nupkg
           path: ./nuget-output
 
       - name: Create release
@@ -85,4 +85,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           draft: true
           artifacts: |
-            ./nuget-output/Bitwarden.Secrets.Sdk.${{ needs.setup.outputs.version }}.nupkg
+            ./nuget-output/Community.Bitwarden.Secrets.Sdk.Standard.${{ needs.setup.outputs.version }}.nupkg

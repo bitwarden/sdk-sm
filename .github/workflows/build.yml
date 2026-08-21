@@ -1,0 +1,95 @@
+name: Build All SDKs
+
+on:
+  pull_request:
+  push:
+    branches:
+      - "main"
+      - "rc"
+      - "hotfix-rc"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-all-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Tier 0: Base workflows with no dependencies
+  generate-schemas:
+    name: Generate Schemas
+    uses: ./.github/workflows/generate_schemas.yml
+    permissions:
+      contents: read
+
+  build-rust-cross-platform:
+    name: Build Rust Cross-Platform
+    uses: ./.github/workflows/build-rust-cross-platform.yml
+    permissions:
+      contents: read
+
+  build-wasm:
+    name: Build WebAssembly
+    uses: ./.github/workflows/build-wasm.yml
+    permissions:
+      contents: read
+      packages: write
+
+  # Tier 1: Depends on schemas only
+  build-napi:
+    name: Build NAPI (Node.js)
+    needs:
+      - generate-schemas
+    uses: ./.github/workflows/build-napi.yml
+    permissions:
+      contents: read
+
+  # Tier 2: Depends on both schemas and rust cross-platform
+  build-cpp:
+    name: Build C++
+    needs:
+      - generate-schemas
+      - build-rust-cross-platform
+    uses: ./.github/workflows/build-cpp.yml
+    permissions:
+      contents: read
+
+  build-dotnet:
+    name: Build .NET
+    needs:
+      - generate-schemas
+      - build-rust-cross-platform
+    uses: ./.github/workflows/build-dotnet.yml
+    permissions:
+      contents: read
+
+  build-java:
+    name: Build Java
+    needs:
+      - generate-schemas
+      - build-rust-cross-platform
+    uses: ./.github/workflows/build-java.yml
+    permissions:
+      contents: read
+
+  build-python-wheels:
+    name: Build Python
+    needs:
+      - generate-schemas
+      - build-rust-cross-platform
+    uses: ./.github/workflows/build-python-wheels.yml
+    permissions:
+      contents: read
+    with:
+      dev_version: false
+
+  build-ruby:
+    name: Build Ruby
+    needs:
+      - generate-schemas
+      - build-rust-cross-platform
+    uses: ./.github/workflows/build-ruby.yml
+    permissions:
+      contents: read

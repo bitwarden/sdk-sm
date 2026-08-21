@@ -103,4 +103,6 @@ jobs:
             dist/sdk-napi.darwin-x64.node
             dist/sdk-napi.win32-x64-msvc.node
             dist/sdk-napi.linux-x64-gnu.node
+            dist/sdk-napi.linux-arm64-gnu.node
+            dist/sdk-napi.linux-arm64-musl.node
             dist/schemas.ts

@@ -52,6 +52,27 @@ jobs:
               set -e &&
               npm run build &&
               strip *.node
+
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            build: |
+              set -e &&
+              npm run build &&
+              strip *.node
+
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+            build: |
+              set -e &&
+              docker run --rm --platform linux/arm64 \
+                -v "$GITHUB_WORKSPACE":/src -w /src/crates/bitwarden-napi \
+                -e CARGO_TARGET_DIR=/tmp/ctarget \
+                node:lts-alpine sh -c '
+                  apk add --no-cache build-base openssl-dev openssl-libs-static pkgconfig perl rust cargo git &&
+                  npm ci --no-audit --no-fund &&
+                  npx napi build --platform --release --js binding.js --dts binding.d.ts
+                ' &&
+              strip sdk-napi.linux-arm64-musl.node || true
     steps:
       - name: Checkout repo
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1

@@ -174,7 +174,7 @@ pub(crate) async fn edit(
     let value_changed = secret
         .value
         .as_ref()
-        .map_or(false, |v| v != &old_secret.value);
+        .is_some_and(|v| v != &old_secret.value);
 
     let new_secret = client
         .secrets()

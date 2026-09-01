@@ -8,10 +8,14 @@ use color_eyre::eyre::{Result, bail};
 use directories::BaseDirs;
 use serde::{Deserialize, Serialize};
 
-use crate::cli::{DEFAULT_CONFIG_DIRECTORY, DEFAULT_CONFIG_FILENAME, ProfileKey};
+use crate::{
+    cli::{DEFAULT_CONFIG_DIRECTORY, DEFAULT_CONFIG_FILENAME, ProfileKey},
+    util::string_to_bool,
+};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub(crate) struct Config {
+    #[serde(default)]
     pub profiles: HashMap<String, Profile>,
 }
 
@@ -24,7 +28,8 @@ pub(crate) struct Profile {
     #[serde(deserialize_with = "deserialize_trimmed_url", default)]
     pub server_identity: Option<String>,
     pub state_dir: Option<String>,
-    pub state_opt_out: Option<String>,
+    #[serde(deserialize_with = "allow_string", default)]
+    pub state_opt_out: Option<bool>,
 }
 
 fn deserialize_trimmed_url<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
@@ -33,6 +38,24 @@ where
 {
     let opt_string: Option<String> = Option::deserialize(deserializer)?;
     Ok(opt_string.map(|s| s.trim_end_matches('/').to_string()))
+}
+
+fn allow_string<'de, D>(deserializer: D) -> Result<Option<bool>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let val: Option<toml::Value> = Option::deserialize(deserializer)?;
+    val.map(|v| -> Result<bool, D::Error> {
+        match v {
+            toml::Value::Boolean(s) => Ok(s),
+            toml::Value::Integer(n) => Ok(n != 0),
+            toml::Value::String(s) => Ok(string_to_bool(&s).unwrap_or_default()),
+            _ => Err(<D::Error as serde::de::Error>::custom(
+                "only bools and strings are accepted",
+            )),
+        }
+    })
+    .transpose()
 }
 
 impl ProfileKey {
@@ -51,7 +74,9 @@ impl ProfileKey {
             ProfileKey::server_api => p.server_api = Some(value),
             ProfileKey::server_identity => p.server_identity = Some(value),
             ProfileKey::state_dir => p.state_dir = Some(value),
-            ProfileKey::state_opt_out => p.state_opt_out = Some(value),
+            ProfileKey::state_opt_out => {
+                p.state_opt_out = Some(string_to_bool(&value).unwrap_or_default())
+            }
         }
     }
 }
@@ -70,10 +95,8 @@ fn get_config_path(config_file: Option<&Path>, ensure_folder_exists: bool) -> Re
         }
     };
 
-    if ensure_folder_exists {
-        if let Some(parent_folder) = config_file.parent() {
-            std::fs::create_dir_all(parent_folder)?;
-        }
+    if ensure_folder_exists && let Some(parent_folder) = config_file.parent() {
+        std::fs::create_dir_all(parent_folder)?;
     }
 
     Ok(config_file)
@@ -81,6 +104,13 @@ fn get_config_path(config_file: Option<&Path>, ensure_folder_exists: bool) -> Re
 
 pub(crate) fn load_config(config_file: Option<&Path>, must_exist: bool) -> Result<Config> {
     let file = get_config_path(config_file, false)?;
+
+    if file.is_dir() {
+        bail!(
+            "Config file path is a directory. Before mounting a config file into a container, ensure \
+             the host file exists first (e.g. `touch`) so your container engine mounts it as a file."
+        );
+    }
 
     let content = match file.exists() {
         true => read_to_string(file),
@@ -211,6 +241,42 @@ mod tests {
 
         let c = load_config(None, false);
         assert!(c.is_ok());
+    }
+
+    #[test]
+    fn config_empty_file_is_valid() {
+        let tmpfile = NamedTempFile::new().unwrap();
+        write!(tmpfile.as_file(), "").unwrap();
+
+        let c = load_config(Some(Path::new(tmpfile.as_ref())), true);
+        let config = c.unwrap();
+        assert_eq!(0, config.profiles.len());
+    }
+
+    #[test]
+    fn config_state_opt_out_as_boolean() {
+        let tmpfile = NamedTempFile::new().unwrap();
+        write!(
+            tmpfile.as_file(),
+            "[profiles.default]\nstate_opt_out = true\n"
+        )
+        .unwrap();
+
+        let c = load_config(Some(Path::new(tmpfile.as_ref())), true);
+        assert_eq!(Some(true), c.unwrap().profiles["default"].state_opt_out);
+    }
+
+    #[test]
+    fn config_state_opt_out_as_string() {
+        let tmpfile = NamedTempFile::new().unwrap();
+        write!(
+            tmpfile.as_file(),
+            "[profiles.default]\nstate_opt_out = \"false\"\n"
+        )
+        .unwrap();
+
+        let c = load_config(Some(Path::new(tmpfile.as_ref())), true);
+        assert_eq!(Some(false), c.unwrap().profiles["default"].state_opt_out);
     }
 
     #[test]

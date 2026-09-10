@@ -103,6 +103,13 @@ pub extern "C" fn free_mem(client_ptr: *mut CClient) {
 }
 
 #[unsafe(no_mangle)]
+pub extern "C" fn free_string(str_ptr: *mut c_char) {
+    unsafe {
+        let _ = CString::from_raw(str_ptr);
+    }
+}
+
+#[unsafe(no_mangle)]
 pub extern "C" fn abort_and_free_handle(join_handle_ptr: *mut tokio::task::JoinHandle<()>) {
     let join_handle = unsafe { Box::from_raw(join_handle_ptr) };
     join_handle.abort();

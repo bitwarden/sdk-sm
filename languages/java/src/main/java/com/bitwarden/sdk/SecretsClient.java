@@ -54,6 +54,15 @@ public class SecretsClient {
     }
 
     public SecretResponse update(UUID organizationId, UUID id, String key, String value, String note, UUID[] projectIds) {
+        SecretResponse oldSecret;
+        try {
+            oldSecret = get(id);
+        } catch (Exception e) {
+            throw new BitwardenClientException("Cannot update secret: failed to fetch current value for version history: " + e.getMessage());
+        }
+
+        boolean valueChanged = !value.equals(oldSecret.getValue());
+
         Command command = new Command();
         SecretsCommand secretsCommand = new SecretsCommand();
         SecretPutRequest secretPutRequest = new SecretPutRequest();
@@ -63,6 +72,7 @@ public class SecretsClient {
         secretPutRequest.setNote(note);
         secretPutRequest.setOrganizationID(organizationId);
         secretPutRequest.setProjectIDS(projectIds);
+        secretPutRequest.setValueChanged(valueChanged);
         secretsCommand.setUpdate(secretPutRequest);
         command.setSecrets(secretsCommand);
 

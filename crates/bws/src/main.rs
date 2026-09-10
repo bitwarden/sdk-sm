@@ -113,7 +113,7 @@ async fn process_commands() -> Result<()> {
         .await?;
 
     let organization_id = match client.get_access_token_organization() {
-        Some(id) => id.into(),
+        Some(id) => id,
         None => {
             error!("Access token isn't associated to an organization.");
             return Ok(());
@@ -166,8 +166,16 @@ fn get_config_profile(
     config_file: &Option<PathBuf>,
     access_token: &str,
 ) -> Result<Option<config::Profile>, color_eyre::Report> {
+    let config = config::load_config(config_file.as_deref(), config_file.is_some())?;
+
     let profile = if let Some(server_url) = server_url {
-        Some(config::Profile::from_url(server_url)?)
+        let mut p = config::Profile::from_url(server_url)?;
+        if p.state_opt_out.is_none()
+            && let Some(default) = config.select_profile("default", false)?
+        {
+            p.state_opt_out = default.state_opt_out;
+        }
+        Some(p)
     } else {
         let profile_defined = profile.is_some();
 
@@ -179,17 +187,16 @@ fn get_config_profile(
                 .to_string()
         };
 
-        let config = config::load_config(config_file.as_deref(), config_file.is_some())?;
         config.select_profile(&profile_key, profile_defined)?
     };
     Ok(profile)
 }
 
 fn get_state_opt_out(profile: &Option<Profile>) -> bool {
-    if let Some(profile) = profile {
-        if let Some(state_opt_out) = &profile.state_opt_out {
-            return util::string_to_bool(state_opt_out).unwrap_or(false);
-        }
+    if let Some(profile) = profile
+        && let Some(state_opt_out) = &profile.state_opt_out
+    {
+        return *state_opt_out;
     }
 
     false

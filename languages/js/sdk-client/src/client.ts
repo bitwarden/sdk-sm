@@ -104,10 +104,19 @@ export class SecretsClient {
     projectIds: string[],
     organizationId: string,
   ): Promise<SecretResponse> {
+    let oldSecret: SecretResponse;
+    try {
+      oldSecret = await this.get(id);
+    } catch (e) {
+      throw new Error(`Cannot update secret: failed to fetch current value for version history: ${e instanceof Error ? e.message : String(e)}`);
+    }
+
+    const valueChanged = value !== oldSecret.value;
+
     const response = await this.client.run_command(
       Convert.commandToJson({
         secrets: {
-          update: { id, key, value, note, projectIds, organizationId },
+          update: { id, key, value, note, projectIds, organizationId, valueChanged },
         },
       }),
     );

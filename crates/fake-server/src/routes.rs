@@ -91,6 +91,17 @@ pub mod secrets {
     }
 
     #[derive(Debug, Deserialize, Serialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct UpdateSecretRequest {
+        pub key: String,
+        pub value: String,
+        pub note: String,
+        pub project_ids: Option<Vec<Uuid>>,
+        #[serde(default)]
+        pub value_changed: bool,
+    }
+
+    #[derive(Debug, Deserialize, Serialize)]
     pub struct GetByIdsBody {
         ids: Vec<Uuid>,
     }
@@ -100,29 +111,45 @@ pub mod secrets {
         data: Vec<SecretResponse>,
     }
 
-    #[derive(Debug, Deserialize, Serialize)]
-    pub struct SecretListResponse {
-        secrets: Vec<SecretResponse>,
+    #[derive(Debug, Serialize)]
+    pub struct SecretWithProjectsListResponse {
+        secrets: Vec<SecretListInnerSecret>,
     }
 
-    pub async fn list_secrets() -> Json<SecretListResponse> {
+    #[derive(Debug, Serialize)]
+    pub struct SecretListInnerSecret {
+        pub id: Uuid,
+        #[serde(rename = "organizationId")]
+        pub organization_id: Uuid,
+        pub key: String,
+        pub projects: Vec<SecretListInnerProject>,
+    }
+
+    #[derive(Debug, Clone, Serialize)]
+    pub struct SecretListInnerProject {
+        pub id: Uuid,
+        pub name: String,
+    }
+
+    pub async fn list_secrets() -> Json<SecretWithProjectsListResponse> {
         let org_id = Uuid::parse_str(ORGANIZATION_ID).unwrap();
         info!("Listing secrets for organization: {}", org_id);
 
+        let project = SecretListInnerProject {
+            id: uuid::Uuid::new_v4(),
+            name: "Test Project".to_string(),
+        };
+
         let secrets = vec![
-            SecretResponse {
+            SecretListInnerSecret {
                 id: uuid::Uuid::new_v4(),
                 organization_id: org_id,
-                project_id: Some(uuid::Uuid::new_v4()),
                 key: "2.pMS6/icTQABtulw52pq2lg==|XXbxKxDTh+mWiN1HjH2N1w==|Q6PkuT+KX/axrgN9ubD5Ajk2YNwxQkgs3WJM0S0wtG8=".to_string(),
-                value: "2.i189LsTzTnYi00heXfe5fw==|xRFAsQGm1qbpasRBw0i9cg==|oNaTecIpkIFITxcI/pNHF8FOyuBMGgHIyS4PoLiJ34Y=".to_string(),
-                note: "2.i189LsTzTnYi00heXfe5fw==|xRFAsQGm1qbpasRBw0i9cg==|oNaTecIpkIFITxcI/pNHF8FOyuBMGgHIyS4PoLiJ34Y=".to_string(),
-                creation_date: chrono::Utc::now(),
-                revision_date: chrono::Utc::now(),
+                projects: vec![project],
             },
         ];
 
-        Json(SecretListResponse { secrets })
+        Json(SecretWithProjectsListResponse { secrets })
     }
 
     pub async fn create_secret(Json(payload): Json<CreateSecretRequest>) -> Json<SecretResponse> {
@@ -156,6 +183,29 @@ pub mod secrets {
             key: "2.WYqmVCB2wZc08tkzNOCmTw==|FAsVol/nJnnDk3/mp7z6QQ==|uPJOCC8iAbMzz4t60c35iZm8KzWKMn0ueCVJZlfmTdY=".to_string(),
             value: "2.IYOGfBMSOI5qOxfYGHd6Rg==|0PBFivy/Qtp4lg4vv1+yPn/sDeRsNWmRnUYgwmAgPzUqZA9ZojvuggVSp/isPPc2mYO5UQfb/co/81fDhQqopHrwat0l8SRB+sv/uEuomDdMkjaYl+jqblXebIDN42ZCy1wbERZgFmCMm3k1OIj1z5WHdRFGTWDLFlP316SgkAKOwaZF0eNmcQ90Py5Mrq9rKeVozsPWIL3aAXNchID6kJnqxbx717BxKQ9Vj/dMAaBlQoGrl/cYA6hoUBq7wOSMWkZ8PAorLhc3OSDwGT/iamlAfePbkbjVqlTK2WrQ5ZHIo5Qzwpd/cvn6a0rSW5cPQ6DLrrOBdgDU3ELJ3eB+vZ/IWl9jXsCQ3re6Pv4pOToAMYDYEkC7DlwbSiCWLegqbexwPNLRLa2hM9n+V8nVPgNic+LyakfsLqx1ReDFY0A7qRs7pE/EabYyj1O44HwZT3sSFKGYPlTBmQh6S21T7eGJ4+OV+dhnFSpjiJ7IjOhfAzwq8cUiAeIEvKECBD++C+TsGwNAYK57F8Dd2gEwSaDhkiEPssa/c9ZBQnarNWzmZN1gj4udXRmsXqAY6GcrZiLhBIpW2Yap8VVdgbQ9vwN77NzLfFW/FsdlAPB22dvjR1SzszgweG2QstGi9PcKY0Mp1zSvswWdGjdBpbfuExXBD62Fp+DWOmFzWPo2MyqSQLaegvO4G+v8DRlf7VHA34Yvcbzv9Jtq4+H+Z7SkglRcQvKrn9uv7qOlZPvGJs1Ri86BAopXIGsj/5XfQTdtQdhs4c0vviMSrNWtNvIgfg==|Z6BNqVlCknATGieykii0vF9xKu+JT3u2WqtbDhSYvkY=".to_string(),
             note: "2.S57kOfi1kIHjToxwR6sEuQ==|lTop/7iWWUveCGWXrHbHwg==|YrtUfrlRRN+ff8Re7txi2dTT9Ul0cwmiFWDgVpdWGlc=".to_string(),
+            creation_date: chrono::Utc::now(),
+            revision_date: chrono::Utc::now(),
+        };
+
+        Json(secret)
+    }
+
+    pub async fn update_secret(
+        Path(id): Path<Uuid>,
+        Json(payload): Json<UpdateSecretRequest>,
+    ) -> Json<SecretResponse> {
+        info!(
+            "Updating secret with id: {}, value_changed: {}",
+            id, payload.value_changed
+        );
+
+        let secret = SecretResponse {
+            id,
+            organization_id: Uuid::parse_str(ORGANIZATION_ID).unwrap(),
+            project_id: payload.project_ids.and_then(|ids| ids.first().cloned()),
+            key: payload.key,
+            value: payload.value,
+            note: payload.note,
             creation_date: chrono::Utc::now(),
             revision_date: chrono::Utc::now(),
         };
@@ -214,13 +264,13 @@ pub mod secrets {
         let org_id = Uuid::parse_str(ORGANIZATION_ID).unwrap();
         info!("Syncing secrets for organization: {}", org_id);
 
-        if let Some(date) = params.last_synced_date {
-            if date < chrono::Utc::now() {
-                return Json(SecretsSyncResponse {
-                    has_changes: false,
-                    secrets: None,
-                });
-            }
+        if let Some(date) = params.last_synced_date
+            && date < chrono::Utc::now()
+        {
+            return Json(SecretsSyncResponse {
+                has_changes: false,
+                secrets: None,
+            });
         }
 
         let secrets = vec![

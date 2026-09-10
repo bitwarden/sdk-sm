@@ -41,12 +41,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Install rust
-        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # stable
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
         with:
           toolchain: stable
 
@@ -61,7 +61,7 @@ jobs:
 
       - name: Install Zigbuild
         if: ${{ contains(matrix.settings.target, 'musl') }}
-        run: cargo install cargo-zigbuild --locked --git https://github.com/rust-cross/cargo-zigbuild --rev 6f7e1336c9cd13cf1b3704f93c40fcf84caaed6b # 0.18.4
+        run: cargo install cargo-zigbuild --locked --git https://github.com/rust-cross/cargo-zigbuild --rev 9ef2a444f09723f1b205017f241005819d4c0587 # 0.23.2
 
       - name: Add build architecture
         run: rustup target add ${{ matrix.settings.target }}
@@ -78,7 +78,7 @@ jobs:
         if: ${{ matrix.settings.target == 'x86_64-pc-windows-gnu' }}
         env:
           RUSTFLAGS: "-D warnings"
-        run: cargo build -p bitwarden-c --target ${{ matrix.settings.target }} --profile=release-windows
+        run: cargo build --locked -p bitwarden-c --target ${{ matrix.settings.target }} --profile=release-windows
 
       # Build Rust for !musl && !windows-gnu
       - name: Build Rust for - ${{ matrix.settings.target }}
@@ -86,16 +86,16 @@ jobs:
         env:
           RUSTFLAGS: "-D warnings"
           MACOSX_DEPLOYMENT_TARGET: "10.14" # allows using new macos runner versions while still supporting older systems
-        run: cargo build -p bitwarden-c --target ${{ matrix.settings.target }} --release
+        run: cargo build --locked -p bitwarden-c --target ${{ matrix.settings.target }} --release
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: libbitwarden_c_files-${{ matrix.settings.target }}
           path: target/${{ matrix.settings.target }}/release/*bitwarden_c*
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: libbitwarden_c_files-${{ matrix.settings.target }}
           path: target/${{ matrix.settings.target }}/release-windows/*bitwarden_c*

@@ -77,8 +77,16 @@ class SecretsClient
      */
     public function update(string $organization_id, string $id, string $key, string $value, string $note, array $project_ids): stdClass
     {
+        try {
+            $old_secret = $this->get($id);
+        } catch (Exception $e) {
+            throw new Exception("Cannot update secret: failed to fetch current value for version history: " . $e->getMessage());
+        }
+
+        $value_changed = $value !== $old_secret->value;
+
         $secrets_put_request = new SecretPutRequest(id: $id, key: $key, note: $note, organizationId: $organization_id,
-            projectIds: $project_ids, value: $value);
+            projectIds: $project_ids, value: $value, valueChanged: $value_changed);
         $secrets_put_request->validate();
         $secrets_command = new SecretsCommand(get: null, getByIds: null, create: null, list: null,
             update: $secrets_put_request, delete: null, sync: null);

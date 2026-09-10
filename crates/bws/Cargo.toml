@@ -1,6 +1,6 @@
 [package]
 name = "bws"
-version = "2.0.0"
+version = "2.1.0"
 description = """
 Bitwarden Secrets Manager CLI
 """
@@ -28,7 +28,7 @@ color-eyre = "0.6.3"
 comfy-table = "7.1.1"
 directories = "6.0.0"
 env_logger = "0.11.1"
-itertools = "0.14.0"
+itertools = "0.15.0"
 log = "0.4.20"
 regex = { version = "1.10.3", features = [
     "std",
@@ -40,7 +40,7 @@ serde_yaml = "0.9"
 supports-color = "3.0.0"
 thiserror = "2.0.18"
 tokio = { workspace = true, features = ["rt-multi-thread"] }
-toml = "0.9.0"
+toml = "1.0.0"
 uuid = { version = "1.7.0", features = ["serde"] }
 which = "8.0.0"
 
@@ -48,7 +48,7 @@ which = "8.0.0"
 bitwarden-cli = { workspace = true }
 clap = { version = "4.5.4", features = ["derive", "string"] }
 clap_complete = "4.5.2"
-clap_mangen = "0.2.20"
+clap_mangen = { version = "0.3.0", features = ["env"] }
 uuid = { version = "1.7.0" }
 
 [dev-dependencies]

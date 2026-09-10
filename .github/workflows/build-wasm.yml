@@ -25,7 +25,7 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -36,11 +36,15 @@ jobs:
           registry-url: "https://npm.pkg.github.com"
           cache: "npm"
 
-      - name: Install dependencies
-        run: npm i -g binaryen
+      - name: Install binaryen
+        run: |
+          npm ci --ignore-scripts
+
+      - name: Verify Binaryen installation
+        run: npx --ignore-scripts wasm-opt --version
 
       - name: Install rust
-        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # stable
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
         with:
           toolchain: 1.88.0
           targets: wasm32-unknown-unknown
@@ -51,13 +55,13 @@ jobs:
           key: wasm-cargo-cache
 
       - name: Install wasm-bindgen-cli
-        run: cargo install wasm-bindgen-cli --version 0.2.105
+        run: cargo install wasm-bindgen-cli --version 0.2.114
 
       - name: Build
         run: ./build.sh -r
 
       - name: Upload artifact
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: sdk-bitwarden-wasm
           path: ${{ github.workspace }}/languages/js/wasm/*

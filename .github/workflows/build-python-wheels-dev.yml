@@ -1,0 +1,40 @@
+name: Build Python Wheels (Dev)
+run-name: Build Python Wheels (Dev)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "main"
+
+concurrency:
+  group: build-python-dev
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  build-dev:
+    name: Build Dev
+    uses: ./.github/workflows/build-python-wheels.yml
+    permissions:
+      contents: read
+    with:
+      dev_version: true
+
+  trigger-publish:
+    name: Trigger publish
+    runs-on: ubuntu-24.04
+    needs: build-dev
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Trigger publish to Test PyPI
+        uses: bitwarden/gh-actions/trigger-actions@main
+        with:
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+          task: publish-python-wheels-dev
+          data: '{"version": "${{ needs.build-dev.outputs.package_version }}", "run_id": "${{ github.run_id }}", "repository": "${{ github.repository }}"}'

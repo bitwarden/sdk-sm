@@ -64,6 +64,18 @@ public class SecretsClient
 
     public async Task<SecretResponse> UpdateAsync(Guid organizationId, Guid id, string key, string value, string note, Guid[] projectIds, CancellationToken cancellationToken = default)
     {
+        SecretResponse oldSecret;
+        try
+        {
+            oldSecret = await GetAsync(id, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            throw new BitwardenException($"Cannot update secret: failed to fetch current value for version history: {ex.Message}", ex);
+        }
+
+        var valueChanged = value != oldSecret.Value;
+
         var command = new Command
         {
             Secrets = new SecretsCommand
@@ -75,7 +87,8 @@ public class SecretsClient
                     Value = value,
                     Note = note,
                     OrganizationId = organizationId,
-                    ProjectIds = projectIds
+                    ProjectIds = projectIds,
+                    ValueChanged = valueChanged
                 }
             }
         };

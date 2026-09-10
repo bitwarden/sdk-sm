@@ -20,7 +20,7 @@ pub fn create_app() -> Router {
             "/api/secrets/get-by-ids",
             post(routes::secrets::get_secrets_by_ids),
         )
-        .route("/api/secrets/{id}", put(routes::secrets::create_secret)) // we don't really have data to edit, so just treat it as create
+        .route("/api/secrets/{id}", put(routes::secrets::update_secret))
         .route(
             "/api/organizations/{org_id}/secrets/sync",
             get(routes::secrets::sync_secrets),

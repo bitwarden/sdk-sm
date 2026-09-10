@@ -1,6 +1,9 @@
 package sdk
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type SecretsInterface interface {
 	Create(key, value, note string, organizationID string, projectIDs []string) (*SecretResponse, error)
@@ -97,6 +100,13 @@ func (s *Secrets) GetByIDS(ids []string) (*SecretsResponse, error) {
 }
 
 func (s *Secrets) Update(id string, key, value, note string, organizationID string, projectIDs []string) (*SecretResponse, error) {
+	oldSecret, err := s.Get(id)
+	if err != nil {
+		return nil, fmt.Errorf("cannot update secret: failed to fetch current value for version history: %w", err)
+	}
+
+	valueChanged := value != oldSecret.Value
+
 	command := Command{
 		Secrets: &SecretsCommand{
 			Update: &SecretPutRequest{
@@ -106,6 +116,7 @@ func (s *Secrets) Update(id string, key, value, note string, organizationID stri
 				Note:           note,
 				OrganizationID: organizationID,
 				ProjectIDS:     projectIDs,
+				ValueChanged:   valueChanged,
 			},
 		},
 	}

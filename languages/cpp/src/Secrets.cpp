@@ -112,6 +112,16 @@ SecretResponse Secrets::create(const boost::uuids::uuid& organizationId, const s
 }
 
 SecretResponse Secrets::update(const boost::uuids::uuid& organizationId, const boost::uuids::uuid& id, const std::string& key, const std::string& value, const std::string& note, const std::vector<boost::uuids::uuid>& projectIds) {
+    SecretResponse oldSecret;
+    try {
+        oldSecret = get(id);
+    } catch (const std::exception& ex) {
+        std::cerr << "Cannot update secret: failed to fetch current value for version history: " << ex.what() << std::endl;
+        throw ex;
+    }
+
+    bool valueChanged = value != oldSecret.get_value();
+
     Command command;
     SecretsCommand secretsCommand;
     SecretPutRequest secretPutRequest;
@@ -131,6 +141,7 @@ SecretResponse Secrets::update(const boost::uuids::uuid& organizationId, const b
         projectIdsStr.push_back(boost::uuids::to_string(projectId));
     }
     secretPutRequest.set_project_ids(projectIdsStr);
+    secretPutRequest.set_value_changed(valueChanged);
 
     secretsCommand.set_update(secretPutRequest);
     command.set_secrets(secretsCommand);

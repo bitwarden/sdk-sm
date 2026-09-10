@@ -253,11 +253,17 @@ class SecretsClient:
         if note is None:
             # secrets api does not accept empty notes
             note = ""
+        try:
+            old_secret = self.get(id)
+        except Exception as e:
+            raise Exception(f"Cannot update secret: failed to fetch current value for version history: {str(e)}")
+
+        value_changed = value != old_secret.data.value
         result = self.client._run_command(
             Command(
                 secrets=SecretsCommand(
                     update=SecretPutRequest(
-                        id, key, note, organization_id, value, project_ids
+                        id, key, note, organization_id, value, value_changed, project_ids
                     )
                 )
             )

@@ -1,4 +1,5 @@
 accepted = [
+    "LicenseRef-Bitwarden-SDK",
     "MIT",
     "ISC",
     "BSD-2-Clause",

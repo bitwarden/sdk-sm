@@ -22,12 +22,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Install rust
-        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # stable
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
         with:
           toolchain: stable
 
@@ -48,55 +48,55 @@ jobs:
         run: npm run schemas
 
       - name: Upload ts schemas artifact
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: schemas.ts
           path: ${{ github.workspace }}/languages/js/sdk-client/src/schemas.ts
           if-no-files-found: error
 
       - name: Upload c# schemas artifact
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: schemas.cs
           path: ${{ github.workspace }}/languages/csharp/Bitwarden.Sdk/schemas.cs
           if-no-files-found: error
 
       - name: Upload python schemas artifact
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: schemas.py
           path: ${{ github.workspace }}/languages/python/bitwarden_sdk/schemas.py
           if-no-files-found: error
 
       - name: Upload ruby schemas artifact
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: schemas.rb
           path: ${{ github.workspace }}/languages/ruby/bitwarden_sdk_secrets/lib/schemas.rb
           if-no-files-found: error
 
       - name: Upload json schemas artifact
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: sdk-schemas-json
           path: ${{ github.workspace }}/support/schemas/*
           if-no-files-found: error
 
       - name: Upload Go schemas artifact
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: schemas.go
           path: ${{ github.workspace }}/languages/go/schema.go
 
       - name: Upload java schemas artifact
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: sdk-schemas-java
           path: ${{ github.workspace }}/languages/java/src/main/java/com/bitwarden/sdk/schema/*
           if-no-files-found: error
 
       - name: Upload cpp schemas artifact
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: sdk-schemas-cpp
           path: ${{ github.workspace }}/languages/cpp/include/schemas.hpp

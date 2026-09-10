@@ -23,6 +23,7 @@
     "artifacts": "napi artifacts",
     "build": "napi build --platform --release --js binding.js --dts binding.d.ts && tsc",
     "build-arm64": "napi build --target aarch64-apple-darwin --platform --release --js binding.js --dts binding.d.ts && tsc",
+    "build-x64": "napi build --target x86_64-apple-darwin --platform --release --js binding.js --dts binding.d.ts && tsc",
     "build:debug": "napi build --platform",
     "prepublishOnly": "napi prepublish --skip-gh-release",
     "tsc": "tsc",

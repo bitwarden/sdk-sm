@@ -119,10 +119,13 @@ export class SecretsClient {
     note: string,
     projectIds: string[],
   ): Promise<SecretResponse> {
+    const oldSecret = await this.get(id);
+    const valueChanged = value !== oldSecret.value;
+
     const response = await this.client.runCommand(
       Convert.commandToJson({
         secrets: {
-          update: { id, key, value, note, projectIds, organizationId },
+          update: { id, key, value, note, projectIds, organizationId, valueChanged },
         },
       }),
     );

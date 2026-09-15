@@ -15,7 +15,6 @@ on:
 
 permissions:
   contents: write
-  actions: read
 
 jobs:
   setup:

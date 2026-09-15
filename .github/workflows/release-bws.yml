@@ -13,14 +13,15 @@ on:
           - Release
           - Dry Run
 
-permissions:
-  contents: write
-  actions: read
+permissions: {}
 
 jobs:
   setup:
     name: Setup
     runs-on: ubuntu-22.04
+    permissions:
+      actions: read # reads build-cli.yml runs to download release artifacts
+      contents: write
     outputs:
       release_version: ${{ steps.version.outputs.version }}
     steps:

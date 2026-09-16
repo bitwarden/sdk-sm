@@ -1,3 +1,5 @@
+use std::io::{self, Write};
+
 use bitwarden::secrets_manager::{projects::ProjectResponse, secrets::SecretResponse};
 use bitwarden_cli::Color;
 use chrono::{DateTime, Utc};
@@ -70,17 +72,17 @@ pub(crate) fn serialize_response<T: Serialize + TableSerialize<N>, const N: usiz
                 .set_header(T::get_headers())
                 .add_rows(data.get_values());
 
-            println!("{table}");
+            write_stdout(format!("{table}\n").as_bytes());
         }
         Output::TSV => {
-            println!("{}", T::get_headers().join("\t"));
-
             let rows: Vec<String> = data
                 .get_values()
                 .into_iter()
                 .map(|row| row.join("\t"))
                 .collect();
-            println!("{}", rows.join("\n"));
+            write_stdout(
+                format!("{}\n{}\n", T::get_headers().join("\t"), rows.join("\n")).as_bytes(),
+            );
         }
         Output::None => {}
     }
@@ -88,13 +90,26 @@ pub(crate) fn serialize_response<T: Serialize + TableSerialize<N>, const N: usiz
 
 fn pretty_print(language: &str, data: &str, color: Color) {
     if color.is_enabled() {
+        let mut highlighted = String::new();
         bat::PrettyPrinter::new()
             .input_from_bytes(data.as_bytes())
             .language(language)
-            .print()
+            .print_with_writer(Some(&mut highlighted))
             .expect("Input is valid");
+        write_stdout(highlighted.as_bytes());
     } else {
-        print!("{}", data);
+        write_stdout(data.as_bytes());
+    }
+}
+
+/// Writes `data` to stdout, exiting quietly if the reader has gone away (e.g. `bws ... | head`).
+pub(crate) fn write_stdout(data: &[u8]) {
+    let mut stdout = io::stdout().lock();
+    if let Err(e) = stdout.write_all(data).and_then(|()| stdout.flush()) {
+        if e.kind() == io::ErrorKind::BrokenPipe {
+            std::process::exit(0);
+        }
+        panic!("Failed printing to stdout: {e}");
     }
 }
 

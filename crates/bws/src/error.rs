@@ -12,6 +12,7 @@ use regex::Regex;
 
 const SERVER_URL_HINT: &str = "Check the server URL (--server-url or server-base in the config).";
 const NETWORK_HINT: &str = "Check the server URL and your network connection.";
+const TLS_HINT: &str = "Check the server URL or install the server's CA certificate.";
 const UNKNOWN_ERROR: &str = "An unknown error occurred.";
 const MAX_MESSAGE_CHARS: usize = 160;
 
@@ -84,6 +85,14 @@ pub(crate) fn render(report: &eyre::Report) -> String {
     }
 }
 
+/// Renders the full report, followed by the `Hint: <hint>` line [`render`] would show.
+pub(crate) fn render_verbose(report: &eyre::Report) -> String {
+    match classify(report).hint {
+        Some(hint) => format!("Error: {report:?}\nHint: {hint}\n"),
+        None => format!("Error: {report:?}\n"),
+    }
+}
+
 pub(crate) fn classify(report: &eyre::Report) -> UserError {
     if let Some(e) = report.downcast_ref::<UserError>() {
         return UserError {
@@ -140,10 +149,10 @@ pub(crate) fn generic(err: &(dyn Error + 'static)) -> Option<UserError> {
     if texts.iter().any(|t| {
         t.contains("invalid peer certificate") || (t.contains("certificate") && t.contains("verif"))
     }) {
-        return Some(UserError::new(format!(
-            "The TLS certificate of {} is not trusted.",
-            host()
-        )));
+        return Some(
+            UserError::new(format!("The TLS certificate of {} is not trusted.", host()))
+                .hint(TLS_HINT),
+        );
     }
     if io_kind(io::ErrorKind::TimedOut) || texts.iter().any(|t| t.contains("timed out")) {
         return Some(
@@ -152,6 +161,13 @@ pub(crate) fn generic(err: &(dyn Error + 'static)) -> Option<UserError> {
         );
     }
     if top.starts_with("builder error") {
+        // Release builds of the SDK only allow https, and reqwest reports a plain http URL as a
+        // builder error.
+        if texts.iter().any(|t| t == "URL scheme is not allowed")
+            && texts.iter().any(|t| t.contains("for url (http://"))
+        {
+            return Some(UserError::new("The server URL must use https://.").hint(SERVER_URL_HINT));
+        }
         return Some(UserError::new("The server URL is invalid.").hint(SERVER_URL_HINT));
     }
     if top.starts_with("error sending request") || top.starts_with("error decoding response body") {
@@ -185,6 +201,11 @@ fn http_error(status: u16, reason: &str, body: &str) -> UserError {
             .hint("Wait a moment and try again."),
         500..=599 => UserError::new(format!("The server returned an error ({reason})."))
             .hint("Try again later."),
+        // A generic web server rejecting the request shape suggests a wrong server URL.
+        405 | 406 | 415 => {
+            UserError::new(format!("Unexpected response from the server ({reason})."))
+                .hint(SERVER_URL_HINT)
+        }
         _ => UserError::new(format!("Unexpected response from the server ({reason}).")),
     }
 }
@@ -459,8 +480,11 @@ mod tests {
             io::Error::other("invalid peer certificate: UnknownIssuer"),
         );
         assert_eq!(
-            generic(&tls).expect("classified").message,
-            "The TLS certificate of example.com:8443 is not trusted."
+            lines(&generic(&tls).expect("classified")),
+            (
+                "The TLS certificate of example.com:8443 is not trusted.".to_string(),
+                Some(TLS_HINT.to_string())
+            )
         );
 
         let timeout = chain(
@@ -478,6 +502,20 @@ mod tests {
         assert_eq!(
             classify_text("builder error").message,
             "The server URL is invalid."
+        );
+        let bad_scheme = ChainErr(
+            "builder error for url (http://example.com/identity/connect/token)".to_string(),
+            Some(Box::new(ChainErr(
+                "URL scheme is not allowed".to_string(),
+                None,
+            ))),
+        );
+        assert_eq!(
+            lines(&generic(&bad_scheme).expect("classified")),
+            (
+                "The server URL must use https://.".to_string(),
+                Some(SERVER_URL_HINT.to_string())
+            )
         );
         assert_eq!(
             classify_text("error sending request").message,
@@ -564,8 +602,18 @@ mod tests {
         assert!(!e.message.contains("<html"));
 
         assert_eq!(
-            http("418 I'm a teapot", "").message,
-            "Unexpected response from the server (418 I'm a teapot)."
+            lines(&http("418 I'm a teapot", "")),
+            (
+                "Unexpected response from the server (418 I'm a teapot).".to_string(),
+                None
+            )
+        );
+        assert_eq!(
+            lines(&http("405 Method Not Allowed", "<html></html>")),
+            (
+                "Unexpected response from the server (405 Method Not Allowed).".to_string(),
+                Some(SERVER_URL_HINT.to_string())
+            )
         );
     }
 
@@ -598,6 +646,12 @@ mod tests {
 
         let report = eyre::Report::new(UserError::new("Something failed."));
         assert_eq!(render(&report), "Error: Something failed.\n");
+        assert!(!render_verbose(&report).contains("Hint:"));
+
+        let report = eyre::Report::new(UserError::new("Something failed.").hint("Do this."));
+        let verbose = render_verbose(&report);
+        assert!(verbose.starts_with("Error: "), "{verbose}");
+        assert!(verbose.ends_with("\nHint: Do this.\n"), "{verbose}");
 
         let report = eyre::eyre!("Doesn't contain a decryption key");
         assert_eq!(

@@ -9,7 +9,7 @@ use clap::CommandFactory;
 use clap_complete::Shell;
 use color_eyre::eyre::{Result, bail};
 
-use crate::{Cli, ProfileKey, config, util};
+use crate::{Cli, ProfileKey, config, render, util};
 
 pub(crate) fn completions(shell: Option<Shell>) -> Result<()> {
     let Some(shell) = shell.or_else(Shell::from_env) else {
@@ -18,7 +18,9 @@ pub(crate) fn completions(shell: Option<Shell>) -> Result<()> {
 
     let mut cmd = Cli::command();
     let name = cmd.get_name().to_string();
-    clap_complete::generate(shell, &mut cmd, name, &mut std::io::stdout());
+    let mut script = Vec::new();
+    clap_complete::generate(shell, &mut cmd, name, &mut script);
+    render::write_stdout(&script);
 
     Ok(())
 }

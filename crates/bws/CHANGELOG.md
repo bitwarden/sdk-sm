@@ -11,13 +11,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **BREAKING:** Updated MSRV to `1.88.0` (#1426)
 - Errors are now printed as a short `Error:` line with an optional `Hint:` line instead of a full
-  error report. Set `BWS_DEBUG=1` (or `RUST_BACKTRACE=1`) to see the full report. (#TBD)
-- Network and server errors no longer print raw response bodies. (#TBD)
+  error report. Set `BWS_DEBUG=1` (or `RUST_BACKTRACE=1`) to see the full report. (#1578)
+- Network and server errors no longer print raw response bodies. (#1578)
 
 ### Fixed
 
 - No longer panic if access token has access to no secrets (#1255)
-- No longer panic when stdout is closed early, e.g. when piping into `head`. (#TBD)
+- No longer panic when stdout is closed early, e.g. when piping into `head`. (#1578)
 
 ## [1.0.0] - 2024-09-26
 

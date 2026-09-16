@@ -941,6 +941,8 @@ dependencies = [
  "bat",
  "bitwarden",
  "bitwarden-cli",
+ "bitwarden-core",
+ "bitwarden-crypto",
  "chrono",
  "clap",
  "clap_complete",

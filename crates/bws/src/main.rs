@@ -5,9 +5,9 @@ use bitwarden::secrets_manager::{
 };
 use bitwarden_cli::{Color, install_color_eyre};
 use clap::{CommandFactory, Parser};
-use color_eyre::eyre::{Result, bail};
+use color_eyre::eyre::Result;
 use config::Profile;
-use log::error;
+use error::UserError;
 use render::OutputSettings;
 
 mod cli;
@@ -96,11 +96,14 @@ async fn process_commands() -> Result<()> {
         _ => (),
     }
 
-    let access_token = match cli.access_token {
-        Some(key) => key,
-        None => bail!("Missing access token"),
+    let Some(access_token) = cli.access_token else {
+        return Err(UserError::new("No access token provided.")
+            .hint("Pass --access-token or set BWS_ACCESS_TOKEN.")
+            .into());
     };
-    let access_token_obj: AccessToken = access_token.parse()?;
+    let access_token_obj: AccessToken = access_token
+        .parse()
+        .map_err(|e| error::malformed_token().source(e))?;
 
     let profile = get_config_profile(
         &cli.server_url,
@@ -110,15 +113,17 @@ async fn process_commands() -> Result<()> {
     )?;
 
     let settings = profile
-        .clone()
-        .map(|p| -> Result<_> {
+        .as_ref()
+        .map(|(name, p)| -> Result<_, UserError> {
+            let (identity_url, api_url) = p.server_urls(name)?;
             Ok(ClientSettings {
-                identity_url: p.identity_url()?,
-                api_url: p.api_url()?,
+                identity_url,
+                api_url,
                 ..Default::default()
             })
         })
         .transpose()?;
+    let profile = profile.map(|(_, p)| p);
 
     let state_file = match get_state_opt_out(&profile) {
         true => None,
@@ -128,15 +133,13 @@ async fn process_commands() -> Result<()> {
         ) {
             Ok(state_file) => Some(state_file),
             Err(e) => {
-                eprintln!(
-                    "Warning: {}\nRetrieving the state file failed. Attempting to continue without using state. Please set \"state_dir\" in your config file to avoid authentication limits.",
-                    e
-                );
+                error::warn(&e.to_string(), e.hint_text());
                 None
             }
         },
     };
 
+    let identity_url = settings.as_ref().map(|s| s.identity_url.clone());
     let client = SecretsManagerClient::new(settings);
 
     // Load session or return if no session exists
@@ -146,14 +149,13 @@ async fn process_commands() -> Result<()> {
             access_token,
             state_file,
         })
-        .await?;
+        .await
+        .map_err(|e| error::login_error(e, identity_url.as_deref()))?;
 
-    let organization_id = match client.get_access_token_organization() {
-        Some(id) => id,
-        None => {
-            error!("Access token isn't associated to an organization.");
-            return Ok(());
-        }
+    let Some(organization_id) = client.get_access_token_organization() else {
+        return Err(
+            UserError::new("The access token is not associated with an organization.").into(),
+        );
     };
 
     let output_settings = OutputSettings::new(cli.output, color);
@@ -196,34 +198,37 @@ async fn process_commands() -> Result<()> {
     }
 }
 
+/// Returns the profile to use and its name.
 fn get_config_profile(
     server_url: &Option<String>,
     profile: &Option<String>,
     config_file: &Option<PathBuf>,
     access_token: &str,
-) -> Result<Option<config::Profile>, color_eyre::Report> {
-    let config = config::load_config(config_file.as_deref(), config_file.is_some())?;
+) -> Result<Option<(String, config::Profile)>, color_eyre::Report> {
+    let path = config::get_config_path(config_file.as_deref(), false)?;
+    let config = config::load_config(Some(&path), config_file.is_some())?;
 
     let profile = if let Some(server_url) = server_url {
         let mut p = config::Profile::from_url(server_url)?;
         if p.state_opt_out.is_none()
-            && let Some(default) = config.select_profile("default", false)?
+            && let Some((_, default)) = config.select_profile("default", false, &path)?
         {
             p.state_opt_out = default.state_opt_out;
         }
-        Some(p)
+        Some((server_url.to_owned(), p))
     } else {
         let profile_defined = profile.is_some();
 
         let profile_key = if let Some(profile) = profile {
             profile.to_owned()
         } else {
-            AccessToken::from_str(access_token)?
+            AccessToken::from_str(access_token)
+                .map_err(|e| error::malformed_token().source(e))?
                 .access_token_id
                 .to_string()
         };
 
-        config.select_profile(&profile_key, profile_defined)?
+        config.select_profile(&profile_key, profile_defined, &path)?
     };
     Ok(profile)
 }

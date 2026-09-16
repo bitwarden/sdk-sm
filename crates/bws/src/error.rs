@@ -1,8 +1,12 @@
 use std::{any::Any, error::Error, io, path::Path, sync::LazyLock};
 
+use bitwarden_core::{ApiError, auth::login::LoginError};
+use bitwarden_crypto::CryptoError;
 use color_eyre::eyre;
 use regex::Regex;
 
+const HINT_COPY_TOKEN: &str = "Copy the full access token from the Bitwarden web app.";
+const DEFAULT_IDENTITY_HOST: &str = "identity.bitwarden.com";
 const SERVER_URL_HINT: &str = "Check the server URL (--server-url or server-base in the config).";
 const NETWORK_HINT: &str = "Check the server URL and your network connection.";
 const TLS_HINT: &str = "Check the server URL or install the server's CA certificate.";
@@ -49,13 +53,13 @@ impl UserError {
     }
 
     /// `<action> '<path>': <io reason>.`
-    #[cfg_attr(
-        not(test),
-        expect(dead_code, reason = "For call sites that classify their own errors")
-    )]
     pub(crate) fn io(action: &str, path: &Path, e: io::Error) -> Self {
         let message = format!("{action} '{}': {}.", path.display(), io_reason(&e));
         Self::new(message).source(e)
+    }
+
+    pub(crate) fn hint_text(&self) -> Option<&str> {
+        self.hint.as_deref()
     }
 }
 
@@ -242,12 +246,98 @@ fn host_from_chain(texts: &[String]) -> String {
         .find_map(|t| {
             let (_, rest) = t.split_once("for url (")?;
             let url = rest.split_once(')').map_or(rest, |(u, _)| u);
-            let authority = url.split_once("://").map_or(url, |(_, r)| r);
-            let authority = authority.split(['/', '?', '#']).next().unwrap_or(authority);
-            let host = authority.rsplit_once('@').map_or(authority, |(_, h)| h);
-            (!host.is_empty()).then(|| host.to_string())
+            url_host(url)
         })
         .unwrap_or_else(|| "the server".to_string())
+}
+
+/// Returns `host[:port]` of a URL, without scheme, userinfo, path, query or fragment.
+fn url_host(url: &str) -> Option<String> {
+    let url = url.split_once("://").map_or(url, |(_, r)| r);
+    let authority = url.split(['/', '?', '#']).next().unwrap_or(url);
+    let host = authority.rsplit_once('@').map_or(authority, |(_, h)| h);
+    (!host.is_empty()).then(|| host.to_string())
+}
+
+pub(crate) fn malformed_token() -> UserError {
+    UserError::new("The access token is malformed.").hint(HINT_COPY_TOKEN)
+}
+
+/// Classifies an access token login failure against the identity server at `identity_url`.
+pub(crate) fn login_error(e: LoginError, identity_url: Option<&str>) -> UserError {
+    let host = identity_url
+        .and_then(url_host)
+        .unwrap_or_else(|| DEFAULT_IDENTITY_HOST.to_string());
+
+    let error = match &e {
+        LoginError::Api(ApiError::Response(rc)) => {
+            login_response_error(rc.status.as_u16(), &rc.message, &host)
+        }
+        LoginError::IdentityFail(r) => Some(login_failed(&[
+            &r.error_model.message,
+            &r.error_description,
+            &r.error,
+        ])),
+        LoginError::Crypto(CryptoError::Decrypt) => Some(
+            UserError::new("The access token's decryption key is invalid.").hint(HINT_COPY_TOKEN),
+        ),
+        LoginError::Crypto(_)
+        | LoginError::Serde(_)
+        | LoginError::MissingField(_)
+        | LoginError::JwtTokenParse(_)
+        | LoginError::InvalidResponse
+        | LoginError::InvalidOrganizationId => Some(UserError::new(format!(
+            "Unexpected login response from the server at {host}."
+        ))),
+        LoginError::AccessTokenInvalid(_) => Some(malformed_token()),
+        _ => None,
+    };
+
+    error
+        .or_else(|| generic(&e))
+        .unwrap_or_else(|| UserError::new(sentence(&e.to_string())))
+        .source(e)
+}
+
+/// Classifies an identity server response that could not be parsed as a login result.
+/// Returns `None` for statuses that [`generic`] handles.
+fn login_response_error(status: u16, body: &str, host: &str) -> Option<UserError> {
+    let json = serde_json::from_str::<serde_json::Value>(body).ok();
+    match status {
+        400 => matches!(
+            json.as_ref()?.get("error").and_then(|e| e.as_str()),
+            Some("invalid_client" | "invalid_grant")
+        )
+        .then(|| {
+            UserError::new("The access token is invalid, expired, or revoked.")
+                .hint("Create a new access token in the Bitwarden web app.")
+        }),
+        429 => Some(
+            UserError::new("Too many login attempts.")
+                .hint("Wait a few minutes and retry; keep state enabled to reuse sessions."),
+        ),
+        404 => Some(unexpected_login_endpoint(host)),
+        200 if json.is_none() => Some(unexpected_login_endpoint(host)),
+        _ => None,
+    }
+}
+
+fn unexpected_login_endpoint(host: &str) -> UserError {
+    UserError::new(format!(
+        "Unexpected response from the login endpoint at {host}."
+    ))
+    .hint(SERVER_URL_HINT)
+}
+
+/// Uses the first non-empty candidate as the server's reason for a failed login.
+fn login_failed(candidates: &[&str]) -> UserError {
+    match candidates.iter().map(|c| c.trim()).find(|c| !c.is_empty()) {
+        Some(reason) => UserError::new(format!(
+            "Login failed: {}.",
+            sentence(reason).trim_end_matches('.')
+        )),
+        None => UserError::new("Login failed."),
+    }
 }
 
 /// Whether to show full error reports. Read once; the environment cannot change mid-process.
@@ -270,7 +360,6 @@ fn verbose_from(bws_debug: Option<&str>, rust_backtrace: Option<&str>) -> bool {
     debug || rust_backtrace.is_some_and(|v| v != "0")
 }
 
-#[expect(dead_code, reason = "For call sites that report recoverable problems")]
 pub(crate) fn warn(message: &str, hint: Option<&str>) {
     eprint!("{}", message_lines("Warning", message, hint));
 }
@@ -319,6 +408,20 @@ fn sentence(s: &str) -> String {
         return UNKNOWN_ERROR.to_string();
     }
     format!("{text}.")
+}
+
+/// Formats text to follow a colon: like [`sentence`] but without the trailing period, and
+/// lowercased unless it starts with an acronym.
+pub(crate) fn clause(s: &str) -> String {
+    let text = sentence(s);
+    let text = text.strip_suffix('.').unwrap_or(&text);
+    let mut chars = text.chars();
+    match (chars.next(), chars.next()) {
+        (Some(first), second) if !second.is_some_and(char::is_uppercase) => {
+            first.to_lowercase().chain(text.chars().skip(1)).collect()
+        }
+        _ => text.to_string(),
+    }
 }
 
 fn uppercase_first(s: &str) -> String {
@@ -722,6 +825,124 @@ mod tests {
             ),
             "Error: Could not write to stdout: permission denied.\n"
         );
+    }
+
+    #[test]
+    fn login_response_errors() {
+        let host = "vault.example.com:8443";
+        for body in [
+            r#"{"error":"invalid_client"}"#,
+            r#"{"error":"invalid_grant"}"#,
+        ] {
+            let e = login_response_error(400, body, host).expect("classified");
+            assert_eq!(
+                lines(&e),
+                (
+                    "The access token is invalid, expired, or revoked.".to_string(),
+                    Some("Create a new access token in the Bitwarden web app.".to_string())
+                )
+            );
+        }
+        assert!(login_response_error(400, r#"{"error":"invalid_scope"}"#, host).is_none());
+        assert!(login_response_error(400, "<html>", host).is_none());
+
+        assert_eq!(
+            lines(&login_response_error(429, "", host).expect("classified")),
+            (
+                "Too many login attempts.".to_string(),
+                Some(
+                    "Wait a few minutes and retry; keep state enabled to reuse sessions."
+                        .to_string()
+                )
+            )
+        );
+
+        let unexpected = (
+            "Unexpected response from the login endpoint at vault.example.com:8443.".to_string(),
+            Some(SERVER_URL_HINT.to_string()),
+        );
+        assert_eq!(
+            lines(&login_response_error(404, "{}", host).expect("classified")),
+            unexpected
+        );
+        assert_eq!(
+            lines(&login_response_error(200, "<html>login</html>", host).expect("classified")),
+            unexpected
+        );
+        assert!(login_response_error(200, "{}", host).is_none());
+        assert!(login_response_error(500, "<html>oops</html>", host).is_none());
+    }
+
+    #[test]
+    fn login_errors() {
+        let e = login_error(
+            LoginError::Crypto(CryptoError::Decrypt),
+            Some("https://u:p@identity.example.com/identity"),
+        );
+        assert_eq!(
+            lines(&e),
+            (
+                "The access token's decryption key is invalid.".to_string(),
+                Some(HINT_COPY_TOKEN.to_string())
+            )
+        );
+        assert!(Error::source(&e).is_some());
+
+        let e = login_error(
+            LoginError::MissingField(bitwarden_core::MissingFieldError("organization")),
+            Some("https://u:p@identity.example.com/identity"),
+        );
+        assert_eq!(
+            lines(&e),
+            (
+                "Unexpected login response from the server at identity.example.com.".to_string(),
+                None
+            )
+        );
+
+        let e = login_error(LoginError::InvalidResponse, None);
+        assert_eq!(
+            e.message,
+            "Unexpected login response from the server at identity.bitwarden.com."
+        );
+
+        let Err(token_error) = "not-a-token".parse::<bitwarden::secrets_manager::AccessToken>()
+        else {
+            panic!("token to be malformed");
+        };
+        let e = login_error(LoginError::AccessTokenInvalid(token_error), None);
+        assert_eq!(
+            lines(&e),
+            (
+                "The access token is malformed.".to_string(),
+                Some(HINT_COPY_TOKEN.to_string())
+            )
+        );
+
+        let e = login_error(LoginError::AuthenticationFailed, None);
+        assert_eq!(lines(&e), ("Failed to authenticate.".to_string(), None));
+    }
+
+    #[test]
+    fn login_failed_reasons() {
+        assert_eq!(
+            login_failed(&["", " invalid client credentials ", "invalid_client"]).message,
+            "Login failed: Invalid client credentials."
+        );
+        assert_eq!(
+            login_failed(&["Username or password is incorrect. Try again.", "", ""]).message,
+            "Login failed: Username or password is incorrect. Try again."
+        );
+        assert_eq!(login_failed(&["", " ", ""]).message, "Login failed.");
+    }
+
+    #[test]
+    fn clause_formats_text() {
+        assert_eq!(
+            clause("Key with no value, expected `=`\n"),
+            "key with no value, expected `=`"
+        );
+        assert_eq!(clause("TOML is invalid."), "TOML is invalid");
     }
 
     #[test]

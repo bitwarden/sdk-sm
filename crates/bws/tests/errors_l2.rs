@@ -23,6 +23,16 @@ fn login_with(server: &MockServer, token: &str) -> (i32, String) {
     (code, stderr)
 }
 
+/// Writes `contents` to a config file in a fresh temp dir, which is removed with the returned
+/// guard.
+fn config_file(contents: &str) -> (tempfile::TempDir, String) {
+    let dir = tempfile::tempdir().expect("temp dir to be created");
+    let path = dir.path().join("config");
+    std::fs::write(&path, contents).expect("config to be written");
+    let path = path.to_str().expect("utf-8 path").to_string();
+    (dir, path)
+}
+
 #[test]
 fn missing_access_token() {
     let (code, _, stderr) = bws(&["secret", "list"], &[]);
@@ -71,13 +81,10 @@ fn missing_config_file() {
 
 #[test]
 fn invalid_config_file() {
-    let dir = tempfile::tempdir().expect("temp dir to be created");
-    let path = dir.path().join("config");
-    std::fs::write(&path, "hello").expect("config to be written");
-    let path = path.to_str().expect("utf-8 path");
+    let (_dir, path) = config_file("hello");
 
     let (code, _, stderr) = bws(
-        &["secret", "list", "-f", path],
+        &["secret", "list", "-f", &path],
         &[("BWS_ACCESS_TOKEN", TEST_TOKEN)],
     );
 
@@ -92,17 +99,10 @@ fn invalid_config_file() {
 
 #[test]
 fn unknown_profile() {
-    let dir = tempfile::tempdir().expect("temp dir to be created");
-    let path = dir.path().join("config");
-    std::fs::write(
-        &path,
-        "[profiles.default]\nserver_base = \"https://example.com\"\n",
-    )
-    .expect("config to be written");
-    let path = path.to_str().expect("utf-8 path");
+    let (_dir, path) = config_file("[profiles.default]\nserver_base = \"https://example.com\"\n");
 
     let (code, _, stderr) = bws(
-        &["secret", "list", "-f", path, "-p", "work"],
+        &["secret", "list", "-f", &path, "-p", "work"],
         &[("BWS_ACCESS_TOKEN", TEST_TOKEN)],
     );
 
@@ -190,19 +190,14 @@ fn unwritable_state_dir_warns() {
     let blocker = dir.path().join("file");
     std::fs::write(&blocker, "").expect("file to be written");
     let state_dir = blocker.join("state");
-    let path = dir.path().join("config");
-    std::fs::write(
-        &path,
-        format!(
-            "[profiles.default]\nserver_base = \"{}\"\nstate_dir = \"{}\"\n",
-            server.url(),
-            state_dir.display()
-        ),
-    )
-    .expect("config to be written");
+    let (_config_dir, path) = config_file(&format!(
+        "[profiles.default]\nserver_base = \"{}\"\nstate_dir = \"{}\"\n",
+        server.url(),
+        state_dir.display()
+    ));
 
     let (_, _, stderr) = bws(
-        &["secret", "list", "-f", path.to_str().expect("utf-8 path")],
+        &["secret", "list", "-f", &path],
         &[("BWS_ACCESS_TOKEN", TEST_TOKEN)],
     );
 

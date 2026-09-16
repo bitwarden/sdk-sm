@@ -117,17 +117,20 @@ async fn process_commands() -> Result<()> {
         &access_token_obj,
     )?;
 
-    let settings = profile
+    let urls = profile
         .as_ref()
-        .map(|(name, p)| -> Result<_, UserError> {
-            let (identity_url, api_url) = p.server_urls(name)?;
-            Ok(ClientSettings {
-                identity_url,
-                api_url,
-                ..Default::default()
-            })
-        })
+        .map(|(name, p)| p.server_urls(name))
         .transpose()?;
+    // Without a profile the SDK falls back to its own default identity server.
+    let identity_url = urls.as_ref().map_or_else(
+        || ClientSettings::default().identity_url,
+        |(identity_url, _)| identity_url.clone(),
+    );
+    let settings = urls.map(|(identity_url, api_url)| ClientSettings {
+        identity_url,
+        api_url,
+        ..Default::default()
+    });
     let profile = profile.map(|(_, p)| p);
 
     let state_file = match get_state_opt_out(&profile) {
@@ -144,7 +147,6 @@ async fn process_commands() -> Result<()> {
         },
     };
 
-    let identity_url = settings.as_ref().map(|s| s.identity_url.clone());
     let client = SecretsManagerClient::new(settings);
 
     // Load session or return if no session exists
@@ -155,7 +157,7 @@ async fn process_commands() -> Result<()> {
             state_file,
         })
         .await
-        .map_err(|e| error::login_error(e, identity_url.as_deref()))?;
+        .map_err(|e| error::login_error(e, &identity_url))?;
 
     let Some(organization_id) = client.get_access_token_organization() else {
         return Err(
@@ -211,7 +213,7 @@ fn get_config_profile(
     access_token: &AccessToken,
 ) -> Result<Option<(String, config::Profile)>, color_eyre::Report> {
     let path = config::get_config_path(config_file.as_deref(), false)?;
-    let config = config::load_config(Some(&path), config_file.is_some())?;
+    let config = config::load_config_at(&path, config_file.is_some())?;
 
     let profile = if let Some(server_url) = server_url {
         let mut p = config::Profile::from_url(server_url)?;

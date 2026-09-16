@@ -6,7 +6,6 @@ use color_eyre::eyre;
 use regex::Regex;
 
 const HINT_COPY_TOKEN: &str = "Copy the full access token from the Bitwarden web app.";
-const DEFAULT_IDENTITY_HOST: &str = "identity.bitwarden.com";
 const SERVER_URL_HINT: &str = "Check the server URL (--server-url or server-base in the config).";
 const NETWORK_HINT: &str = "Check the server URL and your network connection.";
 const TLS_HINT: &str = "Check the server URL or install the server's CA certificate.";
@@ -59,11 +58,10 @@ impl UserError {
     }
 
     /// Like [`UserError::io`], but reports an existing file as `not a directory` instead of
-    /// `already exists`.
+    /// `already exists`, which is how `create_dir_all` surfaces a file in the path.
     pub(crate) fn create_dir(action: &str, path: &Path, e: io::Error) -> Self {
         if e.kind() == io::ErrorKind::AlreadyExists && !path.is_dir() {
-            let message = format!("{action} '{}': not a directory.", path.display());
-            return Self::new(message).source(e);
+            return Self::io(action, path, io::ErrorKind::NotADirectory.into()).source(e);
         }
         Self::io(action, path, e)
     }
@@ -274,22 +272,16 @@ pub(crate) fn malformed_token() -> UserError {
 }
 
 /// Classifies an access token login failure against the identity server at `identity_url`.
-pub(crate) fn login_error(e: LoginError, identity_url: Option<&str>) -> UserError {
-    let host = identity_url
-        .and_then(url_host)
-        .unwrap_or_else(|| DEFAULT_IDENTITY_HOST.to_string());
+pub(crate) fn login_error(e: LoginError, identity_url: &str) -> UserError {
+    let host = url_host(identity_url).unwrap_or_else(|| "the server".to_string());
 
     let error = match &e {
         LoginError::Api(ApiError::Response(rc)) => {
             login_response_error(rc.status.as_u16(), &rc.message, &host)
         }
-        LoginError::IdentityFail(r) => invalid_access_token(&r.error).or_else(|| {
-            Some(login_failed(&[
-                &r.error_model.message,
-                &r.error_description,
-                &r.error,
-            ]))
-        }),
+        LoginError::IdentityFail(r) => Some(invalid_access_token(&r.error).unwrap_or_else(|| {
+            login_failed(&[&r.error_model.message, &r.error_description, &r.error])
+        })),
         LoginError::Crypto(CryptoError::Decrypt) => Some(
             UserError::new("The access token's decryption key is invalid.").hint(HINT_COPY_TOKEN),
         ),
@@ -314,16 +306,23 @@ pub(crate) fn login_error(e: LoginError, identity_url: Option<&str>) -> UserErro
 /// Classifies an identity server response that could not be parsed as a login result.
 /// Returns `None` for statuses that [`generic`] handles.
 fn login_response_error(status: u16, body: &str, host: &str) -> Option<UserError> {
-    let json = serde_json::from_str::<serde_json::Value>(body).ok();
     match status {
-        400 => invalid_access_token(json.as_ref()?.get("error")?.as_str()?),
+        400 => invalid_access_token(
+            serde_json::from_str::<serde_json::Value>(body)
+                .ok()?
+                .get("error")?
+                .as_str()?,
+        ),
         429 => Some(
             UserError::new("Too many login attempts.")
                 .hint("Wait a few minutes and retry; keep state enabled to reuse sessions."),
         ),
-        // The identity endpoint only answers these for a wrong URL or a non-Bitwarden server.
-        402 | 404..=428 | 430..=499 => Some(unexpected_login_endpoint(host)),
-        200 if json.is_none() => Some(unexpected_login_endpoint(host)),
+        // Identity answers 400, 401, 403 and 429 itself; any other 4xx comes from a wrong URL or
+        // a non-Bitwarden server, as does a 200 that is not JSON.
+        402 | 404..=499 => Some(unexpected_login_endpoint(host)),
+        200 if serde_json::from_str::<serde::de::IgnoredAny>(body).is_err() => {
+            Some(unexpected_login_endpoint(host))
+        }
         _ => None,
     }
 }
@@ -427,15 +426,13 @@ fn sentence(s: &str) -> String {
 /// Formats text to follow a colon: like [`sentence`] but without the trailing period, and
 /// lowercased unless it starts with an acronym.
 pub(crate) fn clause(s: &str) -> String {
-    let text = sentence(s);
-    let text = text.strip_suffix('.').unwrap_or(&text);
-    let mut chars = text.chars();
-    match (chars.next(), chars.next()) {
-        (Some(first), second) if !second.is_some_and(char::is_uppercase) => {
-            first.to_lowercase().chain(text.chars().skip(1)).collect()
-        }
-        _ => text.to_string(),
+    let sentence = sentence(s);
+    let text = sentence.strip_suffix('.').unwrap_or(&sentence);
+    // Keep the case of a leading acronym, like `TOML`.
+    if text.chars().nth(1).is_some_and(char::is_uppercase) {
+        return text.to_string();
     }
+    lowercase_first(text)
 }
 
 fn uppercase_first(s: &str) -> String {
@@ -895,10 +892,9 @@ mod tests {
 
     #[test]
     fn login_errors() {
-        let e = login_error(
-            LoginError::Crypto(CryptoError::Decrypt),
-            Some("https://u:p@identity.example.com/identity"),
-        );
+        const IDENTITY_URL: &str = "https://u:p@identity.example.com/identity";
+
+        let e = login_error(LoginError::Crypto(CryptoError::Decrypt), IDENTITY_URL);
         assert_eq!(
             lines(&e),
             (
@@ -910,7 +906,7 @@ mod tests {
 
         let e = login_error(
             LoginError::MissingField(bitwarden_core::MissingFieldError("organization")),
-            Some("https://u:p@identity.example.com/identity"),
+            IDENTITY_URL,
         );
         assert_eq!(
             lines(&e),
@@ -920,7 +916,11 @@ mod tests {
             )
         );
 
-        let e = login_error(LoginError::InvalidResponse, None);
+        // Without a profile, bws logs in against the SDK's default identity server.
+        let e = login_error(
+            LoginError::InvalidResponse,
+            &bitwarden_core::ClientSettings::default().identity_url,
+        );
         assert_eq!(
             e.message,
             "Unexpected login response from the server at identity.bitwarden.com."
@@ -930,7 +930,7 @@ mod tests {
         else {
             panic!("token to be malformed");
         };
-        let e = login_error(LoginError::AccessTokenInvalid(token_error), None);
+        let e = login_error(LoginError::AccessTokenInvalid(token_error), IDENTITY_URL);
         assert_eq!(
             lines(&e),
             (
@@ -939,7 +939,7 @@ mod tests {
             )
         );
 
-        let e = login_error(LoginError::AuthenticationFailed, None);
+        let e = login_error(LoginError::AuthenticationFailed, IDENTITY_URL);
         assert_eq!(lines(&e), ("Failed to authenticate.".to_string(), None));
     }
 

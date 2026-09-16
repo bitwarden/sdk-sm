@@ -15,18 +15,17 @@ pub(crate) fn get_state_file(
 ) -> Result<PathBuf, UserError> {
     let mut state_dir = match state_dir {
         Some(state_dir) => state_dir,
-        None => match BaseDirs::new() {
-            Some(base_dirs) => base_dirs
-                .home_dir()
-                .join(DEFAULT_CONFIG_DIRECTORY)
-                .join(DEFAULT_STATE_DIRECTORY),
-            None => {
-                return Err(UserError::new(
-                    "Could not determine a state directory (no home directory).",
-                )
-                .hint(STATE_HINT));
-            }
-        },
+        None => BaseDirs::new()
+            .map(|base_dirs| {
+                base_dirs
+                    .home_dir()
+                    .join(DEFAULT_CONFIG_DIRECTORY)
+                    .join(DEFAULT_STATE_DIRECTORY)
+            })
+            .ok_or_else(|| {
+                UserError::new("Could not determine a state directory (no home directory).")
+                    .hint(STATE_HINT)
+            })?,
     };
 
     std::fs::create_dir_all(&state_dir).map_err(|e| {
@@ -45,28 +44,20 @@ mod tests {
     #[test]
     fn unwritable_state_dir() {
         let file = tempfile::NamedTempFile::new().expect("temp file to be created");
-        let dir = file.path().join("state");
 
-        let e = get_state_file(Some(dir.clone()), "id".to_string())
-            .expect_err("a file cannot be a parent directory");
+        // A file as the state directory itself, and a file as its parent.
+        for dir in [file.path().to_path_buf(), file.path().join("state")] {
+            let e = get_state_file(Some(dir.clone()), "id".to_string())
+                .expect_err("a file cannot be a state directory");
 
-        assert_eq!(
-            e.to_string(),
-            format!(
-                "Could not use state directory '{}': not a directory.",
-                dir.display()
-            )
-        );
-        assert_eq!(e.hint_text(), Some(STATE_HINT));
-
-        let e = get_state_file(Some(file.path().to_path_buf()), "id".to_string())
-            .expect_err("a file is not a directory");
-        assert_eq!(
-            e.to_string(),
-            format!(
-                "Could not use state directory '{}': not a directory.",
-                file.path().display()
-            )
-        );
+            assert_eq!(
+                e.to_string(),
+                format!(
+                    "Could not use state directory '{}': not a directory.",
+                    dir.display()
+                )
+            );
+            assert_eq!(e.hint_text(), Some(STATE_HINT));
+        }
     }
 }

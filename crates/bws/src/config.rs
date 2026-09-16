@@ -109,8 +109,11 @@ pub(crate) fn get_config_path(
 }
 
 pub(crate) fn load_config(config_file: Option<&Path>, must_exist: bool) -> Result<Config> {
-    let file = get_config_path(config_file, false)?;
+    load_config_at(&get_config_path(config_file, false)?, must_exist)
+}
 
+/// Like [`load_config`], but for an already resolved config file path.
+pub(crate) fn load_config_at(file: &Path, must_exist: bool) -> Result<Config> {
     if file.is_dir() {
         return Err(UserError::new(format!(
             "Config file '{}' is a directory.",
@@ -132,9 +135,9 @@ pub(crate) fn load_config(config_file: Option<&Path>, must_exist: bool) -> Resul
     }
 
     let content =
-        read_to_string(&file).map_err(|e| UserError::io("Could not read config file", &file, e))?;
+        read_to_string(file).map_err(|e| UserError::io("Could not read config file", file, e))?;
 
-    let config: Config = toml::from_str(&content).map_err(|e| toml_error(&file, &content, e))?;
+    let config: Config = toml::from_str(&content).map_err(|e| toml_error(file, &content, e))?;
     Ok(config)
 }
 
@@ -144,7 +147,12 @@ fn toml_error(file: &Path, content: &str, e: toml::de::Error) -> UserError {
         Some(span) => {
             let before = content.get(..span.start).unwrap_or(content);
             let line = before.matches('\n').count() + 1;
-            let column = before.rsplit('\n').next().unwrap_or(before).chars().count() + 1;
+            let column = before
+                .rsplit_once('\n')
+                .map_or(before, |(_, last)| last)
+                .chars()
+                .count()
+                + 1;
             format!(
                 "Invalid config file '{}' at line {line}, column {column}: {reason}.",
                 file.display()
@@ -214,25 +222,22 @@ impl Profile {
 
     /// Returns the identity and API URLs of the profile named `name`.
     pub(crate) fn server_urls(&self, name: &str) -> Result<(String, String), UserError> {
-        self.identity_url().zip(self.api_url()).ok_or_else(|| {
-            UserError::new(format!("Profile '{name}' has no server URL.")).hint(format!(
-                "Run: bws config --profile {name} server-base <url>"
-            ))
-        })
-    }
+        // An explicit URL wins over `<server_base>/<path>`.
+        let url = |explicit: &Option<String>, path: &str| {
+            explicit.clone().or_else(|| {
+                self.server_base
+                    .as_ref()
+                    .map(|base| format!("{base}/{path}"))
+            })
+        };
 
-    fn api_url(&self) -> Option<String> {
-        self.server_api
-            .clone()
-            .or_else(|| self.server_base.as_ref().map(|base| format!("{base}/api")))
-    }
-
-    fn identity_url(&self) -> Option<String> {
-        self.server_identity.clone().or_else(|| {
-            self.server_base
-                .as_ref()
-                .map(|base| format!("{base}/identity"))
-        })
+        url(&self.server_identity, "identity")
+            .zip(url(&self.server_api, "api"))
+            .ok_or_else(|| {
+                UserError::new(format!("Profile '{name}' has no server URL.")).hint(format!(
+                    "Run: bws config --profile {name} server-base <url>"
+                ))
+            })
     }
 }
 

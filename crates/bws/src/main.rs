@@ -1,4 +1,4 @@
-use std::{path::PathBuf, str::FromStr};
+use std::{path::PathBuf, process::ExitCode, str::FromStr};
 
 use bitwarden::secrets_manager::{
     AccessToken, AccessTokenLoginRequest, ClientSettings, SecretsManagerClient,
@@ -13,6 +13,7 @@ use render::OutputSettings;
 mod cli;
 mod command;
 mod config;
+mod error;
 mod render;
 mod state;
 mod util;
@@ -20,10 +21,20 @@ mod util;
 use crate::cli::*;
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() -> Result<()> {
+async fn main() -> ExitCode {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
-    process_commands().await
+    match process_commands().await {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(report) => {
+            if error::is_verbose() {
+                eprintln!("Error: {report:?}");
+            } else {
+                eprint!("{}", error::render(&report));
+            }
+            ExitCode::from(1)
+        }
+    }
 }
 
 async fn process_commands() -> Result<()> {
@@ -31,6 +42,11 @@ async fn process_commands() -> Result<()> {
     let color = cli.color;
 
     install_color_eyre(color)?;
+    if !error::is_verbose() {
+        std::panic::set_hook(Box::new(|info| {
+            eprint!("{}", error::render_panic(info.payload()))
+        }));
+    }
 
     let Some(command) = cli.command else {
         let mut cmd = Cli::command();

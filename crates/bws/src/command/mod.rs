@@ -13,6 +13,13 @@ use crate::{Cli, ProfileKey, config, error::UserError, render, util};
 
 const CONFIG_USAGE_HINT: &str = "Usage: bws config <name> <value>";
 
+/// The name of `key` as typed on the command line, e.g. `server-base`.
+fn key_name(key: ProfileKey) -> String {
+    key.to_possible_value()
+        .map(|v| v.get_name().to_string())
+        .unwrap_or_default()
+}
+
 pub(crate) fn completions(shell: Option<Shell>) -> Result<()> {
     let Some(shell) = shell.or_else(Shell::from_env) else {
         return Err(UserError::new("Could not detect your shell.")
@@ -65,13 +72,25 @@ pub(crate) fn config(
                     .into());
             }
             (Some(name), None) => {
-                let name = name
-                    .to_possible_value()
-                    .map(|v| v.get_name().to_string())
-                    .unwrap_or_default();
-                return Err(UserError::new(format!("Missing value for '{name}'."))
-                    .hint(CONFIG_USAGE_HINT)
-                    .into());
+                return Err(
+                    UserError::new(format!("Missing value for '{}'.", key_name(name)))
+                        .hint(CONFIG_USAGE_HINT)
+                        .into(),
+                );
+            }
+            (
+                Some(
+                    name @ (ProfileKey::server_base
+                    | ProfileKey::server_api
+                    | ProfileKey::server_identity),
+                ),
+                Some(value),
+            ) if !(value.starts_with("http://") || value.starts_with("https://")) => {
+                return Err(UserError::new(format!(
+                    "Invalid value for '{}'; expected a URL starting with http:// or https://.",
+                    key_name(name)
+                ))
+                .into());
             }
             (Some(ProfileKey::state_opt_out), Some(value)) => {
                 if util::string_to_bool(value.as_str()).is_err() {

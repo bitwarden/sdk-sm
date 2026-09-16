@@ -111,12 +111,16 @@ pub(crate) async fn edit(
 
 pub(crate) async fn delete(client: SecretsManagerClient, project_ids: Vec<Uuid>) -> Result<()> {
     let count = project_ids.len();
+    let target = match project_ids.as_slice() {
+        [id] => Target::Project(*id),
+        _ => Target::Projects,
+    };
 
     let result = client
         .projects()
         .delete(ProjectsDeleteRequest { ids: project_ids })
         .await
-        .map_err(|e| error::sm_error(e, Target::Projects, Op::Write))?;
+        .map_err(|e| error::sm_error(e, target, Op::Write))?;
 
     let projects_failed: Vec<(Uuid, String)> = result
         .data

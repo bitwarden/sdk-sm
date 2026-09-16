@@ -102,8 +102,9 @@ pub(crate) fn get_config_path(
     };
 
     if ensure_folder_exists && let Some(parent_folder) = config_file.parent() {
-        std::fs::create_dir_all(parent_folder)
-            .map_err(|e| UserError::io("Could not create config directory", parent_folder, e))?;
+        std::fs::create_dir_all(parent_folder).map_err(|e| {
+            UserError::create_dir("Could not create config directory", parent_folder, e)
+        })?;
     }
 
     Ok(config_file)

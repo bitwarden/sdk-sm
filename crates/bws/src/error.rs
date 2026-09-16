@@ -13,6 +13,8 @@ const TLS_HINT: &str = "Check the server URL or install the server's CA certific
 const UNKNOWN_ERROR: &str = "An unknown error occurred.";
 const MAX_MESSAGE_CHARS: usize = 160;
 const HINT_CHECK_ACCESS: &str = "Check the ID and that the machine account has access to it.";
+const HINT_NOTHING_DELETED: &str =
+    "Nothing was deleted. Check the IDs and that the machine account has access to them.";
 
 static OS_ERROR_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r" ?\(os error -?[0-9]+\)").expect("OS_ERROR_RE to be valid"));
@@ -366,7 +368,9 @@ fn login_failed(candidates: &[&str]) -> UserError {
 pub(crate) enum Target {
     Secret(Uuid),
     Project(Uuid),
+    /// Several secrets being deleted at once.
     Secrets,
+    /// Several projects being deleted at once.
     Projects,
     /// A secret being updated, optionally moved to a project.
     SecretInProject(Uuid, Option<Uuid>),
@@ -455,14 +459,20 @@ fn not_found(target: Target) -> Option<UserError> {
         }
         Target::Project(id) => format!("Project {id} not found or not accessible."),
         Target::Secrets => {
-            return Some(UserError::new(
-                "One or more of the given secrets were not found or accessible.",
-            ));
+            return Some(
+                UserError::new(
+                    "One or more of the given secrets were not found or not accessible.",
+                )
+                .hint(HINT_NOTHING_DELETED),
+            );
         }
         Target::Projects => {
-            return Some(UserError::new(
-                "One or more of the given projects were not found or accessible.",
-            ));
+            return Some(
+                UserError::new(
+                    "One or more of the given projects were not found or not accessible.",
+                )
+                .hint(HINT_NOTHING_DELETED),
+            );
         }
         Target::None => return None,
     };
@@ -1254,15 +1264,15 @@ mod tests {
         assert_eq!(
             sm(SdkErr::http(404, "Not Found"), Target::Secrets, Op::Write),
             (
-                "One or more of the given secrets were not found or accessible.".to_string(),
-                None
+                "One or more of the given secrets were not found or not accessible.".to_string(),
+                Some(HINT_NOTHING_DELETED.to_string())
             )
         );
         assert_eq!(
             sm(SdkErr::http(404, "Not Found"), Target::Projects, Op::Write),
             (
-                "One or more of the given projects were not found or accessible.".to_string(),
-                None
+                "One or more of the given projects were not found or not accessible.".to_string(),
+                Some(HINT_NOTHING_DELETED.to_string())
             )
         );
         assert_eq!(

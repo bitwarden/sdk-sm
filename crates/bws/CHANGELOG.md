@@ -20,6 +20,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   instead of 0. (#1579)
 - Clearer messages for secret, project, `run`, `config` and `completions` errors, including
   not-found and validation errors. (#1580)
+- `bws config` now rejects server URLs that don't start with `http://` or `https://`. (#1580)
 
 ### Fixed
 
@@ -29,6 +30,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `bws config <name>` without a value now reports the missing value instead of a missing name.
   (#1580)
 - `bws run` with no command on empty stdin now fails instead of silently succeeding. (#1580)
+- `bws run` no longer fails when there are no secrets to inject. (#1580)
 
 ## [1.0.0] - 2024-09-26
 

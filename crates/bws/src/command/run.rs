@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     io::{IsTerminal, Read},
+    path::Path,
     process,
 };
 
@@ -45,6 +46,15 @@ pub(crate) async fn run(
     });
 
     if which(&shell).is_err() {
+        let path = Path::new(&shell);
+        let is_path = path.parent().is_some_and(|p| !p.as_os_str().is_empty());
+        if is_path && path.exists() {
+            return Err(
+                UserError::new(format!("Shell '{shell}' is not an executable file."))
+                    .hint("Pass a different shell with --shell.")
+                    .into(),
+            );
+        }
         return Err(UserError::new(format!("Shell '{shell}' not found."))
             .hint("Install it or pass a different shell with --shell.")
             .into());
@@ -84,13 +94,18 @@ pub(crate) async fn run(
             .map_err(|e| error::sm_error(e, Target::None, Op::Read))?
     };
 
-    let secret_ids = res.data.into_iter().map(|e| e.id).collect();
-    let secrets = client
-        .secrets()
-        .get_by_ids(SecretsGetRequest { ids: secret_ids })
-        .await
-        .map_err(|e| error::sm_error(e, Target::None, Op::Read))?
-        .data;
+    let secret_ids: Vec<Uuid> = res.data.into_iter().map(|e| e.id).collect();
+    // The server answers an empty ID list with 404.
+    let secrets = if secret_ids.is_empty() {
+        Vec::new()
+    } else {
+        client
+            .secrets()
+            .get_by_ids(SecretsGetRequest { ids: secret_ids })
+            .await
+            .map_err(|e| error::sm_error(e, Target::None, Op::Read))?
+            .data
+    };
 
     if !uuids_as_keynames
         && let Some(duplicate) = secrets.iter().map(|s| &s.key).duplicates().next()

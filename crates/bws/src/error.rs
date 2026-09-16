@@ -77,12 +77,11 @@ impl Error for UserError {
 
 /// Renders an error as `Error: <message>` with an optional `Hint: <hint>` line.
 pub(crate) fn render(report: &eyre::Report) -> String {
-    let error = classify(report);
-    let mut out = format!("Error: {}\n", error.message);
-    if let Some(hint) = error.hint {
-        out.push_str(&format!("Hint: {hint}\n"));
+    let UserError { message, hint, .. } = classify(report);
+    match hint {
+        Some(hint) => format!("Error: {message}\nHint: {hint}\n"),
+        None => format!("Error: {message}\n"),
     }
-    out
 }
 
 pub(crate) fn classify(report: &eyre::Report) -> UserError {
@@ -110,6 +109,14 @@ pub(crate) fn generic(err: &(dyn Error + 'static)) -> Option<UserError> {
         })
     };
     let host = || host_from_chain(&texts);
+
+    // The response body is part of the message, so match HTTP errors before the text heuristics.
+    if let Some(c) = HTTP_RE.captures(top) {
+        let reason = c.get(1).map_or("", |m| m.as_str());
+        let status: u16 = c.get(2).and_then(|m| m.as_str().parse().ok()).unwrap_or(0);
+        let body = c.get(3).map_or("", |m| m.as_str());
+        return Some(http_error(status, reason, body));
+    }
 
     if io_kind(io::ErrorKind::ConnectionRefused)
         || texts.iter().any(|t| t.contains("Connection refused"))
@@ -145,7 +152,7 @@ pub(crate) fn generic(err: &(dyn Error + 'static)) -> Option<UserError> {
         );
     }
     if top.starts_with("builder error") {
-        return Some(UserError::new("The server URL must use https://."));
+        return Some(UserError::new("The server URL is invalid.").hint(SERVER_URL_HINT));
     }
     if top.starts_with("error sending request") || top.starts_with("error decoding response body") {
         return Some(UserError::new(format!("Could not reach {}.", host())).hint(NETWORK_HINT));
@@ -153,12 +160,7 @@ pub(crate) fn generic(err: &(dyn Error + 'static)) -> Option<UserError> {
     if top.contains("content type response when JSON was expected") {
         return Some(UserError::new("Unexpected response from the server.").hint(SERVER_URL_HINT));
     }
-    HTTP_RE.captures(top).map(|c| {
-        let reason = c.get(1).map_or("", |m| m.as_str());
-        let status: u16 = c.get(2).and_then(|m| m.as_str().parse().ok()).unwrap_or(0);
-        let body = c.get(3).map_or("", |m| m.as_str());
-        http_error(status, reason, body)
-    })
+    None
 }
 
 fn http_error(status: u16, reason: &str, body: &str) -> UserError {
@@ -172,7 +174,13 @@ fn http_error(status: u16, reason: &str, body: &str) -> UserError {
         ),
         403 => UserError::new(format!("Access denied ({reason})."))
             .hint("Check the machine account's permissions."),
-        404 => UserError::new("The requested item was not found or is not accessible."),
+        404 => {
+            let e = UserError::new("The requested item was not found or is not accessible.");
+            match server_message(body) {
+                Some(_) => e,
+                None => e.hint(SERVER_URL_HINT),
+            }
+        }
         429 => UserError::new(format!("Too many requests ({reason})."))
             .hint("Wait a moment and try again."),
         500..=599 => UserError::new(format!("The server returned an error ({reason})."))
@@ -184,8 +192,11 @@ fn http_error(status: u16, reason: &str, body: &str) -> UserError {
 /// Extracts `message` and `validationErrors` from a Bitwarden server JSON error body.
 fn server_message(body: &str) -> Option<String> {
     let json: serde_json::Value = serde_json::from_str(body).ok()?;
-    let message = json.get("message")?.as_str()?;
-    let mut text = message.trim().trim_end_matches(['.', ':', ' ']).to_string();
+    let message = json.get("message")?.as_str()?.trim();
+    if message.is_empty() {
+        return None;
+    }
+    let mut text = message.trim_end_matches(['.', ':', ' ']).to_string();
 
     let details: Vec<&str> = json
         .get("validationErrors")
@@ -466,7 +477,7 @@ mod tests {
 
         assert_eq!(
             classify_text("builder error").message,
-            "The server URL must use https://."
+            "The server URL is invalid."
         );
         assert_eq!(
             classify_text("error sending request").message,
@@ -556,6 +567,20 @@ mod tests {
             http("418 I'm a teapot", "").message,
             "Unexpected response from the server (418 I'm a teapot)."
         );
+    }
+
+    #[test]
+    fn generic_http_body_does_not_trigger_network_heuristics() {
+        let e = classify_text(
+            "Received error message from server: [504 Gateway Timeout] <html>upstream timed out</html>",
+        );
+        assert_eq!(
+            e.message,
+            "The server returned an error (504 Gateway Timeout)."
+        );
+
+        let e = classify_text("Received error message from server: [404 Not Found] <html></html>");
+        assert_eq!(e.hint.as_deref(), Some(SERVER_URL_HINT));
     }
 
     #[test]

@@ -109,10 +109,10 @@ impl Drop for MockServer {
 }
 
 fn handle(mut stream: TcpStream, routes: &[Route]) {
-    let mut reader = BufReader::new(match stream.try_clone() {
-        Ok(s) => s,
-        Err(_) => return,
-    });
+    let Ok(read_half) = stream.try_clone() else {
+        return;
+    };
+    let mut reader = BufReader::new(read_half);
 
     let mut request_line = String::new();
     if reader.read_line(&mut request_line).is_err() {

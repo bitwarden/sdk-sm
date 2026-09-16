@@ -58,6 +58,16 @@ impl UserError {
         Self::new(message).source(e)
     }
 
+    /// Like [`UserError::io`], but reports an existing file as `not a directory` instead of
+    /// `already exists`.
+    pub(crate) fn create_dir(action: &str, path: &Path, e: io::Error) -> Self {
+        if e.kind() == io::ErrorKind::AlreadyExists && !path.is_dir() {
+            let message = format!("{action} '{}': not a directory.", path.display());
+            return Self::new(message).source(e);
+        }
+        Self::io(action, path, e)
+    }
+
     pub(crate) fn hint_text(&self) -> Option<&str> {
         self.hint.as_deref()
     }
@@ -273,11 +283,13 @@ pub(crate) fn login_error(e: LoginError, identity_url: Option<&str>) -> UserErro
         LoginError::Api(ApiError::Response(rc)) => {
             login_response_error(rc.status.as_u16(), &rc.message, &host)
         }
-        LoginError::IdentityFail(r) => Some(login_failed(&[
-            &r.error_model.message,
-            &r.error_description,
-            &r.error,
-        ])),
+        LoginError::IdentityFail(r) => invalid_access_token(&r.error).or_else(|| {
+            Some(login_failed(&[
+                &r.error_model.message,
+                &r.error_description,
+                &r.error,
+            ]))
+        }),
         LoginError::Crypto(CryptoError::Decrypt) => Some(
             UserError::new("The access token's decryption key is invalid.").hint(HINT_COPY_TOKEN),
         ),
@@ -304,22 +316,24 @@ pub(crate) fn login_error(e: LoginError, identity_url: Option<&str>) -> UserErro
 fn login_response_error(status: u16, body: &str, host: &str) -> Option<UserError> {
     let json = serde_json::from_str::<serde_json::Value>(body).ok();
     match status {
-        400 => matches!(
-            json.as_ref()?.get("error").and_then(|e| e.as_str()),
-            Some("invalid_client" | "invalid_grant")
-        )
-        .then(|| {
-            UserError::new("The access token is invalid, expired, or revoked.")
-                .hint("Create a new access token in the Bitwarden web app.")
-        }),
+        400 => invalid_access_token(json.as_ref()?.get("error")?.as_str()?),
         429 => Some(
             UserError::new("Too many login attempts.")
                 .hint("Wait a few minutes and retry; keep state enabled to reuse sessions."),
         ),
-        404 => Some(unexpected_login_endpoint(host)),
+        // The identity endpoint only answers these for a wrong URL or a non-Bitwarden server.
+        402 | 404..=428 | 430..=499 => Some(unexpected_login_endpoint(host)),
         200 if json.is_none() => Some(unexpected_login_endpoint(host)),
         _ => None,
     }
+}
+
+/// Classifies the OAuth `error` code of a rejected access token.
+fn invalid_access_token(code: &str) -> Option<UserError> {
+    matches!(code, "invalid_client" | "invalid_grant").then(|| {
+        UserError::new("The access token is invalid, expired, or revoked.")
+            .hint("Create a new access token in the Bitwarden web app.")
+    })
 }
 
 fn unexpected_login_endpoint(host: &str) -> UserError {
@@ -861,10 +875,16 @@ mod tests {
             "Unexpected response from the login endpoint at vault.example.com:8443.".to_string(),
             Some(SERVER_URL_HINT.to_string()),
         );
-        assert_eq!(
-            lines(&login_response_error(404, "{}", host).expect("classified")),
-            unexpected
-        );
+        for status in [404, 405, 415] {
+            assert_eq!(
+                lines(&login_response_error(status, "<html></html>", host).expect("classified")),
+                unexpected
+            );
+        }
+        for status in [401, 403] {
+            assert!(login_response_error(status, "{}", host).is_none());
+        }
+        assert!(invalid_access_token("invalid_scope").is_none());
         assert_eq!(
             lines(&login_response_error(200, "<html>login</html>", host).expect("classified")),
             unexpected

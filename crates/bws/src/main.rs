@@ -74,6 +74,11 @@ async fn process_commands() -> Result<()> {
         std::process::exit(1);
     };
 
+    let access_token = cli
+        .access_token
+        .map(|t| t.trim().to_string())
+        .filter(|t| !t.is_empty());
+
     // These commands don't require authentication, so we process them first
     match command {
         Commands::Completions { shell } => {
@@ -89,14 +94,14 @@ async fn process_commands() -> Result<()> {
                 value,
                 delete,
                 cli.profile,
-                cli.access_token,
+                access_token,
                 cli.config_file,
             );
         }
         _ => (),
     }
 
-    let Some(access_token) = cli.access_token else {
+    let Some(access_token) = access_token else {
         return Err(UserError::new("No access token provided.")
             .hint("Pass --access-token or set BWS_ACCESS_TOKEN.")
             .into());

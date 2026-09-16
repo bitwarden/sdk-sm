@@ -139,7 +139,7 @@ pub(crate) fn load_config(config_file: Option<&Path>, must_exist: bool) -> Resul
 }
 
 fn toml_error(file: &Path, content: &str, e: toml::de::Error) -> UserError {
-    let reason = error::clause(e.message());
+    let reason = error::clause(&e.message().replace("struct Profile", "a profile table"));
     let message = match e.span() {
         Some(span) => {
             let before = content.get(..span.start).unwrap_or(content);
@@ -357,6 +357,21 @@ mod tests {
             e.to_string(),
             format!(
                 "Invalid config file '{}' at line 2, column 6: key with no value, expected `=`.",
+                tmpfile.path().display()
+            )
+        );
+    }
+
+    #[test]
+    fn config_profile_wrong_type() {
+        let tmpfile = NamedTempFile::new().expect("temp file to be created");
+        write!(tmpfile.as_file(), "[profiles]\ndefault = \"x\"").expect("temp file to be written");
+
+        let e = load_config(Some(tmpfile.path()), true).expect_err("profile is not a table");
+        assert_eq!(
+            e.to_string(),
+            format!(
+                "Invalid config file '{}' at line 2, column 11: invalid type: string \"x\", expected a profile table.",
                 tmpfile.path().display()
             )
         );

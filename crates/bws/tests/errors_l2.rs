@@ -220,3 +220,87 @@ fn unwritable_state_dir_warns() {
         "stderr:\n{stderr}"
     );
 }
+
+#[test]
+fn empty_access_token_is_missing() {
+    let (code, _, stderr) = bws(&["secret", "list"], &[("BWS_ACCESS_TOKEN", " ")]);
+
+    assert_eq!(code, 1);
+    assert_error(
+        &stderr,
+        &[
+            "Error: No access token provided.",
+            "Hint: Pass --access-token or set BWS_ACCESS_TOKEN.",
+        ],
+    );
+}
+
+#[test]
+fn access_token_whitespace_is_trimmed() {
+    let server = identity(400, "application/json", r#"{"error":"invalid_grant"}"#);
+
+    let (code, stderr) = login_with(&server, &format!(" {TEST_TOKEN}\n"));
+
+    assert_eq!(code, 1);
+    assert_error(
+        &stderr,
+        &[
+            "Error: The access token is invalid, expired, or revoked.",
+            "Hint: Create a new access token in the Bitwarden web app.",
+        ],
+    );
+}
+
+#[test]
+fn revoked_access_token_identity_fail_shape() {
+    let server = identity(
+        400,
+        "application/json",
+        r#"{"error":"invalid_client","error_description":"invalid_client","ErrorModel":{"Message":"","Object":"error"}}"#,
+    );
+
+    let (code, stderr) = login_with(&server, TEST_TOKEN);
+
+    assert_eq!(code, 1);
+    assert_error(
+        &stderr,
+        &[
+            "Error: The access token is invalid, expired, or revoked.",
+            "Hint: Create a new access token in the Bitwarden web app.",
+        ],
+    );
+}
+
+#[test]
+fn login_failed_with_server_message() {
+    let server = identity(
+        400,
+        "application/json",
+        r#"{"error":"invalid_request","error_description":"bad","ErrorModel":{"Message":"Machine account is disabled.","Object":"error"}}"#,
+    );
+
+    let (code, stderr) = login_with(&server, TEST_TOKEN);
+
+    assert_eq!(code, 1);
+    assert_error(
+        &stderr,
+        &["Error: Login failed: Machine account is disabled."],
+    );
+}
+
+#[test]
+fn login_endpoint_method_not_allowed() {
+    let server = identity(405, "text/html", "<html>nope</html>");
+    let host = server.url().trim_start_matches("http://").to_string();
+
+    let (code, stderr) = login_with(&server, TEST_TOKEN);
+
+    assert_eq!(code, 1);
+    assert_error(
+        &stderr,
+        &[
+            &format!("Error: Unexpected response from the login endpoint at {host}."),
+            "Hint: Check the server URL (--server-url or server-base in the config).",
+        ],
+    );
+}

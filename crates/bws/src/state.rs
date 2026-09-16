@@ -30,7 +30,7 @@ pub(crate) fn get_state_file(
     };
 
     std::fs::create_dir_all(&state_dir).map_err(|e| {
-        UserError::io("Could not use state directory", &state_dir, e).hint(STATE_HINT)
+        UserError::create_dir("Could not use state directory", &state_dir, e).hint(STATE_HINT)
     })?;
     state_dir.push(access_token_id);
 
@@ -58,5 +58,15 @@ mod tests {
             )
         );
         assert_eq!(e.hint_text(), Some(STATE_HINT));
+
+        let e = get_state_file(Some(file.path().to_path_buf()), "id".to_string())
+            .expect_err("a file is not a directory");
+        assert_eq!(
+            e.to_string(),
+            format!(
+                "Could not use state directory '{}': not a directory.",
+                file.path().display()
+            )
+        );
     }
 }

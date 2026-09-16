@@ -144,12 +144,7 @@ fn toml_error(file: &Path, content: &str, e: toml::de::Error) -> UserError {
         Some(span) => {
             let before = content.get(..span.start).unwrap_or(content);
             let line = before.matches('\n').count() + 1;
-            let column = before
-                .rsplit_once('\n')
-                .map_or(before, |(_, l)| l)
-                .chars()
-                .count()
-                + 1;
+            let column = before.rsplit('\n').next().unwrap_or(before).chars().count() + 1;
             format!(
                 "Invalid config file '{}' at line {line}, column {column}: {reason}.",
                 file.display()

@@ -1,4 +1,4 @@
-use std::{path::PathBuf, process::ExitCode, str::FromStr};
+use std::{path::PathBuf, process::ExitCode};
 
 use bitwarden::secrets_manager::{
     AccessToken, AccessTokenLoginRequest, ClientSettings, SecretsManagerClient,
@@ -109,7 +109,7 @@ async fn process_commands() -> Result<()> {
         &cli.server_url,
         &cli.profile,
         &cli.config_file,
-        &access_token,
+        &access_token_obj,
     )?;
 
     let settings = profile
@@ -203,7 +203,7 @@ fn get_config_profile(
     server_url: &Option<String>,
     profile: &Option<String>,
     config_file: &Option<PathBuf>,
-    access_token: &str,
+    access_token: &AccessToken,
 ) -> Result<Option<(String, config::Profile)>, color_eyre::Report> {
     let path = config::get_config_path(config_file.as_deref(), false)?;
     let config = config::load_config(Some(&path), config_file.is_some())?;
@@ -222,10 +222,7 @@ fn get_config_profile(
         let profile_key = if let Some(profile) = profile {
             profile.to_owned()
         } else {
-            AccessToken::from_str(access_token)
-                .map_err(|e| error::malformed_token().source(e))?
-                .access_token_id
-                .to_string()
+            access_token.access_token_id.to_string()
         };
 
         config.select_profile(&profile_key, profile_defined, &path)?

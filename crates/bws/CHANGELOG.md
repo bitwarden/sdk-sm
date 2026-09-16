@@ -14,16 +14,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   error report. Set `BWS_DEBUG=1` (or `RUST_BACKTRACE=1`) to see the full report. (#1578)
 - Network and server errors no longer print raw response bodies. (#1578)
 - Clearer messages for missing or invalid access tokens, config file problems, and login failures.
-  (#1579)
+  (#1580)
 - The state directory warning is now a single line with a hint. (#1579)
 - **BREAKING:** An access token that isn't associated with an organization now exits with code 1
   instead of 0. (#1579)
+- Clearer messages for secret, project, `run`, `config` and `completions` errors, including
+  not-found and validation errors. (#1580)
 
 ### Fixed
 
 - No longer panic if access token has access to no secrets (#1255)
 - No longer panic when writing to stdout fails, e.g. when piping into `head` or when the disk is
   full. (#1578)
+- `bws config <name>` without a value now reports the missing value instead of a missing name.
+  (#1580)
+- `bws run` with no command on empty stdin now fails instead of silently succeeding. (#1580)
 
 ## [1.0.0] - 2024-09-26
 

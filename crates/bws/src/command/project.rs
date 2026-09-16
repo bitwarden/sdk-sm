@@ -8,11 +8,12 @@ use bitwarden::{
         },
     },
 };
-use color_eyre::eyre::{Result, bail};
+use color_eyre::eyre::Result;
 use uuid::Uuid;
 
 use crate::{
     ProjectCommand,
+    error::{self, Op, Target},
     render::{OutputSettings, serialize_response},
 };
 
@@ -45,7 +46,8 @@ pub(crate) async fn list(
         .list(&ProjectsListRequest {
             organization_id: organization_id.into(),
         })
-        .await?
+        .await
+        .map_err(|e| error::sm_error(e, Target::None, Op::Read))?
         .data;
     serialize_response(projects, output_settings);
 
@@ -60,7 +62,8 @@ pub(crate) async fn get(
     let project = client
         .projects()
         .get(&ProjectGetRequest { id: project_id })
-        .await?;
+        .await
+        .map_err(|e| error::sm_error(e, Target::Project(project_id), Op::Read))?;
     serialize_response(project, output_settings);
 
     Ok(())
@@ -78,7 +81,8 @@ pub(crate) async fn create(
             organization_id: organization_id.into(),
             name,
         })
-        .await?;
+        .await
+        .map_err(|e| error::sm_error(e, Target::None, Op::Write))?;
     serialize_response(project, output_settings);
 
     Ok(())
@@ -98,7 +102,8 @@ pub(crate) async fn edit(
             organization_id: organization_id.into(),
             name,
         })
-        .await?;
+        .await
+        .map_err(|e| error::sm_error(e, Target::Project(project_id), Op::Write))?;
     serialize_response(project, output_settings);
 
     Ok(())
@@ -110,14 +115,15 @@ pub(crate) async fn delete(client: SecretsManagerClient, project_ids: Vec<Uuid>)
     let result = client
         .projects()
         .delete(ProjectsDeleteRequest { ids: project_ids })
-        .await?;
+        .await
+        .map_err(|e| error::sm_error(e, Target::Projects, Op::Write))?;
 
     let projects_failed: Vec<(Uuid, String)> = result
         .data
         .into_iter()
         .filter_map(|r| r.error.map(|e| (r.id, e)))
         .collect();
-    let deleted_projects = count - projects_failed.len();
+    let deleted_projects = count.saturating_sub(projects_failed.len());
 
     match deleted_projects {
         2.. => println!("{} projects deleted successfully.", deleted_projects),
@@ -136,7 +142,7 @@ pub(crate) async fn delete(client: SecretsManagerClient, project_ids: Vec<Uuid>)
     }
 
     if !projects_failed.is_empty() {
-        bail!("Errors when attempting to delete projects.");
+        return Err(error::partial_delete(projects_failed.len(), count, "project").into());
     }
 
     Ok(())

@@ -5,15 +5,19 @@ pub(crate) mod secret;
 use std::{path::PathBuf, str::FromStr};
 
 use bitwarden::secrets_manager::AccessToken;
-use clap::CommandFactory;
+use clap::{CommandFactory, ValueEnum};
 use clap_complete::Shell;
-use color_eyre::eyre::{Result, bail};
+use color_eyre::eyre::Result;
 
-use crate::{Cli, ProfileKey, config, render, util};
+use crate::{Cli, ProfileKey, config, error::UserError, render, util};
+
+const CONFIG_USAGE_HINT: &str = "Usage: bws config <name> <value>";
 
 pub(crate) fn completions(shell: Option<Shell>) -> Result<()> {
     let Some(shell) = shell.or_else(Shell::from_env) else {
-        bail!("Couldn't autodetect a valid shell. Run `bws completions --help` for more info.");
+        return Err(UserError::new("Could not detect your shell.")
+            .hint("Pass it explicitly: bws completions <bash|elvish|fish|powershell|zsh>")
+            .into());
     };
 
     let mut cmd = Cli::command();
@@ -36,7 +40,14 @@ pub(crate) fn config(
     let profile = if let Some(profile) = profile {
         profile
     } else if let Some(access_token) = access_token {
-        AccessToken::from_str(&access_token)?
+        AccessToken::from_str(&access_token)
+            .map_err(|e| {
+                UserError::new(
+                    "The access token in BWS_ACCESS_TOKEN or --access-token is malformed.",
+                )
+                .hint("Fix or unset it, or pass --profile.")
+                .source(e)
+            })?
             .access_token_id
             .to_string()
     } else {
@@ -48,12 +59,26 @@ pub(crate) fn config(
         render::write_stdout("Profile deleted successfully!\n");
     } else {
         let (name, value) = match (name, value) {
-            (None, None) => bail!("Missing `name` and `value`"),
-            (None, Some(_)) => bail!("Missing `value`"),
-            (Some(_), None) => bail!("Missing `name`"),
+            (None, _) => {
+                return Err(UserError::new("Missing config name.")
+                    .hint(CONFIG_USAGE_HINT)
+                    .into());
+            }
+            (Some(name), None) => {
+                let name = name
+                    .to_possible_value()
+                    .map(|v| v.get_name().to_string())
+                    .unwrap_or_default();
+                return Err(UserError::new(format!("Missing value for '{name}'."))
+                    .hint(CONFIG_USAGE_HINT)
+                    .into());
+            }
             (Some(ProfileKey::state_opt_out), Some(value)) => {
                 if util::string_to_bool(value.as_str()).is_err() {
-                    bail!("Profile key \"state_opt_out\" must be \"true\" or \"false\"");
+                    return Err(UserError::new(
+                        "Invalid value for 'state-opt-out'; expected true, false, 1, or 0.",
+                    )
+                    .into());
                 } else {
                     (ProfileKey::state_opt_out, value)
                 }

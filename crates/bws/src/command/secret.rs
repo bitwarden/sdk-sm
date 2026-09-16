@@ -158,7 +158,7 @@ pub(crate) async fn create(
             key: secret.key,
             value: secret.value,
             note: secret.note.unwrap_or_default(),
-            project_ids: Some(vec![secret.project_id]),
+            project_ids: Some(vec![project_id]),
         })
         .await
         .map_err(|e| error::sm_error(e, Target::Project(project_id), Op::Write))?;

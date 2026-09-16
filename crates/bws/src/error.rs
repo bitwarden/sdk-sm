@@ -388,13 +388,20 @@ where
 {
     let display = e.to_string();
     let debug = format!("{e:?}");
-    let status = HTTP_RE
-        .captures(&display)
+    let http = HTTP_RE.captures(&display);
+    let status = http
+        .as_ref()
         .and_then(|c| c.get(2)?.as_str().parse::<u16>().ok());
+    // A 404 without a Bitwarden error body likely means a wrong server URL, which `generic`
+    // reports.
+    let bitwarden_body = http
+        .as_ref()
+        .and_then(|c| server_message(c.get(3)?.as_str()))
+        .is_some();
 
     let error = validation_error(&display)
         .or_else(|| match status {
-            Some(404) => not_found(target),
+            Some(404) if bitwarden_body => not_found(target),
             Some(403) if op == Op::Read => not_found(target),
             Some(403) => no_write_access(target),
             _ => None,
@@ -449,12 +456,12 @@ fn not_found(target: Target) -> Option<UserError> {
         Target::Project(id) => format!("Project {id} not found or not accessible."),
         Target::Secrets => {
             return Some(UserError::new(
-                "None of the given secrets were found or accessible.",
+                "One or more of the given secrets were not found or accessible.",
             ));
         }
         Target::Projects => {
             return Some(UserError::new(
-                "None of the given projects were found or accessible.",
+                "One or more of the given projects were not found or accessible.",
             ));
         }
         Target::None => return None,
@@ -464,7 +471,10 @@ fn not_found(target: Target) -> Option<UserError> {
 
 fn no_write_access(target: Target) -> Option<UserError> {
     let subject = match target {
-        Target::Secret(id) | Target::SecretInProject(id, _) => format!("secret {id}"),
+        Target::Secret(id) | Target::SecretInProject(id, None) => format!("secret {id}"),
+        Target::SecretInProject(id, Some(project_id)) => {
+            format!("secret {id} or project {project_id}")
+        }
         Target::Project(id) => format!("project {id}"),
         Target::Secrets => "these secrets".to_string(),
         Target::Projects => "these projects".to_string(),
@@ -1244,15 +1254,29 @@ mod tests {
         assert_eq!(
             sm(SdkErr::http(404, "Not Found"), Target::Secrets, Op::Write),
             (
-                "None of the given secrets were found or accessible.".to_string(),
+                "One or more of the given secrets were not found or accessible.".to_string(),
                 None
             )
         );
         assert_eq!(
             sm(SdkErr::http(404, "Not Found"), Target::Projects, Op::Write),
             (
-                "None of the given projects were found or accessible.".to_string(),
+                "One or more of the given projects were not found or accessible.".to_string(),
                 None
+            )
+        );
+        assert_eq!(
+            sm(
+                SdkErr::new(
+                    "Received error message from server: [404 Not Found] <html></html>",
+                    "Api(Response(...))"
+                ),
+                Target::Secret(SECRET_ID),
+                Op::Read
+            ),
+            (
+                "The requested item was not found or is not accessible.".to_string(),
+                Some(SERVER_URL_HINT.to_string())
             )
         );
         assert_eq!(
@@ -1276,7 +1300,7 @@ mod tests {
         );
         assert_eq!(
             write(Target::SecretInProject(SECRET_ID, Some(PROJECT_ID))),
-            denied(&format!("secret {SECRET_ID}"))
+            denied(&format!("secret {SECRET_ID} or project {PROJECT_ID}"))
         );
         assert_eq!(
             write(Target::Project(PROJECT_ID)),

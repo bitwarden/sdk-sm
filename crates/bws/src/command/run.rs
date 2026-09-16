@@ -57,13 +57,9 @@ pub(crate) async fn run(
         }
 
         let mut buffer = String::new();
-        std::io::stdin().read_to_string(&mut buffer).map_err(|e| {
-            UserError::new(format!(
-                "Could not read the command from stdin: {}.",
-                error::io_reason(&e)
-            ))
-            .source(e)
-        })?;
+        std::io::stdin()
+            .read_to_string(&mut buffer)
+            .map_err(|e| io_error("Could not read the command from stdin", e))?;
         if buffer.trim().is_empty() {
             return Err(no_command().into());
         }
@@ -157,19 +153,15 @@ pub(crate) async fn run(
     }
 
     // propagate the exit status from the child process
-    let mut child = command.spawn().map_err(|e| {
-        UserError::new(format!(
-            "Could not start '{shell}': {}.",
-            error::io_reason(&e)
-        ))
-        .source(e)
-    })?;
-    let exit_status = child.wait().map_err(|e| {
-        UserError::new(format!(
-            "Could not wait for the command to finish: {}.",
-            error::io_reason(&e)
-        ))
-        .source(e)
-    })?;
+    let mut child = command
+        .spawn()
+        .map_err(|e| io_error(&format!("Could not start '{shell}'"), e))?;
+    let exit_status = child
+        .wait()
+        .map_err(|e| io_error("Could not wait for the command to finish", e))?;
     Ok(exit_status.code().unwrap_or(1))
+}
+
+fn io_error(action: &str, e: std::io::Error) -> UserError {
+    UserError::new(format!("{action}: {}.", error::io_reason(&e))).source(e)
 }

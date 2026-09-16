@@ -14,7 +14,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   error report. Set `BWS_DEBUG=1` (or `RUST_BACKTRACE=1`) to see the full report. (#1578)
 - Network and server errors no longer print raw response bodies. (#1578)
 - Clearer messages for missing or invalid access tokens, config file problems, and login failures.
-  (#1580)
+  (#1579)
 - The state directory warning is now a single line with a hint. (#1579)
 - **BREAKING:** An access token that isn't associated with an organization now exits with code 1
   instead of 0. (#1579)

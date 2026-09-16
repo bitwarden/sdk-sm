@@ -16,8 +16,27 @@ const CONFIG_USAGE_HINT: &str = "Usage: bws config <name> <value>";
 /// The name of `key` as typed on the command line, e.g. `server-base`.
 fn key_name(key: ProfileKey) -> String {
     key.to_possible_value()
-        .map(|v| v.get_name().to_string())
-        .unwrap_or_default()
+        .expect("ProfileKey to have a clap value name")
+        .get_name()
+        .to_string()
+}
+
+/// Rejects values that `key` cannot hold, e.g. a server URL without a scheme.
+fn validate_value(key: ProfileKey, value: &str) -> Result<()> {
+    let expected = match key {
+        ProfileKey::server_base | ProfileKey::server_api | ProfileKey::server_identity
+            if !(value.starts_with("http://") || value.starts_with("https://")) =>
+        {
+            "a URL starting with http:// or https://"
+        }
+        ProfileKey::state_opt_out if util::string_to_bool(value).is_err() => "true, false, 1, or 0",
+        _ => return Ok(()),
+    };
+    Err(UserError::new(format!(
+        "Invalid value for '{}'; expected {expected}.",
+        key_name(key)
+    ))
+    .into())
 }
 
 pub(crate) fn completions(shell: Option<Shell>) -> Result<()> {
@@ -78,31 +97,10 @@ pub(crate) fn config(
                         .into(),
                 );
             }
-            (
-                Some(
-                    name @ (ProfileKey::server_base
-                    | ProfileKey::server_api
-                    | ProfileKey::server_identity),
-                ),
-                Some(value),
-            ) if !(value.starts_with("http://") || value.starts_with("https://")) => {
-                return Err(UserError::new(format!(
-                    "Invalid value for '{}'; expected a URL starting with http:// or https://.",
-                    key_name(name)
-                ))
-                .into());
+            (Some(name), Some(value)) => {
+                validate_value(name, &value)?;
+                (name, value)
             }
-            (Some(ProfileKey::state_opt_out), Some(value)) => {
-                if util::string_to_bool(value.as_str()).is_err() {
-                    return Err(UserError::new(
-                        "Invalid value for 'state-opt-out'; expected true, false, 1, or 0.",
-                    )
-                    .into());
-                } else {
-                    (ProfileKey::state_opt_out, value)
-                }
-            }
-            (Some(name), Some(value)) => (name, value),
         };
 
         config::update_profile(config_file.as_deref(), profile, name, value)?;

@@ -67,6 +67,12 @@ impl UserError {
         Self::new(message).source(e)
     }
 
+    /// Like [`UserError::io`], but for operations with no path to name: `<action>: <io reason>.`
+    pub(crate) fn io_action(action: &str, e: io::Error) -> Self {
+        let message = format!("{action}: {}.", io_reason(&e));
+        Self::new(message).source(e)
+    }
+
     /// Like [`UserError::io`], but reports an existing file as `not a directory` instead of
     /// `already exists`, which is how `create_dir_all` surfaces a file in the path.
     pub(crate) fn create_dir(action: &str, path: &Path, e: io::Error) -> Self {
@@ -372,12 +378,12 @@ pub(crate) enum Target {
     Secrets,
     /// Several projects being deleted at once.
     Projects,
-    /// A secret being updated, optionally moved to a project.
-    SecretInProject(Uuid, Option<Uuid>),
+    /// A secret being updated and moved to a project.
+    SecretOrProject(Uuid, Uuid),
     None,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy)]
 pub(crate) enum Op {
     Read,
     Write,
@@ -388,7 +394,7 @@ pub(crate) enum Op {
 /// The SDK error type can't be named from bws, so it is classified by its Display and Debug text.
 pub(crate) fn sm_error<E>(e: E, target: Target, op: Op) -> UserError
 where
-    E: Error + fmt::Debug + Send + Sync + 'static,
+    E: Error + Send + Sync + 'static,
 {
     let display = e.to_string();
     let debug = format!("{e:?}");
@@ -404,30 +410,31 @@ where
         .is_some();
 
     let error = validation_error(&display)
-        .or_else(|| match status {
-            Some(404) if bitwarden_body => not_found(target),
-            Some(403) if op == Op::Read => not_found(target),
-            Some(403) => no_write_access(target),
+        .or_else(|| match (status, op) {
+            (Some(404), _) if bitwarden_body => not_found(target),
+            (Some(403), Op::Read) => not_found(target),
+            (Some(403), _) => no_write_access(target),
             _ => None,
         })
-        .or_else(|| {
-            if debug.starts_with("Crypto(") {
-                Some(UserError::new(
-                    "Could not decrypt data returned by the server.",
-                ))
-            } else if ["MissingField(", "Chrono(", "Api(Serde("]
-                .iter()
-                .any(|p| debug.starts_with(p))
-                && !display.contains("content type response when JSON was expected")
-            {
-                Some(UserError::new("Unexpected response from the server."))
-            } else {
-                None
-            }
-        })
+        .or_else(|| decoding_error(&debug, &display))
         .or_else(|| generic(&e))
         .unwrap_or_else(|| UserError::new(sentence(&display)));
     error.source(e)
+}
+
+/// Classifies SDK errors that mean the response could not be turned into data.
+fn decoding_error(debug: &str, display: &str) -> Option<UserError> {
+    if debug.starts_with("Crypto(") {
+        return Some(UserError::new(
+            "Could not decrypt data returned by the server.",
+        ));
+    }
+    let undecodable = ["MissingField(", "Chrono(", "Api(Serde("]
+        .iter()
+        .any(|p| debug.starts_with(p))
+        // A wrong content type is left to `generic`, which adds the server URL hint.
+        && !display.contains("content type response when JSON was expected");
+    undecodable.then(|| UserError::new("Unexpected response from the server."))
 }
 
 fn validation_error(display: &str) -> Option<UserError> {
@@ -450,39 +457,36 @@ fn validation_error(display: &str) -> Option<UserError> {
 }
 
 fn not_found(target: Target) -> Option<UserError> {
-    let message = match target {
-        Target::Secret(id) | Target::SecretInProject(id, None) => {
-            format!("Secret {id} not found or not accessible.")
-        }
-        Target::SecretInProject(id, Some(project_id)) => {
-            format!("Secret {id} or project {project_id} not found or not accessible.")
-        }
-        Target::Project(id) => format!("Project {id} not found or not accessible."),
-        Target::Secrets => {
-            return Some(
-                UserError::new(
-                    "One or more of the given secrets were not found or not accessible.",
-                )
-                .hint(HINT_NOTHING_DELETED),
-            );
-        }
-        Target::Projects => {
-            return Some(
-                UserError::new(
-                    "One or more of the given projects were not found or not accessible.",
-                )
-                .hint(HINT_NOTHING_DELETED),
-            );
-        }
+    let (message, hint) = match target {
+        Target::Secret(id) => (
+            format!("Secret {id} not found or not accessible."),
+            HINT_CHECK_ACCESS,
+        ),
+        Target::SecretOrProject(id, project_id) => (
+            format!("Secret {id} or project {project_id} not found or not accessible."),
+            HINT_CHECK_ACCESS,
+        ),
+        Target::Project(id) => (
+            format!("Project {id} not found or not accessible."),
+            HINT_CHECK_ACCESS,
+        ),
+        Target::Secrets => (
+            "One or more of the given secrets were not found or not accessible.".to_string(),
+            HINT_NOTHING_DELETED,
+        ),
+        Target::Projects => (
+            "One or more of the given projects were not found or not accessible.".to_string(),
+            HINT_NOTHING_DELETED,
+        ),
         Target::None => return None,
     };
-    Some(UserError::new(message).hint(HINT_CHECK_ACCESS))
+    Some(UserError::new(message).hint(hint))
 }
 
 fn no_write_access(target: Target) -> Option<UserError> {
     let subject = match target {
-        Target::Secret(id) | Target::SecretInProject(id, None) => format!("secret {id}"),
-        Target::SecretInProject(id, Some(project_id)) => {
+        Target::Secret(id) => format!("secret {id}"),
+        Target::SecretOrProject(id, project_id) => {
             format!("secret {id} or project {project_id}")
         }
         Target::Project(id) => format!("project {id}"),
@@ -601,7 +605,7 @@ fn lowercase_first(s: &str) -> String {
     }
 }
 
-pub(crate) fn io_reason(e: &io::Error) -> String {
+fn io_reason(e: &io::Error) -> String {
     use io::ErrorKind::*;
     match e.kind() {
         PermissionDenied => "permission denied".to_string(),
@@ -1242,7 +1246,7 @@ mod tests {
         assert_eq!(
             sm(
                 SdkErr::http(404, "Not Found"),
-                Target::SecretInProject(SECRET_ID, Some(PROJECT_ID)),
+                Target::SecretOrProject(SECRET_ID, PROJECT_ID),
                 Op::Write
             ),
             (
@@ -1253,7 +1257,7 @@ mod tests {
         assert_eq!(
             sm(
                 SdkErr::http(404, "Not Found"),
-                Target::SecretInProject(SECRET_ID, None),
+                Target::Secret(SECRET_ID),
                 Op::Write
             ),
             (
@@ -1309,7 +1313,7 @@ mod tests {
             denied(&format!("secret {SECRET_ID}"))
         );
         assert_eq!(
-            write(Target::SecretInProject(SECRET_ID, Some(PROJECT_ID))),
+            write(Target::SecretOrProject(SECRET_ID, PROJECT_ID)),
             denied(&format!("secret {SECRET_ID} or project {PROJECT_ID}"))
         );
         assert_eq!(

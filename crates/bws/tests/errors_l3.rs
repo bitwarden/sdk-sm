@@ -21,9 +21,9 @@ fn server(extra: Vec<Route>) -> MockServer {
     MockServer::start(routes)
 }
 
-fn not_found(path_prefix: &'static str) -> Route {
+fn not_found(method: &'static str, path_prefix: &'static str) -> Route {
     Route {
-        method: "GET",
+        method,
         path_prefix,
         status: 404,
         content_type: "application/json",
@@ -38,17 +38,23 @@ fn logged_in(server: &MockServer, args: &[&str]) -> (i32, String) {
     (code, stderr)
 }
 
-fn config_path(dir: &tempfile::TempDir) -> String {
-    dir.path()
+/// Runs `bws config <args>` against a fresh temp config file, and returns its path as well.
+fn bws_config(args: &[&str]) -> (i32, String, String) {
+    let dir = tempfile::tempdir().expect("temp dir to be created");
+    let path = dir
+        .path()
         .join("config")
         .to_str()
         .expect("utf-8 path")
-        .to_string()
+        .to_string();
+    let args = [&["config"], args, &["-f", path.as_str()]].concat();
+    let (code, _, stderr) = bws(&args, &[]);
+    (code, stderr, path)
 }
 
 #[test]
 fn secret_not_found() {
-    let server = server(vec![not_found("/api/secrets/")]);
+    let server = server(vec![not_found("GET", "/api/secrets/")]);
 
     let (code, stderr) = logged_in(&server, &["secret", "get", ID]);
 
@@ -64,7 +70,7 @@ fn secret_not_found() {
 
 #[test]
 fn project_not_found() {
-    let server = server(vec![not_found("/api/projects/")]);
+    let server = server(vec![not_found("GET", "/api/projects/")]);
 
     let (code, stderr) = logged_in(&server, &["project", "get", ID]);
 
@@ -139,10 +145,7 @@ fn run_without_command() {
 
 #[test]
 fn config_missing_value() {
-    let dir = tempfile::tempdir().expect("temp dir to be created");
-    let path = config_path(&dir);
-
-    let (code, _, stderr) = bws(&["config", "server-base", "-f", &path], &[]);
+    let (code, stderr, _) = bws_config(&["server-base"]);
 
     assert_eq!(code, 1);
     assert_error(
@@ -156,10 +159,7 @@ fn config_missing_value() {
 
 #[test]
 fn config_invalid_state_opt_out() {
-    let dir = tempfile::tempdir().expect("temp dir to be created");
-    let path = config_path(&dir);
-
-    let (code, _, stderr) = bws(&["config", "state-opt-out", "maybe", "-f", &path], &[]);
+    let (code, stderr, _) = bws_config(&["state-opt-out", "maybe"]);
 
     assert_eq!(code, 1);
     assert_error(
@@ -170,10 +170,7 @@ fn config_invalid_state_opt_out() {
 
 #[test]
 fn config_delete_without_file() {
-    let dir = tempfile::tempdir().expect("temp dir to be created");
-    let path = config_path(&dir);
-
-    let (code, _, stderr) = bws(&["config", "-d", "-f", &path], &[]);
+    let (code, stderr, path) = bws_config(&["-d"]);
 
     assert_eq!(code, 1);
     assert_error(
@@ -234,19 +231,9 @@ fn run_shell_not_executable() {
     );
 }
 
-fn delete_not_found(path_prefix: &'static str) -> Route {
-    Route {
-        method: "POST",
-        path_prefix,
-        status: 404,
-        content_type: "application/json",
-        body: NOT_FOUND_BODY,
-    }
-}
-
 #[test]
 fn delete_one_secret_not_found() {
-    let server = server(vec![delete_not_found("/api/secrets/delete")]);
+    let server = server(vec![not_found("POST", "/api/secrets/delete")]);
 
     let (code, stderr) = logged_in(&server, &["secret", "delete", ID]);
 
@@ -262,7 +249,7 @@ fn delete_one_secret_not_found() {
 
 #[test]
 fn delete_projects_not_found() {
-    let server = server(vec![delete_not_found("/api/projects/delete")]);
+    let server = server(vec![not_found("POST", "/api/projects/delete")]);
     let other = "25744a66-341a-4c62-af50-b16300fc8b5d";
 
     let (code, stderr) = logged_in(&server, &["project", "delete", ID, other]);
@@ -308,10 +295,7 @@ fn config_directory_is_a_file() {
 
 #[test]
 fn config_invalid_server_url() {
-    let dir = tempfile::tempdir().expect("temp dir to be created");
-    let path = config_path(&dir);
-
-    let (code, _, stderr) = bws(&["config", "server-base", "notaurl", "-f", &path], &[]);
+    let (code, stderr, _) = bws_config(&["server-base", "notaurl"]);
 
     assert_eq!(code, 1);
     assert_error(

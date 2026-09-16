@@ -122,12 +122,12 @@ pub(crate) async fn delete(client: SecretsManagerClient, project_ids: Vec<Uuid>)
         .await
         .map_err(|e| error::sm_error(e, target, Op::Write))?;
 
+    let deleted_projects = result.data.iter().filter(|r| r.error.is_none()).count();
     let projects_failed: Vec<(Uuid, String)> = result
         .data
         .into_iter()
         .filter_map(|r| r.error.map(|e| (r.id, e)))
         .collect();
-    let deleted_projects = count.saturating_sub(projects_failed.len());
 
     match deleted_projects {
         2.. => println!("{} projects deleted successfully.", deleted_projects),

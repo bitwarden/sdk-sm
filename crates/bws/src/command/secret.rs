@@ -184,7 +184,10 @@ pub(crate) async fn edit(
         .as_ref()
         .is_some_and(|v| v != &old_secret.value);
 
-    let target = Target::SecretInProject(secret.id, secret.project_id);
+    let target = match secret.project_id {
+        Some(project_id) => Target::SecretOrProject(secret.id, project_id),
+        None => Target::Secret(secret.id),
+    };
     let new_secret = client
         .secrets()
         .update(&SecretPutRequest {
@@ -219,12 +222,12 @@ pub(crate) async fn delete(client: SecretsManagerClient, secret_ids: Vec<Uuid>) 
         .await
         .map_err(|e| error::sm_error(e, target, Op::Write))?;
 
+    let deleted_secrets = result.data.iter().filter(|r| r.error.is_none()).count();
     let secrets_failed: Vec<(Uuid, String)> = result
         .data
         .into_iter()
         .filter_map(|r| r.error.map(|e| (r.id, e)))
         .collect();
-    let deleted_secrets = count.saturating_sub(secrets_failed.len());
 
     match deleted_secrets {
         2.. => println!("{} secrets deleted successfully.", deleted_secrets),

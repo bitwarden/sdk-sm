@@ -216,7 +216,7 @@ pub(crate) fn delete_profile(config_file: Option<&Path>, profile: String) -> Res
 
     config.profiles.remove(&profile);
 
-    write_config(config, config_file)?;
+    write_config(config, Some(&path))?;
     Ok(())
 }
 

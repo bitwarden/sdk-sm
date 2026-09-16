@@ -20,7 +20,7 @@ pub(crate) fn completions(shell: Option<Shell>) -> Result<()> {
     let name = cmd.get_name().to_string();
     let mut script = Vec::new();
     clap_complete::generate(shell, &mut cmd, name, &mut script);
-    render::write_stdout(&script);
+    render::write_stdout(script);
 
     Ok(())
 }
@@ -45,7 +45,7 @@ pub(crate) fn config(
 
     if delete {
         config::delete_profile(config_file.as_deref(), profile)?;
-        println!("Profile deleted successfully!");
+        render::write_stdout("Profile deleted successfully!\n");
     } else {
         let (name, value) = match (name, value) {
             (None, None) => bail!("Missing `name` and `value`"),
@@ -62,7 +62,7 @@ pub(crate) fn config(
         };
 
         config::update_profile(config_file.as_deref(), profile, name, value)?;
-        println!("Profile updated successfully!");
+        render::write_stdout("Profile updated successfully!\n");
     };
 
     Ok(())

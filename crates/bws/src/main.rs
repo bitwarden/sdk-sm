@@ -33,11 +33,14 @@ async fn main() -> ExitCode {
     match process_commands().await {
         Ok(()) => ExitCode::SUCCESS,
         Err(report) => {
-            if error::is_verbose() {
-                eprint!("{}", error::render_verbose(&report));
-            } else {
-                eprint!("{}", error::render(&report));
-            }
+            eprint!(
+                "{}",
+                if error::is_verbose() {
+                    error::render_verbose(&report)
+                } else {
+                    error::render(&report)
+                }
+            );
             ExitCode::from(1)
         }
     }
@@ -56,6 +59,8 @@ async fn process_commands() -> Result<()> {
 
     let Some(command) = cli.command else {
         let help = Cli::command().render_help();
+        // Same as `Color::is_enabled()`, but the help goes to stderr and that method only ever
+        // probes stdout.
         let stderr_color = match color {
             Color::Yes => true,
             Color::No => false,

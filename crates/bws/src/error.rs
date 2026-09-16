@@ -1,11 +1,4 @@
-use std::{
-    any::Any,
-    error::Error,
-    fmt::{self, Display},
-    io,
-    path::Path,
-    sync::LazyLock,
-};
+use std::{any::Any, error::Error, io, path::Path, sync::LazyLock};
 
 use color_eyre::eyre;
 use regex::Regex;
@@ -27,10 +20,12 @@ static HTTP_RE: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 /// An error with a message and optional hint that are shown to the user as they are.
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
+#[error("{message}")]
 pub(crate) struct UserError {
     message: String,
     hint: Option<String>,
+    #[source]
     source: Option<Box<dyn Error + Send + Sync + 'static>>,
 }
 
@@ -64,49 +59,40 @@ impl UserError {
     }
 }
 
-impl Display for UserError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.message)
-    }
-}
-
-impl Error for UserError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        self.source.as_deref().map(|e| e as &(dyn Error + 'static))
+/// `<label>: <body>` followed by an optional `Hint: <hint>` line.
+fn message_lines(label: &str, body: &str, hint: Option<&str>) -> String {
+    match hint {
+        Some(hint) => format!("{label}: {body}\nHint: {hint}\n"),
+        None => format!("{label}: {body}\n"),
     }
 }
 
 /// Renders an error as `Error: <message>` with an optional `Hint: <hint>` line.
 pub(crate) fn render(report: &eyre::Report) -> String {
-    let UserError { message, hint, .. } = classify(report);
-    match hint {
-        Some(hint) => format!("Error: {message}\nHint: {hint}\n"),
-        None => format!("Error: {message}\n"),
-    }
+    let (message, hint) = classify(report);
+    message_lines("Error", &message, hint.as_deref())
 }
 
 /// Renders the full report, followed by the `Hint: <hint>` line [`render`] would show.
 pub(crate) fn render_verbose(report: &eyre::Report) -> String {
-    match classify(report).hint {
-        Some(hint) => format!("Error: {report:?}\nHint: {hint}\n"),
-        None => format!("Error: {report:?}\n"),
-    }
+    let (_, hint) = classify(report);
+    message_lines("Error", &format!("{report:?}"), hint.as_deref())
 }
 
-pub(crate) fn classify(report: &eyre::Report) -> UserError {
+/// Reduces a report to the user-facing `(message, hint)` pair.
+fn classify(report: &eyre::Report) -> (String, Option<String>) {
     if let Some(e) = report.downcast_ref::<UserError>() {
-        return UserError {
-            message: e.message.clone(),
-            hint: e.hint.clone(),
-            source: None,
-        };
+        return (e.message.clone(), e.hint.clone());
     }
     let err: &(dyn Error + 'static) = report.as_ref();
-    generic(err).unwrap_or_else(|| UserError::new(sentence(&report.to_string())))
+    match generic(err) {
+        Some(e) => (e.message, e.hint),
+        None => (sentence(&report.to_string()), None),
+    }
 }
 
 /// Classifies network and HTTP errors that need no call-site context.
-pub(crate) fn generic(err: &(dyn Error + 'static)) -> Option<UserError> {
+fn generic(err: &(dyn Error + 'static)) -> Option<UserError> {
     let chain: Vec<&(dyn Error + 'static)> =
         std::iter::successors(Some(err), |e| (*e).source()).collect();
     let texts: Vec<String> = chain.iter().map(|e| e.to_string()).collect();
@@ -192,21 +178,25 @@ fn http_error(status: u16, reason: &str, body: &str) -> UserError {
             .hint("Check the machine account's permissions."),
         404 => {
             let e = UserError::new("The requested item was not found or is not accessible.");
-            match server_message(body) {
-                Some(_) => e,
-                None => e.hint(SERVER_URL_HINT),
+            if server_message(body).is_some() {
+                e
+            } else {
+                e.hint(SERVER_URL_HINT)
             }
         }
         429 => UserError::new(format!("Too many requests ({reason})."))
             .hint("Wait a moment and try again."),
         500..=599 => UserError::new(format!("The server returned an error ({reason})."))
             .hint("Try again later."),
-        // A generic web server rejecting the request shape suggests a wrong server URL.
-        405 | 406 | 415 => {
-            UserError::new(format!("Unexpected response from the server ({reason})."))
-                .hint(SERVER_URL_HINT)
+        status => {
+            let e = UserError::new(format!("Unexpected response from the server ({reason})."));
+            // A generic web server rejecting the request shape suggests a wrong server URL.
+            if matches!(status, 405 | 406 | 415) {
+                e.hint(SERVER_URL_HINT)
+            } else {
+                e
+            }
         }
-        _ => UserError::new(format!("Unexpected response from the server ({reason}).")),
     }
 }
 
@@ -225,10 +215,10 @@ fn server_message(body: &str) -> Option<String> {
         .into_iter()
         .flat_map(|o| o.values())
         .flat_map(|v| match v {
-            serde_json::Value::Array(items) => items.iter().filter_map(|i| i.as_str()).collect(),
-            serde_json::Value::String(s) => vec![s.as_str()],
-            _ => vec![],
+            serde_json::Value::Array(items) => items.as_slice(),
+            other => std::slice::from_ref(other),
         })
+        .filter_map(|v| v.as_str())
         .map(|s| s.trim().trim_end_matches(['.', ' ']))
         .filter(|s| !s.is_empty())
         .collect();
@@ -244,23 +234,26 @@ fn host_from_chain(texts: &[String]) -> String {
     texts
         .iter()
         .find_map(|t| {
-            let start = t.find("for url (")? + "for url (".len();
-            let rest = &t[start..];
-            let url = &rest[..rest.find(')').unwrap_or(rest.len())];
-            let url = url.split_once("://").map_or(url, |(_, r)| r);
-            let authority = &url[..url.find(['/', '?', '#']).unwrap_or(url.len())];
+            let (_, rest) = t.split_once("for url (")?;
+            let url = rest.split_once(')').map_or(rest, |(u, _)| u);
+            let authority = url.split_once("://").map_or(url, |(_, r)| r);
+            let authority = authority.split(['/', '?', '#']).next().unwrap_or(authority);
             let host = authority.rsplit_once('@').map_or(authority, |(_, h)| h);
             (!host.is_empty()).then(|| host.to_string())
         })
         .unwrap_or_else(|| "the server".to_string())
 }
 
+/// Whether to show full error reports. Read once; the environment cannot change mid-process.
 pub(crate) fn is_verbose() -> bool {
-    let var = |name| std::env::var_os(name).map(|v| v.to_string_lossy().into_owned());
-    verbose_from(
-        var("BWS_DEBUG").as_deref(),
-        var("RUST_BACKTRACE").as_deref(),
-    )
+    static VERBOSE: LazyLock<bool> = LazyLock::new(|| {
+        let var = |name| std::env::var_os(name).map(|v| v.to_string_lossy().into_owned());
+        verbose_from(
+            var("BWS_DEBUG").as_deref(),
+            var("RUST_BACKTRACE").as_deref(),
+        )
+    });
+    *VERBOSE
 }
 
 fn verbose_from(bws_debug: Option<&str>, rust_backtrace: Option<&str>) -> bool {
@@ -273,12 +266,11 @@ fn verbose_from(bws_debug: Option<&str>, rust_backtrace: Option<&str>) -> bool {
 
 #[expect(dead_code, reason = "For call sites that report recoverable problems")]
 pub(crate) fn warn(message: &str, hint: Option<&str>) {
-    eprintln!("Warning: {message}");
-    if let Some(hint) = hint {
-        eprintln!("Hint: {hint}");
-    }
+    eprint!("{}", message_lines("Warning", message, hint));
 }
 
+// `PanicHookInfo::payload_as_str` would replace the downcasts, but it is only stable since 1.91
+// and the workspace MSRV is 1.88.
 pub(crate) fn render_panic(payload: &(dyn Any + Send)) -> String {
     let text = payload
         .downcast_ref::<&str>()
@@ -286,9 +278,13 @@ pub(crate) fn render_panic(payload: &(dyn Any + Send)) -> String {
         .or_else(|| payload.downcast_ref::<String>().map(String::as_str))
         .unwrap_or("unknown error");
     let message = sentence(text);
-    format!(
-        "Error: bws crashed unexpectedly: {}.\nHint: Rerun with BWS_DEBUG=1 and report it at https://github.com/bitwarden/sdk-sm/issues\n",
-        message.trim_end_matches('.')
+    message_lines(
+        "Error",
+        &format!(
+            "bws crashed unexpectedly: {}.",
+            message.trim_end_matches('.')
+        ),
+        Some("Rerun with BWS_DEBUG=1 and report it at https://github.com/bitwarden/sdk-sm/issues"),
     )
 }
 
@@ -303,8 +299,7 @@ fn sentence(s: &str) -> String {
     let line = USERINFO_RE.replace_all(&line, "$1");
 
     let truncated = line.chars().count() > MAX_MESSAGE_CHARS;
-    let mut text: String = line.chars().take(MAX_MESSAGE_CHARS).collect();
-    text = uppercase_first(&text);
+    let text = uppercase_first(&line.chars().take(MAX_MESSAGE_CHARS).collect::<String>());
 
     if truncated {
         // The ellipsis would be eaten by the trailing punctuation rule below.
@@ -325,6 +320,14 @@ fn uppercase_first(s: &str) -> String {
     }
 }
 
+fn lowercase_first(s: &str) -> String {
+    let mut chars = s.chars();
+    match chars.next() {
+        Some(first) => first.to_lowercase().chain(chars).collect(),
+        None => String::new(),
+    }
+}
+
 fn io_reason(e: &io::Error) -> String {
     use io::ErrorKind::*;
     match e.kind() {
@@ -334,19 +337,14 @@ fn io_reason(e: &io::Error) -> String {
         NotADirectory => "not a directory".to_string(),
         AlreadyExists => "already exists".to_string(),
         ReadOnlyFilesystem => "read-only file system".to_string(),
-        _ => {
-            let text = OS_ERROR_RE.replace_all(&e.to_string(), "").into_owned();
-            let mut chars = text.chars();
-            match chars.next() {
-                Some(first) => first.to_lowercase().chain(chars).collect(),
-                None => text,
-            }
-        }
+        _ => lowercase_first(&OS_ERROR_RE.replace_all(&e.to_string(), "")),
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::fmt::{self, Display};
+
     use super::*;
 
     #[derive(Debug)]

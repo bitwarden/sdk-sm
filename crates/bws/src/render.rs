@@ -72,17 +72,20 @@ pub(crate) fn serialize_response<T: Serialize + TableSerialize<N>, const N: usiz
                 .set_header(T::get_headers())
                 .add_rows(data.get_values());
 
-            write_stdout(format!("{table}\n").as_bytes());
+            write_stdout(format!("{table}\n"));
         }
         Output::TSV => {
-            let rows: Vec<String> = data
-                .get_values()
-                .into_iter()
-                .map(|row| row.join("\t"))
-                .collect();
-            write_stdout(
-                format!("{}\n{}\n", T::get_headers().join("\t"), rows.join("\n")).as_bytes(),
-            );
+            // Built as one buffer so there is a single broken-pipe check per output.
+            let mut text = T::get_headers().join("\t");
+            text.push('\n');
+            for (i, row) in data.get_values().into_iter().enumerate() {
+                if i > 0 {
+                    text.push('\n');
+                }
+                text.push_str(&row.join("\t"));
+            }
+            text.push('\n');
+            write_stdout(text);
         }
         Output::None => {}
     }
@@ -96,16 +99,19 @@ fn pretty_print(language: &str, data: &str, color: Color) {
             .language(language)
             .print_with_writer(Some(&mut highlighted))
             .expect("Input is valid");
-        write_stdout(highlighted.as_bytes());
+        write_stdout(highlighted);
     } else {
-        write_stdout(data.as_bytes());
+        write_stdout(data);
     }
 }
 
 /// Writes `data` to stdout, exiting quietly if the reader has gone away (e.g. `bws ... | head`).
-pub(crate) fn write_stdout(data: &[u8]) {
+pub(crate) fn write_stdout(data: impl AsRef<[u8]>) {
     let mut stdout = io::stdout().lock();
-    if let Err(e) = stdout.write_all(data).and_then(|()| stdout.flush()) {
+    if let Err(e) = stdout
+        .write_all(data.as_ref())
+        .and_then(|()| stdout.flush())
+    {
         if e.kind() == io::ErrorKind::BrokenPipe {
             std::process::exit(0);
         }

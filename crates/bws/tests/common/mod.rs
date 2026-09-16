@@ -37,25 +37,20 @@ pub fn bws(args: &[&str], env: &[(&str, &str)]) -> (i32, String, String) {
     )
 }
 
-/// Asserts that stderr is exactly `lines` and leaks no internals.
+/// Asserts that stderr is exactly `lines`, and that `lines` itself leaks no internals — so a
+/// future author cannot satisfy the equality above by pasting leaky output into the expectation.
 pub fn assert_error(stderr: &str, lines: &[&str]) {
     let actual: Vec<&str> = stderr.lines().collect();
     assert_eq!(actual, lines, "unexpected stderr:\n{stderr}");
 
+    // The secret half of the token; it implies the whole token as a substring.
     let (_, token_secret) = TEST_TOKEN
         .split_once(':')
         .expect("TEST_TOKEN to contain ':'");
-    for forbidden in [
-        "Location:",
-        "os error",
-        "{\"",
-        "<html",
-        TEST_TOKEN,
-        token_secret,
-    ] {
+    for forbidden in ["Location:", "os error", "{\"", "<html", token_secret] {
         assert!(
-            !stderr.contains(forbidden),
-            "stderr contains {forbidden:?}:\n{stderr}"
+            !lines.iter().any(|l| l.contains(forbidden)),
+            "expected output contains {forbidden:?}:\n{stderr}"
         );
     }
 }
@@ -123,9 +118,8 @@ fn handle(mut stream: TcpStream, routes: &[Route]) {
     let path = parts.next().unwrap_or_default().to_string();
 
     let mut content_length = 0;
-    loop {
-        let mut line = String::new();
-        if reader.read_line(&mut line).unwrap_or(0) == 0 || line.trim().is_empty() {
+    for line in reader.by_ref().lines().map_while(Result::ok) {
+        if line.trim().is_empty() {
             break;
         }
         if let Some((name, value)) = line.split_once(':')

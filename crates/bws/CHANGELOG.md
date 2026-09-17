@@ -33,6 +33,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `bws config <name>` without a value now reports the missing value instead of a missing name.
   (#1580)
 - `bws run` no longer fails when there are no secrets to inject. (#1580)
+- `bws secret delete` and `bws project delete` now require at least one ID instead of sending an
+  empty request. (#1580)
 
 ## [1.0.0] - 2024-09-26
 

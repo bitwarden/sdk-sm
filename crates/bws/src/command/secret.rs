@@ -15,7 +15,7 @@ use uuid::Uuid;
 use crate::{
     SecretCommand,
     error::{self, Op, Target},
-    render::{OutputSettings, serialize_response},
+    render::{OutputSettings, serialize_response, write_stdout},
 };
 
 #[derive(Debug)]
@@ -222,16 +222,17 @@ pub(crate) async fn delete(client: SecretsManagerClient, secret_ids: Vec<Uuid>) 
         .await
         .map_err(|e| error::sm_error(e, target, Op::Write))?;
 
-    let deleted_secrets = result.data.iter().filter(|r| r.error.is_none()).count();
     let secrets_failed: Vec<(Uuid, String)> = result
         .data
         .into_iter()
         .filter_map(|r| r.error.map(|e| (r.id, e)))
         .collect();
 
+    // The server may omit successful IDs from `data`, so count them from the request.
+    let deleted_secrets = count.saturating_sub(secrets_failed.len());
     match deleted_secrets {
-        2.. => println!("{} secrets deleted successfully.", deleted_secrets),
-        1 => println!("{} secret deleted successfully.", deleted_secrets),
+        2.. => write_stdout(format!("{deleted_secrets} secrets deleted successfully.\n")),
+        1 => write_stdout("1 secret deleted successfully.\n"),
         _ => (),
     }
 

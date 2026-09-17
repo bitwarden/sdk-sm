@@ -38,7 +38,8 @@ fn logged_in(server: &MockServer, args: &[&str]) -> (i32, String) {
     (code, stderr)
 }
 
-/// Runs `bws config <args>` against a fresh temp config file, and returns its path as well.
+/// Runs `bws config <args>` with `-f` pointing at a not-yet-created file in a temp dir, and returns
+/// that path. The temp dir is removed on return, so the path is only useful in messages.
 fn bws_config(args: &[&str]) -> (i32, String, String) {
     let dir = tempfile::tempdir().expect("temp dir to be created");
     let path = dir
@@ -262,6 +263,55 @@ fn delete_projects_not_found() {
             "Hint: Nothing was deleted. Check the IDs and that the machine account has access to them.",
         ],
     );
+}
+
+#[test]
+fn delete_success_without_per_id_data() {
+    let server = server(vec![
+        Route {
+            method: "POST",
+            path_prefix: "/api/secrets/delete",
+            status: 200,
+            content_type: "application/json",
+            body: r#"{"data": []}"#,
+        },
+        Route {
+            method: "POST",
+            path_prefix: "/api/projects/delete",
+            status: 200,
+            content_type: "application/json",
+            body: r#"{"data": []}"#,
+        },
+    ]);
+    let url = server.url();
+    let env = [("BWS_ACCESS_TOKEN", TEST_TOKEN)];
+    let other = "25744a66-341a-4c62-af50-b16300fc8b5d";
+
+    let (code, stdout, stderr) = bws(&["-u", &url, "secret", "delete", ID], &env);
+    assert_eq!(
+        (code, stdout.as_str()),
+        (0, "1 secret deleted successfully.\n"),
+        "{stderr}"
+    );
+
+    let (code, stdout, stderr) = bws(&["-u", &url, "project", "delete", ID, other], &env);
+    assert_eq!(
+        (code, stdout.as_str()),
+        (0, "2 projects deleted successfully.\n"),
+        "{stderr}"
+    );
+}
+
+#[test]
+fn delete_requires_ids() {
+    for command in ["secret", "project"] {
+        let (code, _, stderr) = bws(&[command, "delete"], &[("BWS_ACCESS_TOKEN", TEST_TOKEN)]);
+        assert_eq!(code, 2, "{stderr}");
+        assert!(
+            stderr.contains("required arguments were not provided"),
+            "{stderr}"
+        );
+    }
 }
 
 #[cfg(unix)]

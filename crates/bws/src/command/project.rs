@@ -14,7 +14,7 @@ use uuid::Uuid;
 use crate::{
     ProjectCommand,
     error::{self, Op, Target},
-    render::{OutputSettings, serialize_response},
+    render::{OutputSettings, serialize_response, write_stdout},
 };
 
 pub(crate) async fn process_command(
@@ -122,16 +122,19 @@ pub(crate) async fn delete(client: SecretsManagerClient, project_ids: Vec<Uuid>)
         .await
         .map_err(|e| error::sm_error(e, target, Op::Write))?;
 
-    let deleted_projects = result.data.iter().filter(|r| r.error.is_none()).count();
     let projects_failed: Vec<(Uuid, String)> = result
         .data
         .into_iter()
         .filter_map(|r| r.error.map(|e| (r.id, e)))
         .collect();
 
+    // The server may omit successful IDs from `data`, so count them from the request.
+    let deleted_projects = count.saturating_sub(projects_failed.len());
     match deleted_projects {
-        2.. => println!("{} projects deleted successfully.", deleted_projects),
-        1 => println!("{} project deleted successfully.", deleted_projects),
+        2.. => write_stdout(format!(
+            "{deleted_projects} projects deleted successfully.\n"
+        )),
+        1 => write_stdout("1 project deleted successfully.\n"),
         _ => (),
     }
 

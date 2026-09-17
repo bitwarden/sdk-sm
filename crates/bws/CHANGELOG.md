@@ -13,6 +13,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Errors are now printed as a short `Error:` line with an optional `Hint:` line instead of a full
   error report. Set `BWS_DEBUG=1` (or `RUST_BACKTRACE=1`) to see the full report. (#1578)
 - Network and server errors no longer print raw response bodies. (#1578)
+- Clearer messages for missing or invalid access tokens, config file problems, and login failures.
+  (#1579)
+- The state directory warning is now a single line with a hint. (#1579)
+- **BREAKING:** An access token that isn't associated with an organization now exits with code 1
+  instead of 0. (#1579)
 
 ### Fixed
 

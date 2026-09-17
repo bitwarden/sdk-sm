@@ -110,11 +110,12 @@ pub(crate) async fn run(
     if !uuids_as_keynames
         && let Some(duplicate) = secrets.iter().map(|s| &s.key).duplicates().next()
     {
-        return Err(
-            UserError::new(format!("Multiple secrets are named '{duplicate}'."))
-                .hint("Use unique secret names or pass --uuids-as-keynames.")
-                .into(),
-        );
+        return Err(UserError::new(format!(
+            "Multiple secrets are named '{}'.",
+            error::quoted_name(duplicate)
+        ))
+        .hint("Use unique secret names or pass --uuids-as-keynames.")
+        .into());
     }
 
     let environment: HashMap<String, String> = secrets
@@ -129,7 +130,10 @@ pub(crate) async fn run(
         .inspect(|(k, _)| {
             if !is_valid_posix_name(k) {
                 error::warn(
-                    &format!("Secret '{k}' is not a valid environment variable name."),
+                    &format!(
+                        "Secret '{}' is not a valid environment variable name.",
+                        error::quoted_name(k)
+                    ),
                     None,
                 );
             }

@@ -12,6 +12,7 @@ const NETWORK_HINT: &str = "Check the server URL and your network connection.";
 const TLS_HINT: &str = "Check the server URL or install the server's CA certificate.";
 const UNKNOWN_ERROR: &str = "An unknown error occurred.";
 const MAX_MESSAGE_CHARS: usize = 160;
+const MAX_NAME_CHARS: usize = 64;
 const HINT_CHECK_ACCESS: &str = "Check the ID and that the machine account has access to it.";
 const HINT_NOTHING_DELETED: &str =
     "Nothing was deleted. Check the IDs and that the machine account has access to them.";
@@ -559,6 +560,17 @@ pub(crate) fn strip_controls(s: &str) -> String {
         .collect()
 }
 
+/// Makes a server-supplied name safe to quote inside a message: control characters are removed and
+/// long names are cut to [`MAX_NAME_CHARS`].
+pub(crate) fn quoted_name(s: &str) -> String {
+    let name = strip_controls(s);
+    if name.chars().count() > MAX_NAME_CHARS {
+        let short: String = name.chars().take(MAX_NAME_CHARS).collect();
+        return format!("{short}...");
+    }
+    name
+}
+
 fn sentence(s: &str) -> String {
     let line = s
         .lines()
@@ -668,6 +680,16 @@ mod tests {
     fn strip_controls_removes_escapes() {
         assert_eq!(strip_controls("a\x1b[2Jb\x07"), "a[2Jb");
         assert_eq!(strip_controls("line one\nline\ttwo"), "line one line two");
+    }
+
+    #[test]
+    fn quoted_name_strips_and_truncates() {
+        assert_eq!(quoted_name("DB_\x1b[2JHOST\x07"), "DB_[2JHOST");
+        assert_eq!(quoted_name(&"k".repeat(64)), "k".repeat(64));
+        assert_eq!(
+            quoted_name(&"k".repeat(65)),
+            format!("{}...", "k".repeat(64))
+        );
     }
 
     #[test]

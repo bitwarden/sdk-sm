@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     io::{IsTerminal, Read},
+    path::Path,
     process,
 };
 
@@ -11,13 +12,14 @@ use bitwarden::{
         secrets::{SecretIdentifiersByProjectRequest, SecretIdentifiersRequest, SecretsGetRequest},
     },
 };
-use color_eyre::eyre::{Result, bail};
+use color_eyre::eyre::Result;
 use itertools::Itertools;
 use uuid::Uuid;
 use which::which;
 
 use crate::{
     ACCESS_TOKEN_KEY_VAR_NAME,
+    error::{self, Op, Target, UserError},
     util::{is_valid_posix_name, uuid_to_posix},
 };
 
@@ -44,16 +46,33 @@ pub(crate) async fn run(
     });
 
     if which(&shell).is_err() {
-        bail!("Shell '{}' not found", shell);
+        let path = Path::new(&shell);
+        let is_path = path.parent().is_some_and(|p| !p.as_os_str().is_empty());
+        if is_path && path.exists() {
+            return Err(
+                UserError::new(format!("Shell '{shell}' is not an executable file."))
+                    .hint("Pass a different shell with --shell.")
+                    .into(),
+            );
+        }
+        return Err(UserError::new(format!("Shell '{shell}' not found."))
+            .hint("Install it or pass a different shell with --shell.")
+            .into());
     }
 
+    let no_command = || UserError::new("No command provided.").hint("Usage: bws run -- <command>");
     let user_command = if command.is_empty() {
         if std::io::stdin().is_terminal() {
-            bail!("No command provided");
+            return Err(no_command().into());
         }
 
         let mut buffer = String::new();
-        std::io::stdin().read_to_string(&mut buffer)?;
+        std::io::stdin()
+            .read_to_string(&mut buffer)
+            .map_err(|e| UserError::io_action("Could not read the command from stdin", e))?;
+        if buffer.trim().is_empty() {
+            return Err(no_command().into());
+        }
         buffer
     } else {
         command.join(" ")
@@ -63,30 +82,40 @@ pub(crate) async fn run(
         client
             .secrets()
             .list_by_project(&SecretIdentifiersByProjectRequest { project_id })
-            .await?
+            .await
+            .map_err(|e| error::sm_error(e, Target::Project(project_id), Op::Read))?
     } else {
         client
             .secrets()
             .list(&SecretIdentifiersRequest {
                 organization_id: organization_id.into(),
             })
-            .await?
+            .await
+            .map_err(|e| error::sm_error(e, Target::None, Op::Read))?
     };
 
-    let secret_ids = res.data.into_iter().map(|e| e.id).collect();
-    let secrets = client
-        .secrets()
-        .get_by_ids(SecretsGetRequest { ids: secret_ids })
-        .await?
-        .data;
+    let secret_ids: Vec<Uuid> = res.data.into_iter().map(|e| e.id).collect();
+    // The server answers an empty ID list with 404.
+    let secrets = if secret_ids.is_empty() {
+        Vec::new()
+    } else {
+        client
+            .secrets()
+            .get_by_ids(SecretsGetRequest { ids: secret_ids })
+            .await
+            .map_err(|e| error::sm_error(e, Target::None, Op::Read))?
+            .data
+    };
 
     if !uuids_as_keynames
         && let Some(duplicate) = secrets.iter().map(|s| &s.key).duplicates().next()
     {
-        bail!(
-            "Multiple secrets with name: '{}'. Use --uuids-as-keynames or use unique names for secrets",
-            duplicate
-        );
+        return Err(UserError::new(format!(
+            "Multiple secrets are named '{}'.",
+            error::quoted_name(duplicate)
+        ))
+        .hint("Use unique secret names or pass --uuids-as-keynames.")
+        .into());
     }
 
     let environment: HashMap<String, String> = secrets
@@ -100,15 +129,18 @@ pub(crate) async fn run(
         })
         .inspect(|(k, _)| {
             if !is_valid_posix_name(k) {
-                eprintln!(
-                    "Warning: secret '{}' does not have a POSIX-compliant name",
-                    k
+                error::warn(
+                    &format!(
+                        "Secret '{}' is not a valid environment variable name.",
+                        error::quoted_name(k)
+                    ),
+                    None,
                 );
             }
         })
         .collect();
 
-    let mut command = process::Command::new(shell);
+    let mut command = process::Command::new(&shell);
     command
         .arg("-c")
         .arg(&user_command)
@@ -140,15 +172,11 @@ pub(crate) async fn run(
     }
 
     // propagate the exit status from the child process
-    match command.spawn() {
-        Ok(mut child) => match child.wait() {
-            Ok(exit_status) => Ok(exit_status.code().unwrap_or(1)),
-            Err(e) => {
-                bail!("Failed to wait for process: {}", e)
-            }
-        },
-        Err(e) => {
-            bail!("Failed to execute process: {}", e)
-        }
-    }
+    let mut child = command
+        .spawn()
+        .map_err(|e| UserError::io("Could not start", Path::new(&shell), e))?;
+    let exit_status = child
+        .wait()
+        .map_err(|e| UserError::io_action("Could not wait for the command to finish", e))?;
+    Ok(exit_status.code().unwrap_or(1))
 }

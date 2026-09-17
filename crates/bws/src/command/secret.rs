@@ -227,7 +227,7 @@ pub(crate) async fn delete(client: SecretsManagerClient, secret_ids: Vec<Uuid>) 
     let secrets_failed: Vec<(Uuid, String)> = result
         .data
         .into_iter()
-        .filter_map(|r| r.error.map(|e| (r.id, e)))
+        .filter_map(|r| r.error.map(|e| (r.id, error::strip_controls(&e))))
         .collect();
 
     match secrets_failed.len() {

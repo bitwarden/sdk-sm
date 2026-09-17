@@ -550,6 +550,15 @@ pub(crate) fn render_panic(payload: &(dyn Any + Send)) -> String {
     )
 }
 
+/// Removes control characters from server-supplied text, so escape sequences cannot move the
+/// cursor or clear the terminal. Whitespace controls such as newlines become spaces.
+pub(crate) fn strip_controls(s: &str) -> String {
+    s.chars()
+        .map(|c| if c.is_whitespace() { ' ' } else { c })
+        .filter(|c| !c.is_control())
+        .collect()
+}
+
 fn sentence(s: &str) -> String {
     let line = s
         .lines()
@@ -557,9 +566,7 @@ fn sentence(s: &str) -> String {
         .find(|l| !l.is_empty())
         .unwrap_or("");
     let line = line.split_whitespace().collect::<Vec<_>>().join(" ");
-    // Server-supplied text reaches this function, and escape sequences would let a hostile server
-    // move the cursor or clear the terminal. `split_whitespace` only drops whitespace controls.
-    let line: String = line.chars().filter(|c| !c.is_control()).collect();
+    let line = strip_controls(&line);
     let line = OS_ERROR_RE.replace_all(&line, "");
     let line = USERINFO_RE.replace_all(&line, "$1");
 
@@ -655,6 +662,12 @@ mod tests {
 
     fn lines(e: &UserError) -> (String, Option<String>) {
         (e.message.clone(), e.hint.clone())
+    }
+
+    #[test]
+    fn strip_controls_removes_escapes() {
+        assert_eq!(strip_controls("a\x1b[2Jb\x07"), "a[2Jb");
+        assert_eq!(strip_controls("line one\nline\ttwo"), "line one line two");
     }
 
     #[test]

@@ -310,7 +310,7 @@ fn partial_delete_reports_failures_when_stdout_is_closed() {
         status: 200,
         content_type: "application/json",
         body: r#"{"data": [
-            {"id": "15744a66-341a-4c62-af50-b16300fc8b5d", "error": "access denied"},
+            {"id": "15744a66-341a-4c62-af50-b16300fc8b5d", "error": "access denied\u001b\u0007"},
             {"id": "25744a66-341a-4c62-af50-b16300fc8b5d", "error": null}
         ]}"#,
     }]);
@@ -332,6 +332,10 @@ fn partial_delete_reports_failures_when_stdout_is_closed() {
     let stderr = String::from_utf8_lossy(&output.stderr);
 
     assert_eq!(output.status.code(), Some(1), "{stderr}");
+    assert!(
+        !stderr.chars().any(|c| c.is_control() && c != '\n'),
+        "{stderr:?}"
+    );
     assert_error(
         &stderr,
         &[

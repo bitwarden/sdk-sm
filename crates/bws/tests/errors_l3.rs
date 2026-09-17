@@ -303,6 +303,46 @@ fn delete_success_without_per_id_data() {
 }
 
 #[test]
+fn partial_delete_reports_failures_when_stdout_is_closed() {
+    let server = server(vec![Route {
+        method: "POST",
+        path_prefix: "/api/secrets/delete",
+        status: 200,
+        content_type: "application/json",
+        body: r#"{"data": [
+            {"id": "15744a66-341a-4c62-af50-b16300fc8b5d", "error": "access denied"},
+            {"id": "25744a66-341a-4c62-af50-b16300fc8b5d", "error": null}
+        ]}"#,
+    }]);
+    let home = tempfile::tempdir().expect("temp home dir to be created");
+    let mut child = std::process::Command::new(env!("CARGO_BIN_EXE_bws"))
+        .args(["-u", &server.url(), "secret", "delete", ID])
+        .arg("25744a66-341a-4c62-af50-b16300fc8b5d")
+        .env("HOME", home.path())
+        .env("NO_COLOR", "1")
+        .env("BWS_ACCESS_TOKEN", TEST_TOKEN)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .expect("bws binary to run");
+    // Closing the read end makes every write to stdout fail with a broken pipe.
+    drop(child.stdout.take());
+    let output = child.wait_with_output().expect("bws to exit");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert_eq!(output.status.code(), Some(1), "{stderr}");
+    assert_error(
+        &stderr,
+        &[
+            "1 secret had an error:",
+            &format!("{ID}: access denied"),
+            "Error: Failed to delete 1 of 2 secrets.",
+        ],
+    );
+}
+
+#[test]
 fn delete_requires_ids() {
     for command in ["secret", "project"] {
         let (code, _, stderr) = bws(&[command, "delete"], &[("BWS_ACCESS_TOKEN", TEST_TOKEN)]);

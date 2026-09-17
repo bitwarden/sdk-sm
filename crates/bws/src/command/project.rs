@@ -1,3 +1,5 @@
+use std::io::{self, Write};
+
 use bitwarden::{
     OrganizationId,
     secrets_manager::{
@@ -128,16 +130,6 @@ pub(crate) async fn delete(client: SecretsManagerClient, project_ids: Vec<Uuid>)
         .filter_map(|r| r.error.map(|e| (r.id, e)))
         .collect();
 
-    // The server may omit successful IDs from `data`, so count them from the request.
-    let deleted_projects = count.saturating_sub(projects_failed.len());
-    match deleted_projects {
-        2.. => write_stdout(format!(
-            "{deleted_projects} projects deleted successfully.\n"
-        )),
-        1 => write_stdout("1 project deleted successfully.\n"),
-        _ => (),
-    }
-
     match projects_failed.len() {
         2.. => eprintln!("{} projects had errors:", projects_failed.len()),
         1 => eprintln!("{} project had an error:", projects_failed.len()),
@@ -148,9 +140,20 @@ pub(crate) async fn delete(client: SecretsManagerClient, project_ids: Vec<Uuid>)
         eprintln!("{}: {}", project.0, project.1);
     }
 
-    if !projects_failed.is_empty() {
-        return Err(error::partial_delete(projects_failed.len(), count, "project").into());
+    // The server may omit successful IDs from `data`, so count them from the request.
+    let deleted_projects = count.saturating_sub(projects_failed.len());
+    let summary = match deleted_projects {
+        2.. => format!("{deleted_projects} projects deleted successfully.\n"),
+        1 => "1 project deleted successfully.\n".to_string(),
+        _ => String::new(),
+    };
+
+    if projects_failed.is_empty() {
+        write_stdout(summary);
+        return Ok(());
     }
 
-    Ok(())
+    // `write_stdout` exits on a closed or failing stdout, which would hide the failed deletes.
+    _ = io::stdout().write_all(summary.as_bytes());
+    Err(error::partial_delete(projects_failed.len(), count, "project").into())
 }

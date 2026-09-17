@@ -1,3 +1,5 @@
+use std::io::{self, Write};
+
 use bitwarden::{
     OrganizationId,
     secrets_manager::{
@@ -228,14 +230,6 @@ pub(crate) async fn delete(client: SecretsManagerClient, secret_ids: Vec<Uuid>) 
         .filter_map(|r| r.error.map(|e| (r.id, e)))
         .collect();
 
-    // The server may omit successful IDs from `data`, so count them from the request.
-    let deleted_secrets = count.saturating_sub(secrets_failed.len());
-    match deleted_secrets {
-        2.. => write_stdout(format!("{deleted_secrets} secrets deleted successfully.\n")),
-        1 => write_stdout("1 secret deleted successfully.\n"),
-        _ => (),
-    }
-
     match secrets_failed.len() {
         2.. => eprintln!("{} secrets had errors:", secrets_failed.len()),
         1 => eprintln!("{} secret had an error:", secrets_failed.len()),
@@ -246,9 +240,20 @@ pub(crate) async fn delete(client: SecretsManagerClient, secret_ids: Vec<Uuid>) 
         eprintln!("{}: {}", secret.0, secret.1);
     }
 
-    if !secrets_failed.is_empty() {
-        return Err(error::partial_delete(secrets_failed.len(), count, "secret").into());
+    // The server may omit successful IDs from `data`, so count them from the request.
+    let deleted_secrets = count.saturating_sub(secrets_failed.len());
+    let summary = match deleted_secrets {
+        2.. => format!("{deleted_secrets} secrets deleted successfully.\n"),
+        1 => "1 secret deleted successfully.\n".to_string(),
+        _ => String::new(),
+    };
+
+    if secrets_failed.is_empty() {
+        write_stdout(summary);
+        return Ok(());
     }
 
-    Ok(())
+    // `write_stdout` exits on a closed or failing stdout, which would hide the failed deletes.
+    _ = io::stdout().write_all(summary.as_bytes());
+    Err(error::partial_delete(secrets_failed.len(), count, "secret").into())
 }

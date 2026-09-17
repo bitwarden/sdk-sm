@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 use comfy_table::Table;
 use serde::Serialize;
 
-use crate::{cli::Output, util::is_valid_posix_name};
+use crate::{cli::Output, error, util::is_valid_posix_name};
 
 const ASCII_HEADER_ONLY: &str = "     --            ";
 
@@ -106,6 +106,9 @@ fn pretty_print(language: &str, data: &str, color: Color) {
 }
 
 /// Writes `data` to stdout, exiting quietly if the reader has gone away (e.g. `bws ... | head`).
+///
+/// Any other write failure is environmental (a full disk, a closed descriptor), so it is reported
+/// on stderr and exits non-zero instead of unwinding as a crash.
 pub(crate) fn write_stdout(data: impl AsRef<[u8]>) {
     let mut stdout = io::stdout().lock();
     if let Err(e) = stdout
@@ -115,7 +118,12 @@ pub(crate) fn write_stdout(data: impl AsRef<[u8]>) {
         if e.kind() == io::ErrorKind::BrokenPipe {
             std::process::exit(0);
         }
-        panic!("Failed printing to stdout: {e}");
+        // Stdout is unusable, so this cannot travel back up as a report and be printed there.
+        eprint!(
+            "{}",
+            error::render_io_error("Could not write to stdout", &e)
+        );
+        std::process::exit(1);
     }
 }
 

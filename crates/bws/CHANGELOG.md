@@ -17,7 +17,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - No longer panic if access token has access to no secrets (#1255)
-- No longer panic when stdout is closed early, e.g. when piping into `head`. (#1578)
+- No longer panic when writing to stdout fails, e.g. when piping into `head` or when the disk is
+  full. (#1578)
 
 ## [1.0.0] - 2024-09-26
 

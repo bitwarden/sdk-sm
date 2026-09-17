@@ -47,7 +47,14 @@ pub fn assert_error(stderr: &str, lines: &[&str]) {
     let (_, token_secret) = TEST_TOKEN
         .split_once(':')
         .expect("TEST_TOKEN to contain ':'");
-    for forbidden in ["Location:", "os error", "{\"", "<html", token_secret] {
+    for forbidden in [
+        "Location:",
+        "os error",
+        "{\"",
+        "<html",
+        "\x1b",
+        token_secret,
+    ] {
         assert!(
             !lines.iter().any(|l| l.contains(forbidden)),
             "expected output contains {forbidden:?}:\n{stderr}"

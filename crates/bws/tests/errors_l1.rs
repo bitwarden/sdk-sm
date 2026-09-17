@@ -70,6 +70,61 @@ fn server_error_hides_html_body() {
 }
 
 #[test]
+fn server_message_cannot_inject_escape_sequences() {
+    let server = MockServer::start(vec![Route {
+        method: "POST",
+        path_prefix: "/identity/connect/token",
+        status: 400,
+        content_type: "application/json",
+        // Escapes that would clear the screen and rewrite the line the user already saw.
+        body: r#"{"message":"Bad request\u001b[2J\u001b[1G","object":"error"}"#,
+    }]);
+
+    let (code, _, stderr) = bws(
+        &["secret", "list", "-u", &server.url()],
+        &[("BWS_ACCESS_TOKEN", TEST_TOKEN)],
+    );
+
+    assert_eq!(code, 1);
+    assert!(
+        !stderr.chars().any(|c| c.is_control() && c != '\n'),
+        "stderr carries control characters:\n{stderr:?}"
+    );
+    // The escapes survive as inert text rather than reaching the terminal as commands.
+    assert_error(&stderr, &["Error: Bad request[2J[1G."]);
+}
+
+#[cfg(unix)]
+#[test]
+fn unwritable_stdout_is_not_reported_as_a_crash() {
+    // `/dev/full` fails every write with ENOSPC, the way writing into a full disk does. It only
+    // exists on Linux; the other reachable failure, EBADF from a closed descriptor, cannot be
+    // tested at all because std turns it into a successful no-op write.
+    let Ok(stdout) = std::fs::OpenOptions::new().write(true).open("/dev/full") else {
+        return;
+    };
+    let child = std::process::Command::new(env!("CARGO_BIN_EXE_bws"))
+        .args(["completions", "zsh"])
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::from(stdout))
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .expect("bws binary to run");
+
+    let output = child.wait_with_output().expect("bws to finish");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert_eq!(output.status.code(), Some(1), "stderr:\n{stderr}");
+    for forbidden in ["crashed unexpectedly", "report it"] {
+        assert!(!stderr.contains(forbidden), "stderr:\n{stderr}");
+    }
+    assert_error(
+        &stderr,
+        &["Error: Could not write to stdout: no space left on device."],
+    );
+}
+
+#[test]
 fn clap_errors_are_unchanged() {
     let (code, _, stderr) = bws(&["secret", "get", "not-a-uuid"], &[]);
 

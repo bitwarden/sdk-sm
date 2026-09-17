@@ -79,6 +79,12 @@ pub(crate) fn render_verbose(report: &eyre::Report) -> String {
     message_lines("Error", &format!("{report:?}"), hint.as_deref())
 }
 
+/// Renders `Error: <action>: <io reason>.` for failures that cannot be propagated as a report,
+/// such as a write to stdout that has to be reported on stderr instead.
+pub(crate) fn render_io_error(action: &str, e: &io::Error) -> String {
+    message_lines("Error", &format!("{action}: {}.", io_reason(e)), None)
+}
+
 /// Reduces a report to the user-facing `(message, hint)` pair.
 fn classify(report: &eyre::Report) -> (String, Option<String>) {
     if let Some(e) = report.downcast_ref::<UserError>() {
@@ -295,6 +301,9 @@ fn sentence(s: &str) -> String {
         .find(|l| !l.is_empty())
         .unwrap_or("");
     let line = line.split_whitespace().collect::<Vec<_>>().join(" ");
+    // Server-supplied text reaches this function, and escape sequences would let a hostile server
+    // move the cursor or clear the terminal. `split_whitespace` only drops whitespace controls.
+    let line: String = line.chars().filter(|c| !c.is_control()).collect();
     let line = OS_ERROR_RE.replace_all(&line, "");
     let line = USERINFO_RE.replace_all(&line, "$1");
 
@@ -395,6 +404,15 @@ mod tests {
         assert_eq!(sentence("done.:  "), "Done.");
         assert_eq!(sentence(""), UNKNOWN_ERROR);
         assert_eq!(sentence(" ... "), UNKNOWN_ERROR);
+
+        // Control characters are inert text, so escape sequences cannot reach the terminal.
+        assert_eq!(
+            sentence("Bad request\x1b[2K\x1b[1G\x07"),
+            "Bad request[2K[1G."
+        );
+        assert_eq!(sentence("\x1b[31mred\x1b[0m"), "[31mred[0m.");
+        assert_eq!(sentence("a\x00b\x08c"), "Abc.");
+        assert_eq!(sentence("\x1b\x07\x08"), UNKNOWN_ERROR);
 
         let long = "x".repeat(200);
         let out = sentence(&long);
@@ -554,6 +572,14 @@ mod tests {
             "The server rejected the request (400 Bad Request)."
         );
 
+        // The server's own text is promoted into the top-level line, so it must not be able to
+        // carry terminal escapes there.
+        let e = http(
+            "400 Bad Request",
+            r#"{"message":"Bad request\u001b[2K\u001b[1G","validationErrors":{"Name":["\u001b[31mRed\u001b[0m"]}}"#,
+        );
+        assert_eq!(e.message, "Bad request[2K[1G: [31mRed[0m.");
+
         let e = http("401 Unauthorized", "{}");
         assert_eq!(
             e.message,
@@ -677,6 +703,24 @@ mod tests {
         assert!(
             render_panic(payload.as_ref())
                 .starts_with("Error: bws crashed unexpectedly: Unknown error.\n")
+        );
+    }
+
+    #[test]
+    fn render_io_error_reports_reason() {
+        assert_eq!(
+            render_io_error(
+                "Could not write to stdout",
+                &io::Error::other("No space left on device (os error 28)")
+            ),
+            "Error: Could not write to stdout: no space left on device.\n"
+        );
+        assert_eq!(
+            render_io_error(
+                "Could not write to stdout",
+                &io::Error::from(io::ErrorKind::PermissionDenied)
+            ),
+            "Error: Could not write to stdout: permission denied.\n"
         );
     }
 

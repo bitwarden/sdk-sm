@@ -74,10 +74,8 @@ pub(crate) fn config(
         profile
     } else if let Some(access_token) = access_token {
         AccessToken::from_str(&access_token)
-            .map_err(|e| {
-                UserError::MalformedConfigToken {
-                    source: Box::new(e),
-                }
+            .map_err(|e| UserError::MalformedConfigToken {
+                source: Box::new(e),
             })?
             .access_token_id
             .to_string()

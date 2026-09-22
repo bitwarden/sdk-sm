@@ -6,13 +6,18 @@ use std::{
     sync::LazyLock,
 };
 
+use bitwarden_core::{ApiError, auth::login::LoginError};
+use bitwarden_crypto::CryptoError;
 use color_eyre::eyre;
 use regex::Regex;
 
+const HINT_COPY_TOKEN: &str = "Copy the full access token from the Bitwarden web app.";
 const SERVER_URL_HINT: &str = "Check the server URL (--server-url or server-base in the config).";
 const NETWORK_HINT: &str = "Check the server URL and your network connection.";
 const TLS_HINT: &str = "Check the server URL or install the server's CA certificate.";
 const CONFIG_USAGE_HINT: &str = "Usage: bws config <name> <value>";
+pub(crate) const STATE_HINT: &str =
+    "Continuing without state; set a writable dir with: bws config state-dir <dir>";
 const UNKNOWN_ERROR: &str = "An unknown error occurred.";
 const MAX_MESSAGE_CHARS: usize = 160;
 
@@ -51,7 +56,7 @@ pub(crate) enum UserError {
         location: String,
         reason: String,
         #[source]
-        source: toml::de::Error,
+        source: Box<toml::de::Error>,
     },
 
     #[error("Profile '{name}' not found in '{file}'.")]
@@ -70,6 +75,61 @@ pub(crate) enum UserError {
     MalformedConfigToken {
         #[source]
         source: Box<dyn Error + Send + Sync>,
+    },
+
+    /// The passphrase cannot access the server because it is not associated with a known
+    /// profile, and the profile has neither an identity nor an API URL.
+    #[error("Profile '{name}' has no server URL.")]
+    ProfileNoUrl { name: String },
+
+    // ---- Auth and state ----
+    #[error("No access token provided.")]
+    NoAccessToken,
+
+    #[error("The access token is malformed.")]
+    MalformedToken {
+        #[source]
+        source: Box<dyn Error + Send + Sync>,
+    },
+
+    #[error("The access token is invalid, expired, or revoked.")]
+    InvalidAccessToken,
+
+    #[error("Too many auth attempts.")]
+    TooManyAuthAttempts,
+
+    #[error("The access token's decryption key is invalid.")]
+    InvalidDecryptionKey,
+
+    #[error("Unexpected response from the auth endpoint at {host}.")]
+    UnexpectedAuthEndpoint { host: String },
+
+    #[error("Unexpected auth response from the server at {host}.")]
+    UnexpectedAuthResponse { host: String },
+
+    #[error("Auth failed.")]
+    AuthFailed,
+
+    #[error("Auth failed: {reason}.")]
+    AuthFailedReason { reason: String },
+
+    /// An unclassified auth failure; the SDK's `LoginError` text is the message.
+    #[error("{message}")]
+    UnclassifiedAuth {
+        message: String,
+        #[source]
+        source: Box<LoginError>,
+    },
+
+    #[error("Could not determine a state directory (no home directory).")]
+    NoStateDir,
+
+    #[error("Could not use state directory '{path}': {reason}.")]
+    StateDirUnusable {
+        path: PathBuf,
+        reason: String,
+        #[source]
+        source: io::Error,
     },
 
     /// `<action> '<path>': <io reason>.`
@@ -147,6 +207,20 @@ impl UserError {
                 CONFIG_USAGE_HINT
             }
             UserError::MalformedConfigToken { .. } => "Fix or unset it, or pass --profile.",
+            UserError::ProfileNoUrl { name } => {
+                return Some(format!(
+                    "Run: bws config --profile {name} server-base <url>"
+                ));
+            }
+            UserError::NoAccessToken => "Pass --access-token or set BWS_ACCESS_TOKEN.",
+            UserError::MalformedToken { .. } => HINT_COPY_TOKEN,
+            UserError::InvalidDecryptionKey => HINT_COPY_TOKEN,
+            UserError::InvalidAccessToken => "Create a new access token in the Bitwarden web app.",
+            UserError::TooManyAuthAttempts => {
+                "Wait a few minutes and retry; keep state enabled to reuse sessions."
+            }
+            UserError::UnexpectedAuthEndpoint { .. } => SERVER_URL_HINT,
+            UserError::NoStateDir | UserError::StateDirUnusable { .. } => STATE_HINT,
             UserError::ConnectionRefused { .. } => SERVER_URL_HINT,
             UserError::Dns { .. } => NETWORK_HINT,
             UserError::Tls { .. } => TLS_HINT,
@@ -191,6 +265,19 @@ impl UserError {
             };
         }
         UserError::io(action, path, e)
+    }
+
+    /// `<could not use state directory> '<path>': <io reason>.`
+    pub(crate) fn state_dir(path: &Path, e: io::Error) -> Self {
+        UserError::StateDirUnusable {
+            path: path.to_owned(),
+            reason: if e.kind() == io::ErrorKind::AlreadyExists && !path.is_dir() {
+                io_reason(&io::Error::from(io::ErrorKind::NotADirectory))
+            } else {
+                io_reason(&e)
+            },
+            source: e,
+        }
     }
 }
 
@@ -352,19 +439,102 @@ fn server_message(body: &str) -> Option<String> {
     Some(sentence(&text))
 }
 
+/// Returns `host[:port]` of a URL, without scheme, userinfo, path, query or fragment.
+fn url_host(url: &str) -> Option<String> {
+    let url = url.split_once("://").map_or(url, |(_, r)| r);
+    let authority = url.split(['/', '?', '#']).next().unwrap_or(url);
+    let host = authority.rsplit_once('@').map_or(authority, |(_, h)| h);
+    (!host.is_empty()).then(|| host.to_string())
+}
+
 /// Returns `host[:port]` of the first URL mentioned in the chain, without scheme or userinfo.
 fn host_from_chain(texts: &[String]) -> String {
     texts
         .iter()
         .find_map(|t| {
             let (_, rest) = t.split_once("for url (")?;
-            let url = rest.split_once(')').map_or(rest, |(u, _)| u);
-            let authority = url.split_once("://").map_or(url, |(_, r)| r);
-            let authority = authority.split(['/', '?', '#']).next().unwrap_or(authority);
-            let host = authority.rsplit_once('@').map_or(authority, |(_, h)| h);
-            (!host.is_empty()).then(|| host.to_string())
+            url_host(rest.split_once(')').map_or(rest, |(u, _)| u))
         })
         .unwrap_or_else(|| "the server".to_string())
+}
+
+/// `The access token is malformed.` with the parse error as the source for the verbose report.
+pub(crate) fn malformed_token<E: Error + Send + Sync + 'static>(source: E) -> UserError {
+    UserError::MalformedToken {
+        source: Box::new(source),
+    }
+}
+
+/// Classifies an access token auth failure against the identity server at `identity_url`.
+pub(crate) fn auth_error(e: LoginError, identity_url: &str) -> UserError {
+    let host = url_host(identity_url).unwrap_or_else(|| "the server".to_string());
+
+    let classified = match &e {
+        LoginError::Api(ApiError::Response(rc)) => {
+            auth_response_error(rc.status.as_u16(), &rc.message, &host)
+        }
+        LoginError::IdentityFail(r) => invalid_access_token(&r.error)
+            .or_else(|| auth_failed(&[&r.error_model.message, &r.error_description, &r.error])),
+        LoginError::Crypto(CryptoError::Decrypt) => Some(UserError::InvalidDecryptionKey),
+        LoginError::Crypto(_)
+        | LoginError::Serde(_)
+        | LoginError::MissingField(_)
+        | LoginError::JwtTokenParse(_)
+        | LoginError::InvalidResponse
+        | LoginError::InvalidOrganizationId => Some(UserError::UnexpectedAuthResponse { host }),
+        _ => None,
+    };
+
+    match classified {
+        Some(error) => error,
+        None if matches!(&e, LoginError::AccessTokenInvalid(_)) => malformed_token(e),
+        None => generic(&e).unwrap_or_else(|| UserError::UnclassifiedAuth {
+            message: sentence(&e.to_string()),
+            source: Box::new(e),
+        }),
+    }
+}
+
+/// Classifies an identity server response that could not be parsed as an auth result.
+/// Returns `None` for statuses that [`generic`] handles.
+fn auth_response_error(status: u16, body: &str, host: &str) -> Option<UserError> {
+    match status {
+        400 => invalid_access_token(
+            serde_json::from_str::<serde_json::Value>(body)
+                .ok()?
+                .get("error")?
+                .as_str()?,
+        ),
+        429 => Some(UserError::TooManyAuthAttempts),
+        // Identity answers 400, 401, 403 and 429 itself; any other 4xx comes from a wrong URL or
+        // a non-Bitwarden server, as does a 200 that is not JSON.
+        402 | 404..=499 => Some(unexpected_auth_endpoint(host)),
+        200 if serde_json::from_str::<serde::de::IgnoredAny>(body).is_err() => {
+            Some(unexpected_auth_endpoint(host))
+        }
+        _ => None,
+    }
+}
+
+/// Classifies the OAuth `error` code of a rejected access token.
+fn invalid_access_token(code: &str) -> Option<UserError> {
+    matches!(code, "invalid_client" | "invalid_grant").then_some(UserError::InvalidAccessToken)
+}
+
+fn unexpected_auth_endpoint(host: &str) -> UserError {
+    UserError::UnexpectedAuthEndpoint {
+        host: host.to_string(),
+    }
+}
+
+/// Uses the first non-empty candidate as the server's reason for a failed auth.
+fn auth_failed(candidates: &[&str]) -> Option<UserError> {
+    match candidates.iter().map(|c| c.trim()).find(|c| !c.is_empty()) {
+        Some(reason) => Some(UserError::AuthFailedReason {
+            reason: sentence(reason).trim_end_matches('.').to_string(),
+        }),
+        None => Some(UserError::AuthFailed),
+    }
 }
 
 /// Whether to show full error reports. Read once; the environment cannot change mid-process.
@@ -387,7 +557,6 @@ fn verbose_from(bws_debug: Option<&str>, rust_backtrace: Option<&str>) -> bool {
     debug || rust_backtrace.is_some_and(|v| v != "0")
 }
 
-#[expect(dead_code, reason = "For call sites that report recoverable problems")]
 pub(crate) fn warn(message: &str, hint: Option<&str>) {
     eprint!("{}", message_lines("Warning", message, hint));
 }
@@ -789,6 +958,131 @@ mod tests {
     #[test]
     fn generic_ignores_unknown_errors() {
         assert!(generic(&ChainErr("Missing access token".to_string(), None)).is_none());
+    }
+
+    #[test]
+    fn auth_response_errors() {
+        let host = "vault.example.com:8443";
+        for body in [
+            r#"{"error":"invalid_client"}"#,
+            r#"{"error":"invalid_grant"}"#,
+        ] {
+            let e = auth_response_error(400, body, host).expect("classified");
+            assert_eq!(
+                lines(&e),
+                (
+                    "The access token is invalid, expired, or revoked.".to_string(),
+                    Some("Create a new access token in the Bitwarden web app.".to_string())
+                )
+            );
+        }
+        assert!(auth_response_error(400, r#"{"error":"invalid_scope"}"#, host).is_none());
+        assert!(auth_response_error(400, "<html>", host).is_none());
+
+        assert_eq!(
+            lines(&auth_response_error(429, "", host).expect("classified")),
+            (
+                "Too many auth attempts.".to_string(),
+                Some(
+                    "Wait a few minutes and retry; keep state enabled to reuse sessions."
+                        .to_string()
+                )
+            )
+        );
+
+        let unexpected = (
+            "Unexpected response from the auth endpoint at vault.example.com:8443.".to_string(),
+            Some(SERVER_URL_HINT.to_string()),
+        );
+        for status in [404, 405, 415] {
+            assert_eq!(
+                lines(&auth_response_error(status, "<html></html>", host).expect("classified")),
+                unexpected
+            );
+        }
+        for status in [401, 403] {
+            assert!(auth_response_error(status, "{}", host).is_none());
+        }
+        assert!(invalid_access_token("invalid_scope").is_none());
+        assert_eq!(
+            lines(&auth_response_error(200, "<html>auth</html>", host).expect("classified")),
+            unexpected
+        );
+        assert!(auth_response_error(200, "{}", host).is_none());
+        assert!(auth_response_error(500, "<html>oops</html>", host).is_none());
+    }
+
+    #[test]
+    fn auth_errors() {
+        const IDENTITY_URL: &str = "https://u:p@identity.example.com/identity";
+
+        let e = auth_error(LoginError::Crypto(CryptoError::Decrypt), IDENTITY_URL);
+        assert_eq!(
+            lines(&e),
+            (
+                "The access token's decryption key is invalid.".to_string(),
+                Some(HINT_COPY_TOKEN.to_string())
+            )
+        );
+
+        let e = auth_error(
+            LoginError::MissingField(bitwarden_core::MissingFieldError("organization")),
+            IDENTITY_URL,
+        );
+        assert_eq!(
+            lines(&e),
+            (
+                "Unexpected auth response from the server at identity.example.com.".to_string(),
+                None
+            )
+        );
+
+        // Without a profile, bws logs in against the SDK's default identity server.
+        let e = auth_error(
+            LoginError::InvalidResponse,
+            &bitwarden_core::ClientSettings::default().identity_url,
+        );
+        assert_eq!(
+            e.to_string(),
+            "Unexpected auth response from the server at identity.bitwarden.com."
+        );
+
+        let Err(token_error) = "not-a-token".parse::<bitwarden::secrets_manager::AccessToken>()
+        else {
+            panic!("token to be malformed");
+        };
+        let e = auth_error(LoginError::AccessTokenInvalid(token_error), IDENTITY_URL);
+        assert_eq!(
+            lines(&e),
+            (
+                "The access token is malformed.".to_string(),
+                Some(HINT_COPY_TOKEN.to_string())
+            )
+        );
+
+        let e = auth_error(LoginError::AuthenticationFailed, IDENTITY_URL);
+        assert_eq!(lines(&e), ("Failed to authenticate.".to_string(), None));
+        assert!(std::error::Error::source(&e).is_some());
+    }
+
+    #[test]
+    fn auth_failed_reasons() {
+        assert_eq!(
+            auth_failed(&["", " invalid client credentials ", "invalid_client"])
+                .expect("classified")
+                .to_string(),
+            "Auth failed: Invalid client credentials."
+        );
+        assert_eq!(
+            auth_failed(&["Username or password is incorrect. Try again.", "", ""])
+                .expect("classified")
+                .to_string(),
+            "Auth failed: Username or password is incorrect. Try again."
+        );
+        assert_eq!(
+            auth_failed(&["", " ", ""]).expect("classified").to_string(),
+            "Auth failed."
+        );
     }
 
     #[test]

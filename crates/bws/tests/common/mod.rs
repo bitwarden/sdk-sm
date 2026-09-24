@@ -18,7 +18,10 @@ pub fn bws(args: &[&str], env: &[(&str, &str)]) -> (i32, String, String) {
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_bws"));
     for (key, _) in std::env::vars_os() {
         let key = key.to_string_lossy();
-        if key.starts_with("BWS_") || key == "RUST_BACKTRACE" || key == "SHELL" {
+
+        // keep the test environment clean
+        if key.starts_with("BWS_") || key == "RUST_BACKTRACE" || key == "RUST_LOG" || key == "SHELL"
+        {
             cmd.env_remove(key.as_ref());
         }
     }

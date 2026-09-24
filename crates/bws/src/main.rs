@@ -22,12 +22,9 @@ use crate::cli::*;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> ExitCode {
-    // The TLS verifier logs its own error before bws reports the failure.
-    let log_filter = if error::is_verbose() {
-        "info"
-    } else {
-        "info,rustls_platform_verifier=off"
-    };
+    // The SDK logs its own failures (crypto, TLS) before bws reports them, so stderr stays
+    // clean unless BWS_DEBUG=1 surfaces those logs for debugging.
+    let log_filter = if error::is_verbose() { "info" } else { "off" };
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(log_filter)).init();
 
     match process_commands().await {

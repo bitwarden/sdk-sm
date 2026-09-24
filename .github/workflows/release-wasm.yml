@@ -13,76 +13,24 @@ on:
           - Release
           - Dry Run
 
-defaults:
-  run:
-    working-directory: languages/js/wasm
-
 permissions: {}
 
 jobs:
-  setup:
-    name: Setup
+  trigger-deploy:
+    name: Trigger Release in Deploy Repo
     runs-on: ubuntu-22.04
     permissions:
-      contents: read
-    outputs:
-      release_version: ${{ steps.version.outputs.version }}
+      deployments: write
+      id-token: write
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Trigger release via bitwarden/deploy
+        uses: bitwarden/gh-actions/trigger-actions@main
         with:
-          persist-credentials: false
-
-      - name: Branch check
-        if: ${{ inputs.release_type != 'Dry Run' }}
-        run: |
-          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
-            echo "==================================="
-            echo "[!] Can only release from the 'main' branch"
-            echo "==================================="
-            exit 1
-          fi
-
-      - name: Check Release Version
-        id: version
-        uses: bitwarden/gh-actions/release_version-check@main
-        with:
-          release-type: ${{ inputs.release_type }}
-          project-type: ts
-          file: languages/js/wasm/package.json
-          monorepo: false
-
-  release:
-    name: Release
-    runs-on: ubuntu-22.04
-    permissions:
-      contents: write
-      actions: read
-    needs: setup
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Download artifacts
-        uses: dawidd6/action-download-artifact@b6e2e70617bc3265edd6dab6c906732b2f1ae151 # v21
-        with:
-          workflow: build-wasm.yml
-          skip_unpack: true
-          workflow_conclusion: success
-          branch: main
-
-      - name: Create GitHub release
-        if: ${{ inputs.release_type != 'Dry Run' }}
-        uses: ncipollo/release-action@b7eabc95ff50cbeeedec83973935c8f306dfcd0b # v1.20.0
-        env:
-          PKG_VERSION: ${{ needs.setup.outputs.release_version }}
-        with:
-          commit: ${{ github.sha }}
-          tag: wasm-v${{ env.PKG_VERSION }}
-          name: WASM v${{ env.PKG_VERSION }}
-          body: "<insert release notes here>"
-          token: ${{ secrets.GITHUB_TOKEN }}
-          draft: true
-          artifacts: sdk-bitwarden-wasm.zip
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+          task: release-wasm
+          data: |
+            {
+              "release_type": "${{ inputs.release_type }}"
+            }

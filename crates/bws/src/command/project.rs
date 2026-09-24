@@ -8,11 +8,12 @@ use bitwarden::{
         },
     },
 };
-use color_eyre::eyre::{Result, bail};
+use color_eyre::eyre::Result;
 use uuid::Uuid;
 
 use crate::{
     ProjectCommand,
+    error::UserError,
     render::{OutputSettings, serialize_response},
 };
 
@@ -136,7 +137,10 @@ pub(crate) async fn delete(client: SecretsManagerClient, project_ids: Vec<Uuid>)
     }
 
     if !projects_failed.is_empty() {
-        bail!("Errors when attempting to delete projects.");
+        return Err(UserError::FailedToDeleteProjects {
+            count: projects_failed.len(),
+        }
+        .into());
     }
 
     Ok(())

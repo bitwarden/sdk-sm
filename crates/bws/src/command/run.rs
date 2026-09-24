@@ -18,6 +18,7 @@ use which::which;
 
 use crate::{
     ACCESS_TOKEN_KEY_VAR_NAME,
+    error::UserError,
     util::{is_valid_posix_name, uuid_to_posix},
 };
 
@@ -44,12 +45,12 @@ pub(crate) async fn run(
     });
 
     if which(&shell).is_err() {
-        bail!("Shell '{}' not found", shell);
+        return Err(UserError::ShellNotFound { name: shell }.into());
     }
 
     let user_command = if command.is_empty() {
         if std::io::stdin().is_terminal() {
-            bail!("No command provided");
+            return Err(UserError::NoCommand.into());
         }
 
         let mut buffer = String::new();
@@ -83,10 +84,10 @@ pub(crate) async fn run(
     if !uuids_as_keynames
         && let Some(duplicate) = secrets.iter().map(|s| &s.key).duplicates().next()
     {
-        bail!(
-            "Multiple secrets with name: '{}'. Use --uuids-as-keynames or use unique names for secrets",
-            duplicate
-        );
+        return Err(UserError::DuplicateSecretName {
+            name: duplicate.clone(),
+        }
+        .into());
     }
 
     let environment: HashMap<String, String> = secrets

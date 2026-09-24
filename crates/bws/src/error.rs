@@ -152,6 +152,19 @@ pub(crate) enum UserError {
     #[error("Multiple secrets have the name '{name}'.")]
     DuplicateSecretName { name: String },
 
+    // ---- Delete ----
+    #[error(
+        "Failed to delete {count} secret{s}.",
+        s = if *count == 1 { "" } else { "s" }
+    )]
+    FailedToDeleteSecrets { count: usize },
+
+    #[error(
+        "Failed to delete {count} project{s}.",
+        s = if *count == 1 { "" } else { "s" }
+    )]
+    FailedToDeleteProjects { count: usize },
+
     // ---- Network and HTTP ----
     #[error("Could not connect to {host}: connection refused.")]
     ConnectionRefused { host: String },
@@ -254,6 +267,9 @@ impl UserError {
             UserError::NoCommand => "Pass a command, or pipe one via stdin.",
             UserError::DuplicateSecretName { .. } => {
                 "Use unique secret names, or pass --uuids-as-keynames."
+            }
+            UserError::FailedToDeleteSecrets { .. } | UserError::FailedToDeleteProjects { .. } => {
+                "See the errors listed above."
             }
             _ => return None,
         };
@@ -998,6 +1014,35 @@ mod tests {
                 },
                 "Multiple secrets have the name 'api_key'.",
                 "Use unique secret names, or pass --uuids-as-keynames.",
+            ),
+        ];
+        for (e, message, hint) in failures {
+            assert_eq!(lines(&e), (message.to_string(), Some(hint.to_string())));
+        }
+    }
+
+    #[test]
+    fn delete_errors() {
+        let failures = [
+            (
+                UserError::FailedToDeleteSecrets { count: 1 },
+                "Failed to delete 1 secret.",
+                "See the errors listed above.",
+            ),
+            (
+                UserError::FailedToDeleteSecrets { count: 2 },
+                "Failed to delete 2 secrets.",
+                "See the errors listed above.",
+            ),
+            (
+                UserError::FailedToDeleteProjects { count: 1 },
+                "Failed to delete 1 project.",
+                "See the errors listed above.",
+            ),
+            (
+                UserError::FailedToDeleteProjects { count: 3 },
+                "Failed to delete 3 projects.",
+                "See the errors listed above.",
             ),
         ];
         for (e, message, hint) in failures {

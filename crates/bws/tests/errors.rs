@@ -456,3 +456,87 @@ fn run_shell_not_found() {
         ],
     );
 }
+
+#[test]
+fn secret_delete_failure() {
+    let server = MockServer::start(vec![
+        Route {
+            method: "POST",
+            path_prefix: "/identity/connect/token",
+            status: 200,
+            content_type: "application/json",
+            body: IDENTITY_OK_BODY,
+        },
+        Route {
+            method: "POST",
+            path_prefix: "/api/secrets/delete",
+            status: 200,
+            content_type: "application/json",
+            body: r#"{"data":[{"id":"b4bd53be-8ee3-41d7-8c1f-3c0e2bf44a5f","error":"The secret is referenced by an automation"}]}"#,
+        },
+    ]);
+
+    let (code, _, stderr) = bws(
+        &[
+            "secret",
+            "delete",
+            "-u",
+            &server.url(),
+            "b4bd53be-8ee3-41d7-8c1f-3c0e2bf44a5f",
+        ],
+        &[("BWS_ACCESS_TOKEN", TEST_TOKEN)],
+    );
+
+    assert_eq!(code, 1);
+    assert_error(
+        &stderr,
+        &[
+            "1 secret had an error:",
+            "b4bd53be-8ee3-41d7-8c1f-3c0e2bf44a5f: The secret is referenced by an automation",
+            "Error: Failed to delete 1 secret.",
+            "Hint: See the errors listed above.",
+        ],
+    );
+}
+
+#[test]
+fn project_delete_failure() {
+    let server = MockServer::start(vec![
+        Route {
+            method: "POST",
+            path_prefix: "/identity/connect/token",
+            status: 200,
+            content_type: "application/json",
+            body: IDENTITY_OK_BODY,
+        },
+        Route {
+            method: "POST",
+            path_prefix: "/api/projects/delete",
+            status: 200,
+            content_type: "application/json",
+            body: r#"{"data":[{"id":"e4bd53be-8ee3-41d7-8c1f-3c0e2bf44a5f","error":"The project is referenced by a secret"}]}"#,
+        },
+    ]);
+
+    let (code, _, stderr) = bws(
+        &[
+            "project",
+            "delete",
+            "-u",
+            &server.url(),
+            "e4bd53be-8ee3-41d7-8c1f-3c0e2bf44a5f",
+        ],
+        &[("BWS_ACCESS_TOKEN", TEST_TOKEN)],
+    );
+
+    assert_eq!(code, 1);
+    assert_error(
+        &stderr,
+        &[
+            "1 project had an error:",
+            "e4bd53be-8ee3-41d7-8c1f-3c0e2bf44a5f: The project is referenced by a secret",
+            "Error: Failed to delete 1 project.",
+            "Hint: See the errors listed above.",
+        ],
+    );
+}

@@ -142,6 +142,16 @@ pub(crate) enum UserError {
         source: io::Error,
     },
 
+    // ---- Run ----
+    #[error("Could not find the shell '{name}'.")]
+    ShellNotFound { name: String },
+
+    #[error("No command provided.")]
+    NoCommand,
+
+    #[error("Multiple secrets have the name '{name}'.")]
+    DuplicateSecretName { name: String },
+
     // ---- Network and HTTP ----
     #[error("Could not connect to {host}: connection refused.")]
     ConnectionRefused { host: String },
@@ -238,6 +248,13 @@ impl UserError {
             UserError::UnexpectedHttpStatus {
                 check_url: true, ..
             } => SERVER_URL_HINT,
+            UserError::ShellNotFound { .. } => {
+                "Install the shell, or set the full path with --shell <shell>."
+            }
+            UserError::NoCommand => "Pass a command, or pipe one via stdin.",
+            UserError::DuplicateSecretName { .. } => {
+                "Use unique secret names, or pass --uuids-as-keynames."
+            }
             _ => return None,
         };
         Some(hint.to_string())
@@ -958,6 +975,34 @@ mod tests {
     #[test]
     fn generic_ignores_unknown_errors() {
         assert!(generic(&ChainErr("Missing access token".to_string(), None)).is_none());
+    }
+
+    #[test]
+    fn run_errors() {
+        let failures = [
+            (
+                UserError::ShellNotFound {
+                    name: "sh".to_string(),
+                },
+                "Could not find the shell 'sh'.",
+                "Install the shell, or set the full path with --shell <shell>.",
+            ),
+            (
+                UserError::NoCommand,
+                "No command provided.",
+                "Pass a command, or pipe one via stdin.",
+            ),
+            (
+                UserError::DuplicateSecretName {
+                    name: "api_key".to_string(),
+                },
+                "Multiple secrets have the name 'api_key'.",
+                "Use unique secret names, or pass --uuids-as-keynames.",
+            ),
+        ];
+        for (e, message, hint) in failures {
+            assert_eq!(lines(&e), (message.to_string(), Some(hint.to_string())));
+        }
     }
 
     #[test]

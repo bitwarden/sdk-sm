@@ -429,3 +429,30 @@ fn auth_endpoint_method_not_allowed() {
         ],
     );
 }
+
+#[test]
+fn run_shell_not_found() {
+    let server = identity(200, "application/json", IDENTITY_OK_BODY);
+
+    let (code, _, stderr) = bws(
+        &[
+            "run",
+            "-u",
+            &server.url(),
+            "--shell",
+            "definitely-not-a-shell",
+            "echo",
+            "hi",
+        ],
+        &[("BWS_ACCESS_TOKEN", TEST_TOKEN)],
+    );
+
+    assert_eq!(code, 1);
+    assert_error(
+        &stderr,
+        &[
+            "Error: Could not find the shell 'definitely-not-a-shell'.",
+            "Hint: Install the shell, or set the full path with --shell <shell>.",
+        ],
+    );
+}

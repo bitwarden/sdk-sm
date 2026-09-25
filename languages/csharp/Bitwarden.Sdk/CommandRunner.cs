@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+﻿using Newtonsoft.Json;
 
 namespace Bitwarden.Sdk;
 
@@ -13,21 +13,21 @@ internal class CommandRunner
 
     internal T? RunCommand<T>(Command command)
     {
-        var req = JsonSerializer.Serialize(command, Converter.Settings);
+        var req = JsonConvert.SerializeObject(command, Converter.Settings);
         var result = BitwardenLibrary.RunCommand(req, _handle);
-        return JsonSerializer.Deserialize<T>(result, Converter.Settings);
+        return JsonConvert.DeserializeObject<T>(result, Converter.Settings);
     }
 
     internal async Task<T?> RunCommandAsync<T>(Command command, CancellationToken cancellationToken)
     {
-        var req = JsonSerializer.Serialize(command, Converter.Settings);
+        var req = JsonConvert.SerializeObject(command, Converter.Settings);
         var result = await BitwardenLibrary.RunCommandAsync(req, _handle, cancellationToken);
-        return JsonSerializer.Deserialize<T>(result, Converter.Settings);
+        return JsonConvert.DeserializeObject<T>(result, Converter.Settings);
     }
 
     internal async Task<T?> RunCommandAsync<T>(string command, CancellationToken cancellationToken)
     {
         var result = await BitwardenLibrary.RunCommandAsync(command, _handle, cancellationToken);
-        return JsonSerializer.Deserialize<T>(result, Converter.Settings);
+        return JsonConvert.DeserializeObject<T>(result, Converter.Settings);
     }
 }

@@ -42,7 +42,7 @@ public class SecretsManagerFactAttribute : FactAttribute
 
     private static bool TryGetEnvironment(string variable, out string value)
     {
-        value = Environment.GetEnvironmentVariable(variable);
+        value = Environment.GetEnvironmentVariable(variable) ?? string.Empty;
 
         if (string.IsNullOrWhiteSpace(value))
         {

@@ -102,7 +102,9 @@ pub(crate) fn get_config_path(
     };
 
     if ensure_folder_exists && let Some(parent_folder) = config_file.parent() {
-        std::fs::create_dir_all(parent_folder)?;
+        std::fs::create_dir_all(parent_folder).map_err(|e| {
+            UserError::create_dir("Could not create config directory", parent_folder, e)
+        })?;
     }
 
     Ok(config_file)
@@ -168,7 +170,8 @@ fn write_config(config: Config, config_file: Option<&Path>) -> Result<()> {
 
     let content = toml::to_string_pretty(&config)?;
 
-    std::fs::write(file, content)?;
+    std::fs::write(&file, content)
+        .map_err(|e| UserError::io("Could not write config file", &file, e))?;
     Ok(())
 }
 
@@ -193,15 +196,27 @@ pub(crate) fn update_profile(
 }
 
 pub(crate) fn delete_profile(config_file: Option<&Path>, profile: String) -> Result<()> {
-    let mut config = load_config(config_file, true)?;
+    let path = get_config_path(config_file, false)?;
+    if !path.exists() {
+        return Err(UserError::new(format!(
+            "Config file '{}' does not exist; nothing to delete.",
+            path.display()
+        ))
+        .into());
+    }
+    let mut config = load_config(Some(&path), true)?;
 
     if !config.profiles.contains_key(&profile) {
-        bail!("Profile does not exist");
+        return Err(UserError::new(format!(
+            "Profile '{profile}' not found in '{}'.",
+            path.display()
+        ))
+        .into());
     }
 
     config.profiles.remove(&profile);
 
-    write_config(config, config_file)?;
+    write_config(config, Some(&path))?;
     Ok(())
 }
 

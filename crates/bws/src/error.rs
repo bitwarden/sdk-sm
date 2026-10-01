@@ -4,6 +4,7 @@ use bitwarden_core::{ApiError, auth::login::LoginError};
 use bitwarden_crypto::CryptoError;
 use color_eyre::eyre;
 use regex::Regex;
+use uuid::Uuid;
 
 const HINT_COPY_TOKEN: &str = "Copy the full access token from the Bitwarden web app.";
 const SERVER_URL_HINT: &str = "Check the server URL (--server-url or server-base in the config).";
@@ -11,11 +12,21 @@ const NETWORK_HINT: &str = "Check the server URL and your network connection.";
 const TLS_HINT: &str = "Check the server URL or install the server's CA certificate.";
 const UNKNOWN_ERROR: &str = "An unknown error occurred.";
 const MAX_MESSAGE_CHARS: usize = 160;
+const MAX_NAME_CHARS: usize = 64;
+const HINT_CHECK_ACCESS: &str = "Check the ID and that the machine account has access to it.";
+const HINT_NOTHING_DELETED: &str =
+    "Nothing was deleted. Check the IDs and that the machine account has access to them.";
 
 static OS_ERROR_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r" ?\(os error -?[0-9]+\)").expect("OS_ERROR_RE to be valid"));
 static USERINFO_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"([A-Za-z][A-Za-z0-9+.-]*://)[^/?#@ ]+@").expect("USERINFO_RE to be valid")
+});
+static VALIDATION_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r"^(key|value|note|name) must not (be empty|contain only whitespaces|exceed ([0-9]+) characters in length)$",
+    )
+    .expect("VALIDATION_RE to be valid")
 });
 static HTTP_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?s)^Received error message from server: \[(([0-9]{3})[^\]]*)\] ?(.*)$")
@@ -54,6 +65,12 @@ impl UserError {
     /// `<action> '<path>': <io reason>.`
     pub(crate) fn io(action: &str, path: &Path, e: io::Error) -> Self {
         let message = format!("{action} '{}': {}.", path.display(), io_reason(&e));
+        Self::new(message).source(e)
+    }
+
+    /// Like [`UserError::io`], but for operations with no path to name: `<action>: <io reason>.`
+    pub(crate) fn io_action(action: &str, e: io::Error) -> Self {
+        let message = format!("{action}: {}.", io_reason(&e));
         Self::new(message).source(e)
     }
 
@@ -353,6 +370,144 @@ fn login_failed(candidates: &[&str]) -> UserError {
     }
 }
 
+/// What a Secrets Manager request operated on, used to name it in error messages.
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum Target {
+    Secret(Uuid),
+    Project(Uuid),
+    /// Several secrets being deleted at once.
+    Secrets,
+    /// Several projects being deleted at once.
+    Projects,
+    /// A secret being updated and moved to a project.
+    SecretOrProject(Uuid, Uuid),
+    None,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum Op {
+    Read,
+    Write,
+}
+
+/// Classifies a Secrets Manager error for a request on `target`.
+///
+/// The SDK error type can't be named from bws, so it is classified by its Display and Debug text.
+pub(crate) fn sm_error<E>(e: E, target: Target, op: Op) -> UserError
+where
+    E: Error + Send + Sync + 'static,
+{
+    let display = e.to_string();
+    let debug = format!("{e:?}");
+    let http = HTTP_RE.captures(&display);
+    let status = http
+        .as_ref()
+        .and_then(|c| c.get(2)?.as_str().parse::<u16>().ok());
+    // A 404 without a Bitwarden error body likely means a wrong server URL, which `generic`
+    // reports.
+    let bitwarden_body = http
+        .as_ref()
+        .and_then(|c| server_message(c.get(3)?.as_str()))
+        .is_some();
+
+    let error = validation_error(&display)
+        .or_else(|| match (status, op) {
+            (Some(404), _) if bitwarden_body => not_found(target),
+            (Some(403), Op::Read) => not_found(target),
+            (Some(403), _) => no_write_access(target),
+            _ => None,
+        })
+        .or_else(|| decoding_error(&debug, &display))
+        .or_else(|| generic(&e))
+        .unwrap_or_else(|| UserError::new(sentence(&display)));
+    error.source(e)
+}
+
+/// Classifies SDK errors that mean the response could not be turned into data.
+fn decoding_error(debug: &str, display: &str) -> Option<UserError> {
+    if debug.starts_with("Crypto(") {
+        return Some(UserError::new(
+            "Could not decrypt data returned by the server.",
+        ));
+    }
+    let undecodable = ["MissingField(", "Chrono(", "Api(Serde("]
+        .iter()
+        .any(|p| debug.starts_with(p))
+        // A wrong content type is left to `generic`, which adds the server URL hint.
+        && !display.contains("content type response when JSON was expected");
+    undecodable.then(|| UserError::new("Unexpected response from the server."))
+}
+
+fn validation_error(display: &str) -> Option<UserError> {
+    if display.starts_with("Unknown validation error") {
+        return Some(UserError::new("The input is invalid."));
+    }
+    let c = VALIDATION_RE.captures(display)?;
+    let subject = match c.get(1)?.as_str() {
+        "key" => "Secret key",
+        "value" => "Secret value",
+        "note" => "Secret note",
+        _ => "Project name",
+    };
+    let predicate = match (c.get(2)?.as_str(), c.get(3)) {
+        (_, Some(max)) => format!("exceed {} characters", max.as_str()),
+        ("contain only whitespaces", _) => "contain only whitespace".to_string(),
+        (other, _) => other.to_string(),
+    };
+    Some(UserError::new(format!("{subject} must not {predicate}.")))
+}
+
+fn not_found(target: Target) -> Option<UserError> {
+    let (message, hint) = match target {
+        Target::Secret(id) => (
+            format!("Secret {id} not found or not accessible."),
+            HINT_CHECK_ACCESS,
+        ),
+        Target::SecretOrProject(id, project_id) => (
+            format!("Secret {id} or project {project_id} not found or not accessible."),
+            HINT_CHECK_ACCESS,
+        ),
+        Target::Project(id) => (
+            format!("Project {id} not found or not accessible."),
+            HINT_CHECK_ACCESS,
+        ),
+        Target::Secrets => (
+            "One or more of the given secrets were not found or not accessible.".to_string(),
+            HINT_NOTHING_DELETED,
+        ),
+        Target::Projects => (
+            "One or more of the given projects were not found or not accessible.".to_string(),
+            HINT_NOTHING_DELETED,
+        ),
+        Target::None => return None,
+    };
+    Some(UserError::new(message).hint(hint))
+}
+
+fn no_write_access(target: Target) -> Option<UserError> {
+    let subject = match target {
+        Target::Secret(id) => format!("secret {id}"),
+        Target::SecretOrProject(id, project_id) => {
+            format!("secret {id} or project {project_id}")
+        }
+        Target::Project(id) => format!("project {id}"),
+        Target::Secrets => "these secrets".to_string(),
+        Target::Projects => "these projects".to_string(),
+        Target::None => return None,
+    };
+    Some(UserError::new(format!(
+        "The machine account does not have write access to {subject}."
+    )))
+}
+
+/// `Failed to delete <failed> of <requested> <noun>s.`
+pub(crate) fn partial_delete(failed: usize, requested: usize, noun: &str) -> UserError {
+    let plural = if requested == 1 { "" } else { "s" };
+    UserError::new(format!(
+        "Failed to delete {failed} of {requested} {noun}{plural}."
+    ))
+}
+
 /// Whether to show full error reports. Read once; the environment cannot change mid-process.
 pub(crate) fn is_verbose() -> bool {
     static VERBOSE: LazyLock<bool> = LazyLock::new(|| {
@@ -396,6 +551,26 @@ pub(crate) fn render_panic(payload: &(dyn Any + Send)) -> String {
     )
 }
 
+/// Removes control characters from server-supplied text, so escape sequences cannot move the
+/// cursor or clear the terminal. Whitespace controls such as newlines become spaces.
+pub(crate) fn strip_controls(s: &str) -> String {
+    s.chars()
+        .map(|c| if c.is_whitespace() { ' ' } else { c })
+        .filter(|c| !c.is_control())
+        .collect()
+}
+
+/// Makes a server-supplied name safe to quote inside a message: control characters are removed and
+/// long names are cut to [`MAX_NAME_CHARS`].
+pub(crate) fn quoted_name(s: &str) -> String {
+    let name = strip_controls(s);
+    if name.chars().count() > MAX_NAME_CHARS {
+        let short: String = name.chars().take(MAX_NAME_CHARS).collect();
+        return format!("{short}...");
+    }
+    name
+}
+
 fn sentence(s: &str) -> String {
     let line = s
         .lines()
@@ -403,9 +578,7 @@ fn sentence(s: &str) -> String {
         .find(|l| !l.is_empty())
         .unwrap_or("");
     let line = line.split_whitespace().collect::<Vec<_>>().join(" ");
-    // Server-supplied text reaches this function, and escape sequences would let a hostile server
-    // move the cursor or clear the terminal. `split_whitespace` only drops whitespace controls.
-    let line: String = line.chars().filter(|c| !c.is_control()).collect();
+    let line = strip_controls(&line);
     let line = OS_ERROR_RE.replace_all(&line, "");
     let line = USERINFO_RE.replace_all(&line, "$1");
 
@@ -501,6 +674,22 @@ mod tests {
 
     fn lines(e: &UserError) -> (String, Option<String>) {
         (e.message.clone(), e.hint.clone())
+    }
+
+    #[test]
+    fn strip_controls_removes_escapes() {
+        assert_eq!(strip_controls("a\x1b[2Jb\x07"), "a[2Jb");
+        assert_eq!(strip_controls("line one\nline\ttwo"), "line one line two");
+    }
+
+    #[test]
+    fn quoted_name_strips_and_truncates() {
+        assert_eq!(quoted_name("DB_\x1b[2JHOST\x07"), "DB_[2JHOST");
+        assert_eq!(quoted_name(&"k".repeat(64)), "k".repeat(64));
+        assert_eq!(
+            quoted_name(&"k".repeat(65)),
+            format!("{}...", "k".repeat(64))
+        );
     }
 
     #[test]
@@ -963,6 +1152,270 @@ mod tests {
             "key with no value, expected `=`"
         );
         assert_eq!(clause("TOML is invalid."), "TOML is invalid");
+    }
+
+    struct SdkErr {
+        display: String,
+        debug: String,
+    }
+
+    impl SdkErr {
+        fn new(display: &str, debug: &str) -> Self {
+            Self {
+                display: display.to_string(),
+                debug: debug.to_string(),
+            }
+        }
+
+        fn http(status: u16, reason: &str) -> Self {
+            Self::new(
+                &format!(
+                    "Received error message from server: [{status} {reason}] {{\"message\": \"Resource not found.\", \"validationErrors\": null, \"object\": \"error\"}}"
+                ),
+                &format!("Api(Response(ResponseContent {{ status: {status}, message: \"...\" }}))"),
+            )
+        }
+    }
+
+    impl Display for SdkErr {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            f.write_str(&self.display)
+        }
+    }
+
+    impl fmt::Debug for SdkErr {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            f.write_str(&self.debug)
+        }
+    }
+
+    impl Error for SdkErr {}
+
+    const SECRET_ID: Uuid = Uuid::from_u128(0x15744a66_0000_0000_0000_000000000001);
+    const PROJECT_ID: Uuid = Uuid::from_u128(0x15744a66_0000_0000_0000_000000000002);
+
+    fn sm(e: SdkErr, target: Target, op: Op) -> (String, Option<String>) {
+        lines(&sm_error(e, target, op))
+    }
+
+    #[test]
+    fn sm_validation_errors() {
+        let validation = |display: &str| {
+            sm(
+                SdkErr::new(display, "Validation(...)"),
+                Target::None,
+                Op::Write,
+            )
+            .0
+        };
+        assert_eq!(
+            validation("name must not be empty"),
+            "Project name must not be empty."
+        );
+        assert_eq!(
+            validation("name must not contain only whitespaces"),
+            "Project name must not contain only whitespace."
+        );
+        assert_eq!(
+            validation("name must not exceed 500 characters in length"),
+            "Project name must not exceed 500 characters."
+        );
+        assert_eq!(
+            validation("key must not be empty"),
+            "Secret key must not be empty."
+        );
+        assert_eq!(
+            validation("value must not be empty"),
+            "Secret value must not be empty."
+        );
+        assert_eq!(
+            validation("key must not contain only whitespaces"),
+            "Secret key must not contain only whitespace."
+        );
+        assert_eq!(
+            validation("note must not exceed 7000 characters in length"),
+            "Secret note must not exceed 7000 characters."
+        );
+        assert_eq!(
+            validation("Unknown validation error: ValidationErrors {}"),
+            "The input is invalid."
+        );
+    }
+
+    #[test]
+    fn sm_not_found() {
+        let hint = Some(HINT_CHECK_ACCESS.to_string());
+        assert_eq!(
+            sm(
+                SdkErr::http(404, "Not Found"),
+                Target::Secret(SECRET_ID),
+                Op::Read
+            ),
+            (
+                format!("Secret {SECRET_ID} not found or not accessible."),
+                hint.clone()
+            )
+        );
+        assert_eq!(
+            sm(
+                SdkErr::http(403, "Forbidden"),
+                Target::Secret(SECRET_ID),
+                Op::Read
+            ),
+            (
+                format!("Secret {SECRET_ID} not found or not accessible."),
+                hint.clone()
+            )
+        );
+        assert_eq!(
+            sm(
+                SdkErr::http(404, "Not Found"),
+                Target::Project(PROJECT_ID),
+                Op::Write
+            ),
+            (
+                format!("Project {PROJECT_ID} not found or not accessible."),
+                hint.clone()
+            )
+        );
+        assert_eq!(
+            sm(
+                SdkErr::http(404, "Not Found"),
+                Target::SecretOrProject(SECRET_ID, PROJECT_ID),
+                Op::Write
+            ),
+            (
+                format!("Secret {SECRET_ID} or project {PROJECT_ID} not found or not accessible."),
+                hint.clone()
+            )
+        );
+        assert_eq!(
+            sm(
+                SdkErr::http(404, "Not Found"),
+                Target::Secret(SECRET_ID),
+                Op::Write
+            ),
+            (
+                format!("Secret {SECRET_ID} not found or not accessible."),
+                hint
+            )
+        );
+        assert_eq!(
+            sm(SdkErr::http(404, "Not Found"), Target::Secrets, Op::Write),
+            (
+                "One or more of the given secrets were not found or not accessible.".to_string(),
+                Some(HINT_NOTHING_DELETED.to_string())
+            )
+        );
+        assert_eq!(
+            sm(SdkErr::http(404, "Not Found"), Target::Projects, Op::Write),
+            (
+                "One or more of the given projects were not found or not accessible.".to_string(),
+                Some(HINT_NOTHING_DELETED.to_string())
+            )
+        );
+        assert_eq!(
+            sm(
+                SdkErr::new(
+                    "Received error message from server: [404 Not Found] <html></html>",
+                    "Api(Response(...))"
+                ),
+                Target::Secret(SECRET_ID),
+                Op::Read
+            ),
+            (
+                "The requested item was not found or is not accessible.".to_string(),
+                Some(SERVER_URL_HINT.to_string())
+            )
+        );
+        assert_eq!(
+            sm(SdkErr::http(404, "Not Found"), Target::None, Op::Read).0,
+            "The requested item was not found or is not accessible."
+        );
+    }
+
+    #[test]
+    fn sm_no_write_access() {
+        let write = |target| sm(SdkErr::http(403, "Forbidden"), target, Op::Write);
+        let denied = |subject: &str| {
+            (
+                format!("The machine account does not have write access to {subject}."),
+                None,
+            )
+        };
+        assert_eq!(
+            write(Target::Secret(SECRET_ID)),
+            denied(&format!("secret {SECRET_ID}"))
+        );
+        assert_eq!(
+            write(Target::SecretOrProject(SECRET_ID, PROJECT_ID)),
+            denied(&format!("secret {SECRET_ID} or project {PROJECT_ID}"))
+        );
+        assert_eq!(
+            write(Target::Project(PROJECT_ID)),
+            denied(&format!("project {PROJECT_ID}"))
+        );
+        assert_eq!(write(Target::Secrets), denied("these secrets"));
+        assert_eq!(write(Target::Projects), denied("these projects"));
+        assert_eq!(write(Target::None).0, "Access denied (403 Forbidden).");
+    }
+
+    #[test]
+    fn sm_unexpected_data() {
+        assert_eq!(
+            sm(
+                SdkErr::new("The decryption operation failed", "Crypto(Decrypt)"),
+                Target::Secret(SECRET_ID),
+                Op::Read
+            ),
+            (
+                "Could not decrypt data returned by the server.".to_string(),
+                None
+            )
+        );
+        for debug in [
+            "MissingField(MissingFieldError(\"response.id\"))",
+            "Chrono(ParseError(Invalid))",
+            "Api(Serde(Error(\"expected value\", line: 1, column: 1)))",
+        ] {
+            assert_eq!(
+                sm(SdkErr::new("anything", debug), Target::None, Op::Read).0,
+                "Unexpected response from the server."
+            );
+        }
+        assert_eq!(
+            sm(
+                SdkErr::new(
+                    "Received unexpected content type response when JSON was expected",
+                    "Api(Serde(...))"
+                ),
+                Target::None,
+                Op::Read
+            ),
+            (
+                "Unexpected response from the server.".to_string(),
+                Some(SERVER_URL_HINT.to_string())
+            )
+        );
+        let e = sm_error(
+            SdkErr::new("Something odd happened", "Other"),
+            Target::None,
+            Op::Read,
+        );
+        assert_eq!(e.message, "Something odd happened.");
+        assert!(Error::source(&e).is_some());
+    }
+
+    #[test]
+    fn partial_delete_message() {
+        assert_eq!(
+            partial_delete(1, 3, "secret").message,
+            "Failed to delete 1 of 3 secrets."
+        );
+        assert_eq!(
+            partial_delete(1, 1, "project").message,
+            "Failed to delete 1 of 1 project."
+        );
     }
 
     #[test]

@@ -9,11 +9,12 @@ use bitwarden::{
         },
     },
 };
-use color_eyre::eyre::{Result, bail};
+use color_eyre::eyre::Result;
 use uuid::Uuid;
 
 use crate::{
     SecretCommand,
+    error::UserError,
     render::{OutputSettings, serialize_response},
 };
 
@@ -228,7 +229,10 @@ pub(crate) async fn delete(client: SecretsManagerClient, secret_ids: Vec<Uuid>) 
     }
 
     if !secrets_failed.is_empty() {
-        bail!("Errors when attempting to delete secrets.");
+        return Err(UserError::FailedToDeleteSecrets {
+            count: secrets_failed.len(),
+        }
+        .into());
     }
 
     Ok(())

@@ -18,6 +18,8 @@ license-file.workspace = true
 bat = { version = "0.26.0", features = ["regex-fancy"], default-features = false }
 bitwarden = { workspace = true, features = ["secrets"] }
 bitwarden-cli = { workspace = true }
+bitwarden-core = { workspace = true, features = ["secrets"] }
+bitwarden-crypto = { workspace = true }
 chrono = { version = "0.4.38", features = [
     "clock",
     "std",
@@ -29,7 +31,6 @@ comfy-table = "7.1.1"
 directories = "6.0.0"
 env_logger = "0.11.1"
 itertools = "0.15.0"
-log = "0.4.20"
 regex = { version = "1.10.3", features = [
     "std",
     "perf",

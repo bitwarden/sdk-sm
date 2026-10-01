@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     cli::{DEFAULT_CONFIG_DIRECTORY, DEFAULT_CONFIG_FILENAME, ProfileKey},
+    error::{self, UserError},
     util::string_to_bool,
 };
 
@@ -81,12 +82,15 @@ impl ProfileKey {
     }
 }
 
-fn get_config_path(config_file: Option<&Path>, ensure_folder_exists: bool) -> Result<PathBuf> {
+pub(crate) fn get_config_path(
+    config_file: Option<&Path>,
+    ensure_folder_exists: bool,
+) -> Result<PathBuf> {
     let config_file = match config_file {
         Some(path) => path.to_owned(),
         None => {
             let Some(base_dirs) = BaseDirs::new() else {
-                bail!("A valid home directory doesn't exist");
+                return Err(UserError::NoHomeDirectory.into());
             };
             base_dirs
                 .home_dir()
@@ -96,30 +100,66 @@ fn get_config_path(config_file: Option<&Path>, ensure_folder_exists: bool) -> Re
     };
 
     if ensure_folder_exists && let Some(parent_folder) = config_file.parent() {
-        std::fs::create_dir_all(parent_folder)?;
+        std::fs::create_dir_all(parent_folder).map_err(|e| {
+            UserError::create_dir("Could not create config directory", parent_folder, e)
+        })?;
     }
 
     Ok(config_file)
 }
 
 pub(crate) fn load_config(config_file: Option<&Path>, must_exist: bool) -> Result<Config> {
-    let file = get_config_path(config_file, false)?;
+    load_config_at(&get_config_path(config_file, false)?, must_exist)
+}
 
+/// Like [`load_config`], but for an already resolved config file path.
+pub(crate) fn load_config_at(file: &Path, must_exist: bool) -> Result<Config> {
     if file.is_dir() {
-        bail!(
-            "Config file path is a directory. Before mounting a config file into a container, ensure \
-             the host file exists first (e.g. `touch`) so your container engine mounts it as a file."
-        );
+        return Err(UserError::ConfigFileIsDir {
+            path: file.to_owned(),
+        }
+        .into());
     }
 
-    let content = match file.exists() {
-        true => read_to_string(file),
-        false if must_exist => bail!("Config file doesn't exist"),
-        false => return Ok(Config::default()),
-    };
+    if !file.exists() {
+        if must_exist {
+            return Err(UserError::ConfigFileMissing {
+                path: file.to_owned(),
+            }
+            .into());
+        }
+        return Ok(Config::default());
+    }
 
-    let config: Config = toml::from_str(&content?)?;
+    let content =
+        read_to_string(file).map_err(|e| UserError::io("Could not read config file", file, e))?;
+
+    let config: Config = toml::from_str(&content).map_err(|e| toml_error(file, &content, e))?;
     Ok(config)
+}
+
+fn toml_error(file: &Path, content: &str, e: toml::de::Error) -> UserError {
+    let reason = error::clause(&e.message().replace("struct Profile", "a profile table"));
+    let location = match e.span() {
+        Some(span) => {
+            let before = content.get(..span.start).unwrap_or(content);
+            let line = before.matches('\n').count() + 1;
+            let column = before
+                .rsplit_once('\n')
+                .map_or(before, |(_, last)| last)
+                .chars()
+                .count()
+                + 1;
+            format!(" at line {line}, column {column}")
+        }
+        None => String::new(),
+    };
+    UserError::InvalidConfig {
+        path: file.to_owned(),
+        location,
+        reason,
+        source: Box::new(e),
+    }
 }
 
 fn write_config(config: Config, config_file: Option<&Path>) -> Result<()> {
@@ -127,7 +167,8 @@ fn write_config(config: Config, config_file: Option<&Path>) -> Result<()> {
 
     let content = toml::to_string_pretty(&config)?;
 
-    std::fs::write(file, content)?;
+    std::fs::write(&file, content)
+        .map_err(|e| UserError::io("Could not write config file", &file, e))?;
     Ok(())
 }
 
@@ -152,15 +193,23 @@ pub(crate) fn update_profile(
 }
 
 pub(crate) fn delete_profile(config_file: Option<&Path>, profile: String) -> Result<()> {
-    let mut config = load_config(config_file, true)?;
+    let path = get_config_path(config_file, false)?;
+    if !path.exists() {
+        return Err(UserError::NothingToDelete { path: path.clone() }.into());
+    }
+    let mut config = load_config(Some(&path), true)?;
 
     if !config.profiles.contains_key(&profile) {
-        bail!("Profile does not exist");
+        return Err(UserError::ProfileNotFound {
+            name: profile,
+            file: path.clone(),
+        }
+        .into());
     }
 
     config.profiles.remove(&profile);
 
-    write_config(config, config_file)?;
+    write_config(config, Some(&path))?;
     Ok(())
 }
 
@@ -179,50 +228,49 @@ impl Profile {
         })
     }
 
-    pub(crate) fn api_url(&self) -> Result<String> {
-        if let Some(api) = &self.server_api {
-            return Ok(api.clone());
-        }
+    /// Returns the identity and API URLs of the profile named `name`.
+    pub(crate) fn server_urls(&self, name: &str) -> Result<(String, String), UserError> {
+        // An explicit URL wins over `<server_base>/<path>`.
+        let url = |explicit: &Option<String>, path: &str| {
+            explicit.clone().or_else(|| {
+                self.server_base
+                    .as_ref()
+                    .map(|base| format!("{base}/{path}"))
+            })
+        };
 
-        if let Some(base) = &self.server_base {
-            return Ok(format!("{base}/api"));
-        }
-
-        bail!("Profile has no `server_base` or `server_api`");
-    }
-
-    pub(crate) fn identity_url(&self) -> Result<String> {
-        if let Some(identity) = &self.server_identity {
-            return Ok(identity.clone());
-        }
-
-        if let Some(base) = &self.server_base {
-            return Ok(format!("{base}/identity"));
-        }
-
-        bail!("Profile has no `server_base` or `server_identity`");
+        url(&self.server_identity, "identity")
+            .zip(url(&self.server_api, "api"))
+            .ok_or_else(|| UserError::ProfileNoUrl {
+                name: name.to_string(),
+            })
     }
 }
 
 impl Config {
+    /// Returns the name and contents of the profile to use, falling back to `default` unless
+    /// the profile was explicitly requested.
     pub(crate) fn select_profile(
         &self,
         profile: &str,
         profile_defined: bool,
-    ) -> Result<Option<Profile>> {
-        if let Some(profile) = self.profiles.get(profile) {
-            return Ok(Some(profile.clone()));
+        config_file: &Path,
+    ) -> Result<Option<(String, Profile)>, UserError> {
+        if let Some(p) = self.profiles.get(profile) {
+            return Ok(Some((profile.to_string(), p.clone())));
         }
 
         if profile_defined {
-            bail!("The specified profile does not exist");
+            return Err(UserError::ProfileNotFound {
+                name: profile.to_string(),
+                file: config_file.to_owned(),
+            });
         }
 
-        if let Some(profile) = self.profiles.get("default") {
-            return Ok(Some(profile.clone()));
-        }
-
-        Ok(None)
+        Ok(self
+            .profiles
+            .get("default")
+            .map(|p| ("default".to_string(), p.clone())))
     }
 }
 
@@ -237,10 +285,43 @@ mod tests {
     #[test]
     fn config_doesnt_exist() {
         let c = load_config(Some(Path::new("non_existing")), true);
-        assert!(c.is_err());
+        assert_eq!(
+            c.expect_err("missing config file").to_string(),
+            "Config file 'non_existing' does not exist."
+        );
 
         let c = load_config(None, false);
         assert!(c.is_ok());
+    }
+
+    #[test]
+    fn config_invalid_toml() {
+        let tmpfile = NamedTempFile::new().expect("temp file to be created");
+        write!(tmpfile.as_file(), "[profiles.default]\nhello").expect("temp file to be written");
+
+        let e = load_config(Some(tmpfile.path()), true).expect_err("invalid TOML");
+        assert_eq!(
+            e.to_string(),
+            format!(
+                "Invalid config file '{}' at line 2, column 6: key with no value, expected `=`.",
+                tmpfile.path().display()
+            )
+        );
+    }
+
+    #[test]
+    fn config_profile_wrong_type() {
+        let tmpfile = NamedTempFile::new().expect("temp file to be created");
+        write!(tmpfile.as_file(), "[profiles]\ndefault = \"x\"").expect("temp file to be written");
+
+        let e = load_config(Some(tmpfile.path()), true).expect_err("profile is not a table");
+        assert_eq!(
+            e.to_string(),
+            format!(
+                "Invalid config file '{}' at line 2, column 11: invalid type: string \"x\", expected a profile table.",
+                tmpfile.path().display()
+            )
+        );
     }
 
     #[test]
@@ -304,6 +385,49 @@ mod tests {
         assert_eq!(
             "https://bitwarden.com",
             c.unwrap().profiles["default"].server_base.as_ref().unwrap()
+        );
+    }
+
+    #[test]
+    fn config_unknown_profile() {
+        let config = Config::default();
+        let e = config
+            .select_profile("work", true, Path::new("/tmp/bws.toml"))
+            .expect_err("unknown profile");
+        assert_eq!(
+            e.to_string(),
+            "Profile 'work' not found in '/tmp/bws.toml'."
+        );
+
+        let profile = config
+            .select_profile("work", false, Path::new("/tmp/bws.toml"))
+            .expect("implicit profile to fall back");
+        assert!(profile.is_none());
+    }
+
+    #[test]
+    fn profile_without_urls() {
+        let profile = Profile {
+            server_identity: Some("https://identity.example.com".to_string()),
+            ..Default::default()
+        };
+        let e = profile.server_urls("work").expect_err("no API URL");
+        assert_eq!(e.to_string(), "Profile 'work' has no server URL.");
+        assert_eq!(
+            e.hint().as_deref(),
+            Some("Run: bws config --profile work server-base <url>")
+        );
+
+        let profile = Profile {
+            server_base: Some("https://example.com".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(
+            profile.server_urls("work").expect("URLs from server_base"),
+            (
+                "https://example.com/identity".to_string(),
+                "https://example.com/api".to_string()
+            )
         );
     }
 

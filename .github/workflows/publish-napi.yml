@@ -105,6 +105,8 @@ jobs:
           wget "https://github.com/bitwarden/sdk-sm/releases/download/napi-v${_PKG_VERSION}/sdk-napi.darwin-x64.node"
           wget "https://github.com/bitwarden/sdk-sm/releases/download/napi-v${_PKG_VERSION}/sdk-napi.win32-x64-msvc.node"
           wget "https://github.com/bitwarden/sdk-sm/releases/download/napi-v${_PKG_VERSION}/sdk-napi.linux-x64-gnu.node"
+          wget "https://github.com/bitwarden/sdk-sm/releases/download/napi-v${_PKG_VERSION}/sdk-napi.linux-arm64-gnu.node"
+          wget "https://github.com/bitwarden/sdk-sm/releases/download/napi-v${_PKG_VERSION}/sdk-napi.linux-arm64-musl.node"
           mv sdk-napi.*.node ${{ github.workspace }}/crates/bitwarden-napi/artifacts
 
       - name: Set up Node

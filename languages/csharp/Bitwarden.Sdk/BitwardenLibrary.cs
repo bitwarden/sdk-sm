@@ -11,7 +11,10 @@ internal static partial class BitwardenLibrary
     private static partial void free_mem(IntPtr handle);
 
     [LibraryImport("bitwarden_c", StringMarshalling = StringMarshalling.Utf8)]
-    private static partial string run_command(string json, BitwardenSafeHandle handle);
+    private static partial IntPtr run_command(string json, BitwardenSafeHandle handle);
+
+    [LibraryImport("bitwarden_c")]
+    private static partial void free_string(IntPtr str);
 
     internal delegate void OnCompleteCallback(IntPtr json);
 
@@ -31,7 +34,13 @@ internal static partial class BitwardenLibrary
 
     internal static void FreeMemory(IntPtr handle) => free_mem(handle);
 
-    internal static string RunCommand(string json, BitwardenSafeHandle handle) => run_command(json, handle);
+    internal static string RunCommand(string json, BitwardenSafeHandle handle)
+    {
+        var resultPtr = run_command(json, handle);
+        var result = Marshal.PtrToStringUTF8(resultPtr);
+        free_string(resultPtr);
+        return result;
+    }
 
     internal static Task<string> RunCommandAsync(string json, BitwardenSafeHandle handle, CancellationToken cancellationToken)
     {

@@ -216,14 +216,24 @@ pub mod secrets {
     pub async fn get_secrets_by_ids(Json(payload): Json<GetByIdsBody>) -> Json<GetByIdsResponse> {
         let org_id = Uuid::parse_str(ORGANIZATION_ID).unwrap();
 
-        let id1 = payload.ids.first().cloned().unwrap_or(Uuid::new_v4());
-        let id2 = payload.ids.get(1).cloned().unwrap_or(Uuid::new_v4());
+        let ferris_id = payload.ids.first().cloned().unwrap_or(Uuid::new_v4());
+        let tux_id = payload.ids.get(1).cloned().unwrap_or(Uuid::new_v4());
 
-        info!("Getting secrets with ids: {}, {}", id1, id2);
+        // special vars that should never be set
+        let ld_preload_id = payload.ids.get(2).cloned().unwrap_or(Uuid::new_v4());
+        let dyld_insert_libraries_id = payload.ids.get(3).cloned().unwrap_or(Uuid::new_v4());
+        let windir_id = payload.ids.get(4).cloned().unwrap_or(Uuid::new_v4());
+
+        // BWS_NEVER_SET makes cross-platform validation of --allow-vars easier
+        let bws_do_not_set_id = payload.ids.get(5).cloned().unwrap_or(Uuid::new_v4());
+
+        info!(
+            "Getting secrets with ids: {ferris_id}, {tux_id}, {ld_preload_id}, {dyld_insert_libraries_id}, {windir_id}, {bws_do_not_set_id}",
+        );
 
         let mut secrets: Vec<SecretResponse> = payload.ids.iter().map(|_| SecretResponse {
             // FERRIS, the crab
-            id: id1,
+            id: ferris_id,
             organization_id: org_id,
             project_id: Some(uuid::Uuid::new_v4()),
             key: "2.N2aCz0PU6Ga9YfJlvisnwQ==|3M8dF2PFub9FP/SbgdenSQ==|KbaUQSb5IjVwhSbXDbCJbKXGBaCHEKDArrhvQDr9/QM=".to_string(), //
@@ -235,7 +245,7 @@ pub mod secrets {
 
         secrets.push(SecretResponse {
             // TUX, the penguin
-            id: id2,
+            id: tux_id,
             organization_id: org_id,
             project_id: Some(uuid::Uuid::new_v4()),
             key: "2.OldQj0RJKww0WN7RSxI1wQ==|TpxAbmdx6zIVo37YJ5n1aQ==|06Imyx7jqaZ5J5amrBboCVPwvPoDKB8REJdToQwp3dA=".to_string(),
@@ -244,6 +254,55 @@ pub mod secrets {
             creation_date: chrono::Utc::now(),
             revision_date: chrono::Utc::now(),
         });
+
+        secrets.push(SecretResponse {
+            // LD_PRELOAD; we shouldn't set this with the `run` command on Linux
+            id: ld_preload_id,
+            organization_id: org_id,
+            project_id: Some(uuid::Uuid::new_v4()),
+            key: "2.xsqqhTqVDbbehXh5XD7FaQ==|TtKS710oF/Mm0Y4bXVOWjA==|GvP5LBfkXdpQEBg+u5OWqucQbbghBljQ/CGkAqwNmNg=".to_string(),
+            value: "2.gxVlGKC1MzpxWG5hs/kXbw==|c1Qm0hyufxrybjLPirMBGbmdpkw97s5+rrc3I538ay+WLtH7v/Qn2sEZ+ARS7W97|sONRsloZrYQwvWQz00pOfYxLoXb/ginQZjBwKhX7Hfk=".to_string(),
+            note: "2.owktgGRm4r+ho4WY4U9zvA==|6Up5NQHyZ65SL3vbNI1GhQ==|vdvWvPpoB/J3aWXKBiruqOr1SK/ndkCCTjHf2vphhu4=".to_string(),
+            creation_date: chrono::Utc::now(),
+            revision_date: chrono::Utc::now(),
+        });
+
+        secrets.push(SecretResponse {
+            // DYLD_INSERT_LIBRARIES; we shouldn't set this with the `run` command on macOS
+            id: dyld_insert_libraries_id,
+            organization_id: org_id,
+            project_id: Some(uuid::Uuid::new_v4()),
+            key: "2./FDK8knNnqJ6coHoSSkOxg==|6lazT/D96lbwo78/FSpETR8CcaF4xO5oKfaCXTL16Po=|bNGefkp/Jp+rFX9AIewYkWasvWeyk2pvoeinLx2RLgI=".to_string(),
+            value: "2.gxVlGKC1MzpxWG5hs/kXbw==|c1Qm0hyufxrybjLPirMBGbmdpkw97s5+rrc3I538ay+WLtH7v/Qn2sEZ+ARS7W97|sONRsloZrYQwvWQz00pOfYxLoXb/ginQZjBwKhX7Hfk=".to_string(),
+            note: "2.owktgGRm4r+ho4WY4U9zvA==|6Up5NQHyZ65SL3vbNI1GhQ==|vdvWvPpoB/J3aWXKBiruqOr1SK/ndkCCTjHf2vphhu4=".to_string(),
+            creation_date: chrono::Utc::now(),
+            revision_date: chrono::Utc::now(),
+        });
+
+        secrets.push(SecretResponse {
+            // WINDIR; we shouldn't set this with the `run` command on windows
+            id: windir_id,
+            organization_id: org_id,
+            project_id: Some(uuid::Uuid::new_v4()),
+            key: "2.d72p2tNhgCsSB7fra13JOA==|crUr6pZGJK/agfoytbl9tQ==|nGpk1KIlWjrXMZW02854tCVf+TUeUlUNwdfOW8vt9Uo=".to_string(),
+            value: "2.Vgxy2XB4RVWSyCF4AO/0nw==|EMDKsgXoDhf5a2GW81F9c6Jl3oRyqkZb/WcgwShropA=|lpL/M46YTDzqclyKYa5jvcwGDd2udpnqt3yMBjf4Z+0=".to_string(),
+            note: "2.owktgGRm4r+ho4WY4U9zvA==|6Up5NQHyZ65SL3vbNI1GhQ==|vdvWvPpoB/J3aWXKBiruqOr1SK/ndkCCTjHf2vphhu4=".to_string(),
+            creation_date: chrono::Utc::now(),
+            revision_date: chrono::Utc::now(),
+        });
+
+        secrets.push(SecretResponse {
+            // BWS_DO_NOT_SET; used for testing; we shouldn't set this with the `run` command
+            id: bws_do_not_set_id,
+            organization_id: org_id,
+            project_id: Some(uuid::Uuid::new_v4()),
+            key: "2.w7kkUxkUfV1d4DMlObH/7Q==|UQPNRIHdGv/uYi4jtfzDiQ==|7xDY6iaqOdPP7XmmorAK5RWnegzbMZbpMmpsioG10f0=".to_string(),
+            value: "2.bzpXYSLDMvgrAC1tpvZL+w==|TyKAePAVm00UagOgxqptuA==|5NtIvfsbhqferyO9ruLPQfbQQgFvAgdc/n7LawzdM3I=".to_string(),
+            note: "2.owktgGRm4r+ho4WY4U9zvA==|6Up5NQHyZ65SL3vbNI1GhQ==|vdvWvPpoB/J3aWXKBiruqOr1SK/ndkCCTjHf2vphhu4=".to_string(),
+            creation_date: chrono::Utc::now(),
+            revision_date: chrono::Utc::now(),
+        });
+
         Json(GetByIdsResponse { data: secrets })
     }
 

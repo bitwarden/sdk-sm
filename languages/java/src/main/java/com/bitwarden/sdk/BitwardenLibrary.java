@@ -9,5 +9,7 @@ public interface BitwardenLibrary extends Library {
 
     void free_mem(Pointer client);
 
-    String run_command(String command, Pointer client);
+    Pointer run_command(String command, Pointer client);
+
+    void free_string(Pointer str);
 }

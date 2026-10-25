@@ -16,6 +16,7 @@ public:
     void* init(const char* clientSettingsJson);
     void free_mem(void* client);
     const char* run_command(const char* commandJson, void* client);
+    void free_string(const char* str);
 
 private:
 #ifdef _WIN32

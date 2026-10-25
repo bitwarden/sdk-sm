@@ -51,7 +51,8 @@ class BitwardenLib
         $this->ffi = FFI::cdef('
             void* init(const char* param);
             char* run_command(void* c_str_ptr, void* client_ptr);
-            void free_mem(void* client_ptr);',
+            void free_mem(void* client_ptr);
+            void free_string(char* str_ptr);',
             $lib_file
         );
     }
@@ -76,7 +77,11 @@ class BitwardenLib
         $encoded_json = $this::json_encode_sdk_format($command->to());
         try {
             $result = $this->ffi->run_command($encoded_json, $this->handle);
-            return json_decode(FFI::string($result));
+            try {
+                return json_decode(FFI::string($result));
+            } finally {
+                $this->ffi->free_string($result);
+            }
         } catch (FFI\Exception $e) {
             throw new RuntimeException('Error occurred during FFI operation: ' . $e->getMessage());
         }

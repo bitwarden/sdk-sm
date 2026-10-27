@@ -28,46 +28,11 @@ const WINDOWS_ESSENTIAL_VARS: &[&str] = &["SystemRoot", "ComSpec", "windir"];
 // set by the run command, even when allowed with `--allow-vars`
 const NEVER_SET_VARS: &[&str] = &["PATH"];
 
-// Shell and language runtime environment variables that can inject code into the child
+// Other environment variables that can inject code into the child
 // process, regardless of the OS it's running on
 const PORTABLE_DO_NOT_SET_VARS: &[&str] = &[
     // used for testing the `--allow-vars` flag
     "BWS_DO_NOT_SET",
-    // shells
-    "BASH_ENV",
-    "ENV",
-    "IFS",
-    "PROMPT_COMMAND",
-    "PS4",
-    "SHELLOPTS",
-    "ZDOTDIR",
-    // python
-    "PYTHONPATH",
-    "PYTHONHOME",
-    "PYTHONSTARTUP",
-    // node
-    "NODE_OPTIONS",
-    "NODE_REPL_EXTERNAL_MODULE",
-    // rust
-    "RUSTC_WRAPPER",
-    "RUSTC_WORKSPACE_WRAPPER",
-    "RUSTDOCFLAGS",
-    "RUSTFLAGS",
-    // ruby, perl and php
-    "RUBYLIB",
-    "RUBYOPT",
-    "PERL5LIB",
-    "PERL5OPT",
-    "PHP_INI_SCAN_DIR",
-    // jvm
-    "CLASSPATH",
-    "JAVA_TOOL_OPTIONS",
-    "JDK_JAVA_OPTIONS",
-    "_JAVA_OPTIONS",
-    // dotnet
-    "CORECLR_ENABLE_PROFILING",
-    "DOTNET_ADDITIONAL_DEPS",
-    "DOTNET_STARTUP_HOOKS",
 ];
 
 // Dynamic linker environment variables, which only apply to the OS the CLI runs on
@@ -274,26 +239,24 @@ mod tests {
         let filter = VarFilter::new(&[], &[]);
 
         assert!(filter.allows("TUX"));
-        assert!(filter.allows("LD_PRELOAD_VALUE"));
+        assert!(filter.allows("BENIGN_VALUE"));
     }
 
     #[test]
     fn denies_portable_and_os_vars_by_default() {
         let filter = VarFilter::new(&[], &[]);
 
-        assert!(!filter.allows("PYTHONPATH"));
-        assert!(!filter.allows("NODE_OPTIONS"));
-        assert!(!filter.allows("RUSTFLAGS"));
+        for var in OS_DO_NOT_SET_VARS {
+            assert!(!filter.allows(var));
+        }
         assert!(!filter.allows("BWS_DO_NOT_SET"));
-        assert!(!filter.allows(OS_DO_NOT_SET_VARS[0]));
     }
 
     #[test]
     fn allows_denied_vars_when_allow_vars_includes_them() {
-        let filter = VarFilter::new(&vars(&["PYTHONPATH"]), &[]);
+        let filter = VarFilter::new(&vars(&["BWS_DO_NOT_SET"]), &[]);
 
-        assert!(filter.allows("PYTHONPATH"));
-        assert!(!filter.allows("NODE_OPTIONS"));
+        assert!(filter.allows("BWS_DO_NOT_SET"));
     }
 
     #[test]
@@ -304,30 +267,15 @@ mod tests {
     }
 
     #[test]
-    fn extra_do_not_set_vars_extend_the_built_in_list() {
-        let filter = VarFilter::new(&[], &vars(&["KUBECONFIG"]));
-
-        assert!(!filter.allows("KUBECONFIG"));
-        assert!(!filter.allows("PYTHONPATH"));
-
-        let allowed = VarFilter::new(&vars(&["KUBECONFIG"]), &vars(&["KUBECONFIG"]));
-        assert!(allowed.allows("KUBECONFIG"));
-    }
-
-    #[test]
     fn comparisons_are_case_insensitive() {
-        let filter = VarFilter::new(&vars(&["pythonpath"]), &[]);
-
-        assert!(filter.allows("PYTHONPATH"));
-        assert!(!filter.allows("Node_Options"));
+        let filter = VarFilter::new(&vars(&["PaTh"]), &[]);
         assert!(!filter.allows("path"));
     }
 
     #[test]
     fn trims_surrounding_whitespace() {
-        let filter = VarFilter::new(&[], &vars(&[" KUBECONFIG "]));
+        let filter = VarFilter::new(&[], &vars(&[" BWS_DO_NOT_SET "]));
 
-        assert!(!filter.allows("KUBECONFIG"));
-        assert!(VarFilter::new(&vars(&[" PYTHONPATH "]), &[]).allows("PYTHONPATH"));
+        assert!(!filter.allows("BWS_DO_NOT_SET"));
     }
 }

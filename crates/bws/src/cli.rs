@@ -10,6 +10,8 @@ pub(crate) const CONFIG_FILE_KEY_VAR_NAME: &str = "BWS_CONFIG_FILE";
 pub(crate) const PROFILE_KEY_VAR_NAME: &str = "BWS_PROFILE";
 pub(crate) const SERVER_URL_KEY_VAR_NAME: &str = "BWS_SERVER_URL";
 pub(crate) const UUIDS_AS_KEYNAMES_VAR_NAME: &str = "BWS_UUIDS_AS_KEYNAMES";
+pub(crate) const ALLOW_VARS_VAR_NAME: &str = "BWS_ALLOW_VARS";
+pub(crate) const DO_NOT_SET_VARS_VAR_NAME: &str = "BWS_DO_NOT_SET_VARS";
 
 pub(crate) const DEFAULT_CONFIG_FILENAME: &str = "config";
 pub(crate) const DEFAULT_CONFIG_DIRECTORY: &str = ".config/bws";
@@ -103,15 +105,35 @@ pub(crate) enum Commands {
     Run {
         #[arg(help = "The command to run")]
         command: Vec<String>,
+
         #[arg(long, help = "The shell to use")]
         shell: Option<String>,
+
         #[arg(
             long,
             help = "Don't inherit environment variables from the current shell"
         )]
         no_inherit_env: bool,
+
+        #[arg(
+            long,
+            env = ALLOW_VARS_VAR_NAME,
+            value_delimiter = ',',
+            help = "Comma-separated list of unsafe var names to set"
+        )]
+        allow_vars: Vec<String>,
+
+        #[arg(
+            long,
+            env = DO_NOT_SET_VARS_VAR_NAME,
+            value_delimiter = ',',
+            help = "Comma-separated list of additional var names to never set, in addition to the built-in list"
+        )]
+        do_not_set_vars: Vec<String>,
+
         #[arg(long, help = "The ID of the project to use")]
         project_id: Option<Uuid>,
+
         #[arg(
             long,
             global = true,

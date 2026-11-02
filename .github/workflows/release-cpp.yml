@@ -13,178 +13,24 @@ on:
           - Release
           - Dry Run
 
-env:
-  _KEY_VAULT: "bitwarden-ci"
+permissions: {}
 
 jobs:
-  validate:
-    name: Setup
+  trigger-deploy:
+    name: Trigger Release in Deploy Repo
     runs-on: ubuntu-22.04
     permissions:
-      contents: read
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Branch check
-        if: ${{ inputs.release_type != 'Dry Run' }}
-        run: |
-          if [[ "$GITHUB_REF" != "refs/heads/main" ]] ; then
-            echo "==================================="
-            echo "[!] Can only release from the 'main' branches"
-            echo "==================================="
-            exit 1
-          fi
-
-      - name: Get version
-        id: version
-        run: |
-          VERSION=$(cat languages/cpp/vcpkg.json | grep -Eo "[0-9]+\.[0-9]+\.[0-9]+")
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
-  github-release:
-    name: GitHub Release
-    runs-on: ubuntu-22.04
-    needs: validate
-    permissions:
-      actions: read
-      contents: write
+      deployments: write
       id-token: write
-    env:
-      _PKG_VERSION: ${{ needs.validate.outputs.version }}
     steps:
-      - name: Log in to Azure
-        uses: bitwarden/gh-actions/azure-login@main
+      - name: Trigger release via bitwarden/deploy
+        uses: bitwarden/gh-actions/trigger-actions@main
         with:
-          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
-          client_id: ${{ secrets.AZURE_CLIENT_ID }}
-
-      - name: Retrieve secrets
-        id: retrieve-secret
-        uses: bitwarden/gh-actions/get-keyvault-secrets@main
-        with:
-          keyvault: gh-org-bitwarden
-          secrets: "BW-GHAPP-ID,BW-GHAPP-KEY"
-
-      - name: Log out from Azure
-        uses: bitwarden/gh-actions/azure-logout@main
-
-      - name: Generate GH App token
-        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
-        id: app-token
-        with:
-          app-id: ${{ steps.retrieve-secret.outputs.BW-GHAPP-ID }}
-          private-key: ${{ steps.retrieve-secret.outputs.BW-GHAPP-KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: sdk
-          permission-contents: write
-
-      - name: Download x86_64-apple-darwin C artifact
-        uses: bitwarden/gh-actions/download-artifacts@main
-        with:
-          workflow: build-rust-cross-platform.yml
-          workflow_conclusion: success
-          branch: ${{ inputs.release_type == 'Dry Run' && 'main' ||  github.ref_name }}
-          artifacts: libbitwarden_c_files-x86_64-apple-darwin
-          skip_unpack: true
-
-      - name: Download aarch64-apple-darwin C artifact
-        uses: bitwarden/gh-actions/download-artifacts@main
-        with:
-          workflow: build-rust-cross-platform.yml
-          workflow_conclusion: success
-          branch: ${{ inputs.release_type == 'Dry Run' && 'main' ||  github.ref_name }}
-          artifacts: libbitwarden_c_files-aarch64-apple-darwin
-          skip_unpack: true
-
-      - name: Download x86_64-unknown-linux-gnu C artifact
-        uses: bitwarden/gh-actions/download-artifacts@main
-        with:
-          workflow: build-rust-cross-platform.yml
-          workflow_conclusion: success
-          branch: ${{ inputs.release_type == 'Dry Run' && 'main' ||  github.ref_name }}
-          artifacts: libbitwarden_c_files-x86_64-unknown-linux-gnu
-          skip_unpack: true
-
-      - name: Download x86_64-pc-windows-msvc C artifact
-        uses: bitwarden/gh-actions/download-artifacts@main
-        with:
-          workflow: build-rust-cross-platform.yml
-          workflow_conclusion: success
-          branch: ${{ inputs.release_type == 'Dry Run' && 'main' ||  github.ref_name }}
-          artifacts: libbitwarden_c_files-x86_64-pc-windows-msvc
-          skip_unpack: true
-
-      - name: Rename C build artifacts
-        run: |
-          artifacts=("x86_64-apple-darwin" "aarch64-apple-darwin" "x86_64-unknown-linux-gnu" "x86_64-pc-windows-msvc") # aarch64-unknown-linux-gnu)
-          for value in "${artifacts[@]}"
-          do
-            unzip "libbitwarden_c_files-$value.zip" -d "libbitwarden_c_files-$value"
-            cd "libbitwarden_c_files-$value"
-            zip -Rj "../libbitwarden_c_files-$value-$_PKG_VERSION.zip" 'libbitwarden_c.*'
-            cd ..
-          done
-
-      - name: Download schemas
-        uses: bitwarden/gh-actions/download-artifacts@main
-        with:
-          name: sdk-schemas-cpp
-          workflow: generate_schemas.yml
-          workflow_conclusion: success
-          branch: ${{ inputs.release_type == 'Dry Run' && 'main' ||  github.ref_name }}
-          artifacts: sdk-schemas-cpp
-          skip_unpack: true
-
-      - name: Rename schemas artifacts
-        run: mv sdk-schemas-cpp.zip "sdk-schemas-cpp-$_PKG_VERSION.zip"
-
-      - name: Download x86_64-apple-darwin C++ artifact
-        uses: bitwarden/gh-actions/download-artifacts@main
-        with:
-          workflow: build-cpp.yml
-          workflow_conclusion: success
-          branch: ${{ inputs.release_type == 'Dry Run' && 'main' ||  github.ref_name }}
-          artifacts: libbitwarden_cpp-x86_64-apple-darwin
-          skip_unpack: true
-
-      - name: Download x86_64-unknown-linux-gnu C++ artifact
-        uses: bitwarden/gh-actions/download-artifacts@main
-        with:
-          workflow: build-cpp.yml
-          workflow_conclusion: success
-          branch: ${{ inputs.release_type == 'Dry Run' && 'main' ||  github.ref_name }}
-          artifacts: libbitwarden_cpp-x86_64-unknown-linux-gnu
-          skip_unpack: true
-
-      - name: Rename C++ build artifacts
-        run: |
-          artifacts=("x86_64-apple-darwin" "x86_64-unknown-linux-gnu") # "x86_64-pc-windows-msvc" "aarch64-apple-darwin" "aarch64-unknown-linux-gnu")
-          for value in "${artifacts[@]}"
-          do
-            mv "libbitwarden_cpp-$value.zip" "libbitwarden_cpp_files-$value-$_PKG_VERSION.zip"
-          done
-
-      - name: Create release
-        if: ${{ inputs.release_type != 'Dry Run' }}
-        uses: ncipollo/release-action@b7eabc95ff50cbeeedec83973935c8f306dfcd0b # v1.20.0
-        with:
-          tag: cpp-sdk-v${{ env._PKG_VERSION }}
-          name: "C++ SDK v${{ env._PKG_VERSION }}"
-          body: "<insert release notes here>"
-          token: ${{ steps.app-token.outputs.token }}
-          draft: true
-          repo: sdk
-          owner: bitwarden
-          artifacts: "libbitwarden_c_files-x86_64-apple-darwin-${{ env._PKG_VERSION }}.zip,
-            libbitwarden_c_files-aarch64-apple-darwin-${{ env._PKG_VERSION }}.zip,
-            libbitwarden_c_files-x86_64-unknown-linux-gnu-${{ env._PKG_VERSION }}.zip,
-            libbitwarden_c_files-x86_64-pc-windows-msvc-${{ env._PKG_VERSION }}.zip,
-            libbitwarden_cpp_files-x86_64-unknown-linux-gnu-${{ env._PKG_VERSION }}.zip,
-            libbitwarden_cpp_files-x86_64-apple-darwin-${{ env._PKG_VERSION }}.zip,
-            sdk-schemas-cpp-${{ env._PKG_VERSION }}.zip"
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+          task: release-cpp
+          data: |
+            {
+              "release_type": "${{ inputs.release_type }}"
+            }

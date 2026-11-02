@@ -13,14 +13,14 @@ on:
           - Release
           - Dry Run
 
-permissions:
-  contents: write
-  actions: read
+permissions: {}
 
 jobs:
   setup:
     name: Setup
     runs-on: ubuntu-22.04
+    permissions:
+      contents: write
     outputs:
       release_version: ${{ steps.version.outputs.version }}
     steps:

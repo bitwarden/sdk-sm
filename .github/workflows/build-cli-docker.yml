@@ -12,10 +12,21 @@ env:
 
 jobs:
   build-docker:
-    name: Build Docker image
-    runs-on: ubuntu-22.04
+    name: Build Docker image (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
     permissions:
+      contents: read
       id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            platform_pair: linux-amd64
+            runner: ubuntu-22.04
+          - platform: linux/arm64/v8
+            platform_pair: linux-arm64
+            runner: ubuntu-22.04-arm
 
     steps:
       - name: Checkout Repository
@@ -24,8 +35,68 @@ jobs:
           persist-credentials: false
 
       ########## Set up Docker ##########
-      - name: Set up QEMU emulators
-        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+      ########## Login to Docker registries ##########
+      - name: Log in to Azure
+        uses: bitwarden/gh-actions/azure-login@main
+        with:
+          subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID }}
+
+      - name: Login to Azure ACR
+        run: az acr login -n "${_AZ_REGISTRY%.azurecr.io}"
+
+      ########## Build and push Docker image by digest ##########
+      # Each platform builds natively on its own runner and pushes an untagged image. The
+      # merge-docker job combines the digests into a single multi-arch tag. Only main writes
+      # to the cache, so PRs read main's per-platform cache without evicting it.
+      - name: Build and push Docker image
+        id: build-docker
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
+        with:
+          context: .
+          file: crates/bws/Dockerfile
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=${{ env._AZ_REGISTRY }}/bws,push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=bws-${{ matrix.platform_pair }}
+          cache-to: ${{ github.ref == 'refs/heads/main' && format('type=gha,mode=max,scope=bws-{0}', matrix.platform_pair) || '' }}
+
+      - name: Export digest
+        env:
+          DIGEST: ${{ steps.build-docker.outputs.digest }}
+        run: |
+          mkdir -p "${RUNNER_TEMP}/digests"
+          touch "${RUNNER_TEMP}/digests/${DIGEST#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: digests-${{ matrix.platform_pair }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Log out from Azure
+        uses: bitwarden/gh-actions/azure-logout@main
+
+  merge-docker:
+    name: Merge Docker image manifest
+    runs-on: ubuntu-22.04
+    needs: build-docker
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
@@ -41,7 +112,7 @@ jobs:
       - name: Login to Azure ACR
         run: az acr login -n "${_AZ_REGISTRY%.azurecr.io}"
 
-      ########## Generate image tag and build Docker image ##########
+      ########## Generate image tag and merge manifest ##########
       - name: Generate Docker image tag
         id: tag
         run: |
@@ -60,19 +131,27 @@ jobs:
         run: |
           echo "tags=$_AZ_REGISTRY/bws:${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
 
-      - name: Build and push Docker image
-        id: build-docker
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
-        with:
-          context: .
-          file: crates/bws/Dockerfile
-          platforms: |
-            linux/amd64,
-            linux/arm64/v8
-          push: true
-          tags: ${{ steps.tag-list.outputs.tags }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Create and push manifest list
+        id: merge
+        working-directory: ${{ runner.temp }}/digests
+        env:
+          TAGS: ${{ steps.tag-list.outputs.tags }}
+        run: |
+          IFS=',' read -r -a tags_array <<< "${TAGS}"
+          tag_args=()
+          for tag in "${tags_array[@]}"; do
+            tag_args+=(-t "${tag}")
+          done
+
+          sources=()
+          for digest in *; do
+            sources+=("${_AZ_REGISTRY}/bws@sha256:${digest}")
+          done
+
+          docker buildx imagetools create "${tag_args[@]}" "${sources[@]}"
+
+          DIGEST=$(docker buildx imagetools inspect "${tags_array[0]}" --format '{{json .Manifest}}' | jq -r '.digest')
+          echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
 
       - name: Install Cosign
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
@@ -81,7 +160,7 @@ jobs:
       - name: Sign image with Cosign
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         env:
-          DIGEST: ${{ steps.build-docker.outputs.digest }}
+          DIGEST: ${{ steps.merge.outputs.digest }}
           TAGS: ${{ steps.tag-list.outputs.tags }}
         run: |
           IFS=',' read -r -a tags_array <<< "${TAGS}"
@@ -89,7 +168,7 @@ jobs:
           for tag in "${tags_array[@]}"; do
             images+=("${tag}@${DIGEST}")
           done
-          cosign sign --yes ${images[@]}
+          cosign sign --yes "${images[@]}"
           echo "images=${images[*]}" >> "$GITHUB_OUTPUT"
 
       - name: Log out from Azure

@@ -137,12 +137,16 @@ async fn process_commands() -> Result<()> {
             shell,
             no_inherit_env,
             project_id,
+            allow_vars,
+            do_not_set_vars,
             uuids_as_keynames,
         } => {
             let exit_code = command::run::run(
                 client,
                 organization_id,
                 project_id,
+                allow_vars,
+                do_not_set_vars,
                 uuids_as_keynames,
                 no_inherit_env,
                 shell,

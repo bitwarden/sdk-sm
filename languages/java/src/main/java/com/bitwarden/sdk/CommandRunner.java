@@ -21,12 +21,19 @@ class CommandRunner {
     }
 
     <T> T runCommand(Command command, Function<String, T> deserializer) {
-        String response = null;
+        Pointer ptr;
 
         try {
-            response = library.run_command(commandToString(command), client);
+            ptr = library.run_command(commandToString(command), client);
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+
+        String response;
+        try {
+            response = ptr.getString(0);
+        } finally {
+            library.free_string(ptr);
         }
 
         return deserializer.apply(response);

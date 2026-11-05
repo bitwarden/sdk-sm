@@ -17,6 +17,7 @@ typedef void* ClientPtr;
 extern char* run_command(const char *command, ClientPtr client);
 extern ClientPtr init(const char *clientSettings);
 extern void free_mem(ClientPtr client);
+extern void free_string(char *str);
 */
 import "C"
 
@@ -57,6 +58,6 @@ func (b *BitwardenLibraryImpl) RunCommand(command string, client ClientPointer) 
 	if cstr == nil {
 		return "", fmt.Errorf("run command failed")
 	}
-	defer C.free(unsafe.Pointer(cstr))
+	defer C.free_string(cstr)
 	return C.GoString(cstr), nil
 }

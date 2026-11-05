@@ -29,7 +29,8 @@ module BitwardenSDKSecrets
             end
 
     attach_function :init, [:string], :pointer
-    attach_function :run_command, %i[string pointer], :string
+    attach_function :run_command, %i[string pointer], :pointer
     attach_function :free_mem, [:pointer], :void
+    attach_function :free_string, [:pointer], :void
   end
 end

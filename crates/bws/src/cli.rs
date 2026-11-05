@@ -135,6 +135,7 @@ pub(crate) enum SecretCommand {
         note: Option<String>,
     },
     Delete {
+        #[arg(required = true)]
         secret_ids: Vec<Uuid>,
     },
     #[clap(group = ArgGroup::new("edit_field").required(true).multiple(true))]
@@ -163,6 +164,7 @@ pub(crate) enum ProjectCommand {
         name: String,
     },
     Delete {
+        #[arg(required = true)]
         project_ids: Vec<Uuid>,
     },
     Edit {

@@ -1,9 +1,9 @@
-use std::{path::PathBuf, str::FromStr};
+use std::{path::PathBuf, process::ExitCode, str::FromStr};
 
 use bitwarden::secrets_manager::{
     AccessToken, AccessTokenLoginRequest, ClientSettings, SecretsManagerClient,
 };
-use bitwarden_cli::install_color_eyre;
+use bitwarden_cli::{Color, install_color_eyre};
 use clap::{CommandFactory, Parser};
 use color_eyre::eyre::{Result, bail};
 use config::Profile;
@@ -13,6 +13,7 @@ use render::OutputSettings;
 mod cli;
 mod command;
 mod config;
+mod error;
 mod render;
 mod state;
 mod util;
@@ -20,10 +21,29 @@ mod util;
 use crate::cli::*;
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() -> Result<()> {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+async fn main() -> ExitCode {
+    // The TLS verifier logs its own error before bws reports the failure.
+    let log_filter = if error::is_verbose() {
+        "info"
+    } else {
+        "info,rustls_platform_verifier=off"
+    };
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(log_filter)).init();
 
-    process_commands().await
+    match process_commands().await {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(report) => {
+            eprint!(
+                "{}",
+                if error::is_verbose() {
+                    error::render_verbose(&report)
+                } else {
+                    error::render(&report)
+                }
+            );
+            ExitCode::from(1)
+        }
+    }
 }
 
 async fn process_commands() -> Result<()> {
@@ -31,10 +51,26 @@ async fn process_commands() -> Result<()> {
     let color = cli.color;
 
     install_color_eyre(color)?;
+    if !error::is_verbose() {
+        std::panic::set_hook(Box::new(|info| {
+            eprint!("{}", error::render_panic(info.payload()))
+        }));
+    }
 
     let Some(command) = cli.command else {
-        let mut cmd = Cli::command();
-        eprintln!("{}", cmd.render_help().ansi());
+        let help = Cli::command().render_help();
+        // Same as `Color::is_enabled()`, but the help goes to stderr and that method only ever
+        // probes stdout.
+        let stderr_color = match color {
+            Color::Yes => true,
+            Color::No => false,
+            Color::Auto => supports_color::on(supports_color::Stream::Stderr).is_some(),
+        };
+        if stderr_color {
+            eprintln!("{}", help.ansi());
+        } else {
+            eprintln!("{help}");
+        }
         std::process::exit(1);
     };
 

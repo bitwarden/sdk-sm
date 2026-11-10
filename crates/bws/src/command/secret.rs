@@ -1,3 +1,5 @@
+use std::io::{self, Write};
+
 use bitwarden::{
     OrganizationId,
     secrets_manager::{
@@ -9,12 +11,13 @@ use bitwarden::{
         },
     },
 };
-use color_eyre::eyre::{Result, bail};
+use color_eyre::eyre::Result;
 use uuid::Uuid;
 
 use crate::{
     SecretCommand,
-    render::{OutputSettings, serialize_response},
+    error::{self, Op, Target},
+    render::{OutputSettings, serialize_response, write_stdout},
 };
 
 #[derive(Debug)]
@@ -99,14 +102,16 @@ pub(crate) async fn list(
         client
             .secrets()
             .list_by_project(&SecretIdentifiersByProjectRequest { project_id })
-            .await?
+            .await
+            .map_err(|e| error::sm_error(e, Target::Project(project_id), Op::Read))?
     } else {
         client
             .secrets()
             .list(&SecretIdentifiersRequest {
                 organization_id: organization_id.into(),
             })
-            .await?
+            .await
+            .map_err(|e| error::sm_error(e, Target::None, Op::Read))?
     };
 
     if res.data.is_empty() {
@@ -118,7 +123,8 @@ pub(crate) async fn list(
     let secrets = client
         .secrets()
         .get_by_ids(SecretsGetRequest { ids: secret_ids })
-        .await?
+        .await
+        .map_err(|e| error::sm_error(e, Target::None, Op::Read))?
         .data;
     serialize_response(secrets, output_settings);
 
@@ -133,7 +139,8 @@ pub(crate) async fn get(
     let secret = client
         .secrets()
         .get(&SecretGetRequest { id: secret_id })
-        .await?;
+        .await
+        .map_err(|e| error::sm_error(e, Target::Secret(secret_id), Op::Read))?;
     serialize_response(secret, output_settings);
 
     Ok(())
@@ -145,6 +152,7 @@ pub(crate) async fn create(
     secret: SecretCreateCommandModel,
     output_settings: OutputSettings,
 ) -> Result<()> {
+    let project_id = secret.project_id;
     let secret = client
         .secrets()
         .create(&SecretCreateRequest {
@@ -152,9 +160,10 @@ pub(crate) async fn create(
             key: secret.key,
             value: secret.value,
             note: secret.note.unwrap_or_default(),
-            project_ids: Some(vec![secret.project_id]),
+            project_ids: Some(vec![project_id]),
         })
-        .await?;
+        .await
+        .map_err(|e| error::sm_error(e, Target::Project(project_id), Op::Write))?;
     serialize_response(secret, output_settings);
 
     Ok(())
@@ -169,13 +178,18 @@ pub(crate) async fn edit(
     let old_secret = client
         .secrets()
         .get(&SecretGetRequest { id: secret.id })
-        .await?;
+        .await
+        .map_err(|e| error::sm_error(e, Target::Secret(secret.id), Op::Read))?;
 
     let value_changed = secret
         .value
         .as_ref()
         .is_some_and(|v| v != &old_secret.value);
 
+    let target = match secret.project_id {
+        Some(project_id) => Target::SecretOrProject(secret.id, project_id),
+        None => Target::Secret(secret.id),
+    };
     let new_secret = client
         .secrets()
         .update(&SecretPutRequest {
@@ -190,7 +204,8 @@ pub(crate) async fn edit(
                 .map(|id| vec![id]),
             value_changed,
         })
-        .await?;
+        .await
+        .map_err(|e| error::sm_error(e, target, Op::Write))?;
     serialize_response(new_secret, output_settings);
 
     Ok(())
@@ -198,24 +213,22 @@ pub(crate) async fn edit(
 
 pub(crate) async fn delete(client: SecretsManagerClient, secret_ids: Vec<Uuid>) -> Result<()> {
     let count = secret_ids.len();
+    let target = match secret_ids.as_slice() {
+        [id] => Target::Secret(*id),
+        _ => Target::Secrets,
+    };
 
     let result = client
         .secrets()
         .delete(SecretsDeleteRequest { ids: secret_ids })
-        .await?;
+        .await
+        .map_err(|e| error::sm_error(e, target, Op::Write))?;
 
     let secrets_failed: Vec<(Uuid, String)> = result
         .data
         .into_iter()
-        .filter_map(|r| r.error.map(|e| (r.id, e)))
+        .filter_map(|r| r.error.map(|e| (r.id, error::strip_controls(&e))))
         .collect();
-    let deleted_secrets = count - secrets_failed.len();
-
-    match deleted_secrets {
-        2.. => println!("{} secrets deleted successfully.", deleted_secrets),
-        1 => println!("{} secret deleted successfully.", deleted_secrets),
-        _ => (),
-    }
 
     match secrets_failed.len() {
         2.. => eprintln!("{} secrets had errors:", secrets_failed.len()),
@@ -227,9 +240,20 @@ pub(crate) async fn delete(client: SecretsManagerClient, secret_ids: Vec<Uuid>) 
         eprintln!("{}: {}", secret.0, secret.1);
     }
 
-    if !secrets_failed.is_empty() {
-        bail!("Errors when attempting to delete secrets.");
+    // The server may omit successful IDs from `data`, so count them from the request.
+    let deleted_secrets = count.saturating_sub(secrets_failed.len());
+    let summary = match deleted_secrets {
+        2.. => format!("{deleted_secrets} secrets deleted successfully.\n"),
+        1 => "1 secret deleted successfully.\n".to_string(),
+        _ => String::new(),
+    };
+
+    if secrets_failed.is_empty() {
+        write_stdout(summary);
+        return Ok(());
     }
 
-    Ok(())
+    // `write_stdout` exits on a closed or failing stdout, which would hide the failed deletes.
+    _ = io::stdout().write_all(summary.as_bytes());
+    Err(error::partial_delete(secrets_failed.len(), count, "secret").into())
 }

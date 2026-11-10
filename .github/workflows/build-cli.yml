@@ -99,12 +99,8 @@ jobs:
         id: retrieve-secrets-windows
         uses: bitwarden/gh-actions/get-keyvault-secrets@main
         with:
-          keyvault: "bitwarden-ci"
-          secrets: "code-signing-vault-url,
-            code-signing-client-id,
-            code-signing-tenant-id,
-            code-signing-client-secret,
-            code-signing-cert-name"
+          keyvault: gh-org-bitwarden
+          secrets: "CODE-SIGNING-VAULT-URL,CODE-SIGNING-CERT-NAME"
 
       - name: Log out from Azure
         uses: bitwarden/gh-actions/azure-logout@main
@@ -113,25 +109,39 @@ jobs:
         if: ${{ needs.setup.outputs.sign == 'true' }}
         run: dotnet tool install --global AzureSignTool --version 4.0.1
 
+      - name: Log in to Azure for signing
+        if: ${{ needs.setup.outputs.sign == 'true' }}
+        uses: bitwarden/gh-actions/azure-login@main
+        with:
+          tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          client_id: ${{ secrets.AZURE_CLIENT_ID_CODE_SIGNING }}
+          allow_no_subscriptions: true
+
       - name: Sign windows binary
         if: ${{ needs.setup.outputs.sign == 'true' }}
         env:
-          SIGNING_VAULT_URL: ${{ steps.retrieve-secrets-windows.outputs.code-signing-vault-url }}
-          SIGNING_CLIENT_ID: ${{ steps.retrieve-secrets-windows.outputs.code-signing-client-id }}
-          SIGNING_TENANT_ID: ${{ steps.retrieve-secrets-windows.outputs.code-signing-tenant-id }}
-          SIGNING_CLIENT_SECRET: ${{ steps.retrieve-secrets-windows.outputs.code-signing-client-secret }}
-          SIGNING_CERT_NAME: ${{ steps.retrieve-secrets-windows.outputs.code-signing-cert-name }}
+          SIGNING_VAULT_URL: ${{ steps.retrieve-secrets-windows.outputs.CODE-SIGNING-VAULT-URL }}
+          SIGNING_CERT_NAME: ${{ steps.retrieve-secrets-windows.outputs.CODE-SIGNING-CERT-NAME }}
         run: |
+          SIGNING_ACCESS_TOKEN=$(az account get-access-token --resource https://vault.azure.net --query accessToken --output tsv)
+          if [[ -z "$SIGNING_ACCESS_TOKEN" ]]; then
+            echo "::error::Failed to get a Key Vault access token for signing"
+            exit 1
+          fi
+          echo "::add-mask::$SIGNING_ACCESS_TOKEN"
+
           azuresigntool sign -v \
             -kvu "$SIGNING_VAULT_URL" \
-            -kvi "$SIGNING_CLIENT_ID" \
-            -kvt "$SIGNING_TENANT_ID" \
-            -kvs "$SIGNING_CLIENT_SECRET" \
+            -kva "$SIGNING_ACCESS_TOKEN" \
             -kvc "$SIGNING_CERT_NAME" \
             -fd sha256 \
             -du https://bitwarden.com \
             -tr http://timestamp.digicert.com \
             ./target/${{ matrix.settings.target }}/release/bws.exe
+
+      - name: Log out from Azure
+        if: ${{ always() && needs.setup.outputs.sign == 'true' }}
+        uses: bitwarden/gh-actions/azure-logout@main
 
       - name: Zip
         shell: cmd

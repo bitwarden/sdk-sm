@@ -33,7 +33,7 @@ jobs:
       matrix:
         os:
           - ubuntu-22.04
-          - macOS-14
+          - macos-26
           - windows-2022
 
     steps:

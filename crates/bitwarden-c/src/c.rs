@@ -102,6 +102,14 @@ pub extern "C" fn free_mem(client_ptr: *mut CClient) {
     std::mem::drop(unsafe { Box::from_raw(client_ptr) });
 }
 
+// Free a string returned by run_command
+#[unsafe(no_mangle)]
+pub extern "C" fn free_string(str_ptr: *mut c_char) {
+    if !str_ptr.is_null() {
+        std::mem::drop(unsafe { CString::from_raw(str_ptr) });
+    }
+}
+
 #[unsafe(no_mangle)]
 pub extern "C" fn abort_and_free_handle(join_handle_ptr: *mut tokio::task::JoinHandle<()>) {
     let join_handle = unsafe { Box::from_raw(join_handle_ptr) };

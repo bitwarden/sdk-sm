@@ -105,3 +105,20 @@ const char* BitwardenLibrary::run_command(const char* commandJson, void* client)
     std::cerr << "Failed to load run_command function from the Bitwarden library." << std::endl;
     return nullptr;
 }
+
+void BitwardenLibrary::free_string(const char* str) {
+    typedef void (*FreeStringFunction)(const char*);
+    FreeStringFunction freeStringFunction = nullptr;
+
+#ifdef _WIN32
+    freeStringFunction = reinterpret_cast<FreeStringFunction>(GetProcAddress(libraryHandle, "free_string"));
+#else
+    freeStringFunction = reinterpret_cast<FreeStringFunction>(dlsym(libraryHandle, "free_string"));
+#endif
+
+    if (freeStringFunction) {
+        freeStringFunction(str);
+    } else {
+        std::cerr << "Failed to load free_string function from the Bitwarden library." << std::endl;
+    }
+}

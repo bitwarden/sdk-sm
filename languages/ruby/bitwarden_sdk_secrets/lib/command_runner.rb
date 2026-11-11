@@ -9,7 +9,10 @@ module BitwardenSDKSecrets
 
     # @param [Dry-Struct] cmd
     def run(cmd)
-      @bitwarden_sdk.run_command(cmd.to_json, @handle)
+      ptr = @bitwarden_sdk.run_command(cmd.to_json, @handle)
+      ptr.read_string
+    ensure
+      @bitwarden_sdk.free_string(ptr) if ptr
     end
   end
 end

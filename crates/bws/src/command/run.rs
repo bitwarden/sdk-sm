@@ -18,7 +18,7 @@ use which::which;
 
 use crate::{
     ACCESS_TOKEN_KEY_VAR_NAME,
-    util::{is_valid_posix_name, uuid_to_posix},
+    util::{is_valid_posix_name, join_command_args, uuid_to_posix},
 };
 
 // Essential environment variables that should be preserved even when `--no-inherit-env` is used
@@ -55,8 +55,12 @@ pub(crate) async fn run(
         let mut buffer = String::new();
         std::io::stdin().read_to_string(&mut buffer)?;
         buffer
+    } else if command.len() == 1 {
+        // A single argument is a command string interpreted by the shell, e.g.
+        // `bws run -- 'echo "$SECRET"'`
+        command.into_iter().next().unwrap_or_default()
     } else {
-        command.join(" ")
+        join_command_args(&shell, &command)
     };
 
     let res = if let Some(project_id) = project_id {

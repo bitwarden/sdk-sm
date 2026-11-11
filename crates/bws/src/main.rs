@@ -1,18 +1,19 @@
-use std::{path::PathBuf, str::FromStr};
+use std::{path::PathBuf, process::ExitCode};
 
 use bitwarden::secrets_manager::{
     AccessToken, AccessTokenLoginRequest, ClientSettings, SecretsManagerClient,
 };
-use bitwarden_cli::install_color_eyre;
+use bitwarden_cli::{Color, install_color_eyre};
 use clap::{CommandFactory, Parser};
-use color_eyre::eyre::{Result, bail};
+use color_eyre::eyre::Result;
 use config::Profile;
-use log::error;
+use error::UserError;
 use render::OutputSettings;
 
 mod cli;
 mod command;
 mod config;
+mod error;
 mod render;
 mod state;
 mod util;
@@ -20,10 +21,26 @@ mod util;
 use crate::cli::*;
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() -> Result<()> {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+async fn main() -> ExitCode {
+    // The SDK logs its own failures (crypto, TLS) before bws reports them, so stderr stays
+    // clean unless BWS_DEBUG=1 surfaces those logs for debugging.
+    let log_filter = if error::is_verbose() { "info" } else { "off" };
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(log_filter)).init();
 
-    process_commands().await
+    match process_commands().await {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(report) => {
+            eprint!(
+                "{}",
+                if error::is_verbose() {
+                    error::render_verbose(&report)
+                } else {
+                    error::render(&report)
+                }
+            );
+            ExitCode::from(1)
+        }
+    }
 }
 
 async fn process_commands() -> Result<()> {
@@ -31,12 +48,33 @@ async fn process_commands() -> Result<()> {
     let color = cli.color;
 
     install_color_eyre(color)?;
+    if !error::is_verbose() {
+        std::panic::set_hook(Box::new(|info| {
+            eprint!("{}", error::render_panic(info.payload()))
+        }));
+    }
 
     let Some(command) = cli.command else {
-        let mut cmd = Cli::command();
-        eprintln!("{}", cmd.render_help().ansi());
+        let help = Cli::command().render_help();
+        // Same as `Color::is_enabled()`, but the help goes to stderr and that method only ever
+        // probes stdout.
+        let stderr_color = match color {
+            Color::Yes => true,
+            Color::No => false,
+            Color::Auto => supports_color::on(supports_color::Stream::Stderr).is_some(),
+        };
+        if stderr_color {
+            eprintln!("{}", help.ansi());
+        } else {
+            eprintln!("{help}");
+        }
         std::process::exit(1);
     };
+
+    let access_token = cli
+        .access_token
+        .map(|t| t.trim().to_string())
+        .filter(|t| !t.is_empty());
 
     // These commands don't require authentication, so we process them first
     match command {
@@ -53,36 +91,40 @@ async fn process_commands() -> Result<()> {
                 value,
                 delete,
                 cli.profile,
-                cli.access_token,
+                access_token,
                 cli.config_file,
             );
         }
         _ => (),
     }
 
-    let access_token = match cli.access_token {
-        Some(key) => key,
-        None => bail!("Missing access token"),
+    let Some(access_token) = access_token else {
+        return Err(UserError::NoAccessToken.into());
     };
-    let access_token_obj: AccessToken = access_token.parse()?;
+    let access_token_obj: AccessToken = access_token.parse().map_err(error::malformed_token)?;
 
     let profile = get_config_profile(
         &cli.server_url,
         &cli.profile,
         &cli.config_file,
-        &access_token,
+        &access_token_obj,
     )?;
 
-    let settings = profile
-        .clone()
-        .map(|p| -> Result<_> {
-            Ok(ClientSettings {
-                identity_url: p.identity_url()?,
-                api_url: p.api_url()?,
-                ..Default::default()
-            })
-        })
+    let urls = profile
+        .as_ref()
+        .map(|(name, p)| p.server_urls(name))
         .transpose()?;
+    // Without a profile the SDK falls back to its own default identity server.
+    let identity_url = urls.as_ref().map_or_else(
+        || ClientSettings::default().identity_url,
+        |(identity_url, _)| identity_url.clone(),
+    );
+    let settings = urls.map(|(identity_url, api_url)| ClientSettings {
+        identity_url,
+        api_url,
+        ..Default::default()
+    });
+    let profile = profile.map(|(_, p)| p);
 
     let state_file = match get_state_opt_out(&profile) {
         true => None,
@@ -92,10 +134,7 @@ async fn process_commands() -> Result<()> {
         ) {
             Ok(state_file) => Some(state_file),
             Err(e) => {
-                eprintln!(
-                    "Warning: {}\nRetrieving the state file failed. Attempting to continue without using state. Please set \"state_dir\" in your config file to avoid authentication limits.",
-                    e
-                );
+                error::warn(&e.to_string(), e.hint().as_deref());
                 None
             }
         },
@@ -110,15 +149,12 @@ async fn process_commands() -> Result<()> {
             access_token,
             state_file,
         })
-        .await?;
+        .await
+        .map_err(|e| error::auth_error(e, &identity_url))?;
 
-    let organization_id = match client.get_access_token_organization() {
-        Some(id) => id,
-        None => {
-            error!("Access token isn't associated to an organization.");
-            return Ok(());
-        }
-    };
+    let organization_id = client
+        .get_access_token_organization()
+        .expect("an access token always belongs to an organization");
 
     let output_settings = OutputSettings::new(cli.output, color);
 
@@ -160,34 +196,34 @@ async fn process_commands() -> Result<()> {
     }
 }
 
+/// Returns the profile to use and its name.
 fn get_config_profile(
     server_url: &Option<String>,
     profile: &Option<String>,
     config_file: &Option<PathBuf>,
-    access_token: &str,
-) -> Result<Option<config::Profile>, color_eyre::Report> {
-    let config = config::load_config(config_file.as_deref(), config_file.is_some())?;
+    access_token: &AccessToken,
+) -> Result<Option<(String, config::Profile)>, color_eyre::Report> {
+    let path = config::get_config_path(config_file.as_deref(), false)?;
+    let config = config::load_config_at(&path, config_file.is_some())?;
 
     let profile = if let Some(server_url) = server_url {
         let mut p = config::Profile::from_url(server_url)?;
         if p.state_opt_out.is_none()
-            && let Some(default) = config.select_profile("default", false)?
+            && let Some((_, default)) = config.select_profile("default", false, &path)?
         {
             p.state_opt_out = default.state_opt_out;
         }
-        Some(p)
+        Some((server_url.to_owned(), p))
     } else {
         let profile_defined = profile.is_some();
 
         let profile_key = if let Some(profile) = profile {
             profile.to_owned()
         } else {
-            AccessToken::from_str(access_token)?
-                .access_token_id
-                .to_string()
+            access_token.access_token_id.to_string()
         };
 
-        config.select_profile(&profile_key, profile_defined)?
+        config.select_profile(&profile_key, profile_defined, &path)?
     };
     Ok(profile)
 }

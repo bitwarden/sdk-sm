@@ -43,10 +43,14 @@ pub(crate) fn serialize_response<T: Serialize + TableSerialize<N>, const N: usiz
                 .into_iter()
                 .map(|row| {
                     if is_valid_posix_name(&row[1]) {
-                        format!("{}=\"{}\"", row[1], row[2])
+                        format!("{}={}", row[1], shell_quote(&row[2]))
                     } else {
                         commented_out = true;
-                        format!("# {}=\"{}\"", row[1], row[2].replace('\n', "\n# "))
+                        format!(
+                            "# {}={}",
+                            row[1],
+                            shell_quote(&row[2]).replace('\n', "\n# ")
+                        )
                     }
                 })
                 .collect();
@@ -84,6 +88,11 @@ pub(crate) fn serialize_response<T: Serialize + TableSerialize<N>, const N: usiz
         }
         Output::None => {}
     }
+}
+
+// Single quotes stop the shell expanding $, ` and \; only ' itself needs escaping
+fn shell_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', r"'\''"))
 }
 
 fn pretty_print(language: &str, data: &str, color: Color) {
@@ -150,5 +159,17 @@ impl TableSerialize<4> for SecretResponse {
             self.value.clone(),
             format_date(&self.creation_date),
         ]]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn shell_quote_is_literal() {
+        assert_eq!(shell_quote("pa$$word"), "'pa$$word'");
+        assert_eq!(shell_quote("$(id) `id` \"\\"), "'$(id) `id` \"\\'");
+        assert_eq!(shell_quote("it's"), r"'it'\''s'");
     }
 }

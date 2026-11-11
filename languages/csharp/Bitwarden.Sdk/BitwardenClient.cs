@@ -1,6 +1,4 @@
-﻿using System.Text.Json;
-
-namespace Bitwarden.Sdk;
+﻿namespace Bitwarden.Sdk;
 
 public sealed partial class BitwardenClient : IDisposable
 {

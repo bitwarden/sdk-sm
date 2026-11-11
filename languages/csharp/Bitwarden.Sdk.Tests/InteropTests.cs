@@ -1,35 +1,35 @@
+#if DEBUG
 using Bitwarden.Sdk;
-using System.Diagnostics;
 
 namespace Bitwarden.Sdk.Tests;
 
 public class InteropTests
 {
     [Fact]
-    public async void CancelingTest_ThrowsTaskCanceledException()
+    public async Task CancelingTest_ThrowsTaskCanceledException()
     {
-        var client = new BitwardenClient();
+        using var client = new BitwardenClient();
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(250));
 
-        var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(250));
-
-        await Assert.ThrowsAsync<TaskCanceledException>(async () => await client.CancellationTestAsync(cts.Token));
+        await Assert.ThrowsAsync<TaskCanceledException>(() => client.CancellationTestAsync(cts.Token));
     }
 
     [Fact]
-    public async void NoCancel_TaskCompletesSuccessfully()
+    public async Task NoCancel_TaskCompletesSuccessfully()
     {
-        var client = new BitwardenClient();
+        using var client = new BitwardenClient();
 
         var result = await client.CancellationTestAsync(CancellationToken.None);
         Assert.Equal(42, result);
     }
 
     [Fact]
-    public async void Error_ThrowsException()
+    public async Task Error_ThrowsException()
     {
-        var client = new BitwardenClient();
+        using var client = new BitwardenClient();
 
-        var bitwardenException = await Assert.ThrowsAsync<BitwardenException>(async () => await client.ErrorTestAsync());
+        var bitwardenException = await Assert.ThrowsAsync<BitwardenException>(client.ErrorTestAsync);
         Assert.Equal("Internal error: This is an error.", bitwardenException.Message);
     }
 }
+#endif

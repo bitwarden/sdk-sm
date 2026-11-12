@@ -3,11 +3,6 @@ name: Generate schemas
 on:
   workflow_call:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-      - rc
-      - hotfix-rc
 
 env:
   CARGO_TERM_COLOR: always

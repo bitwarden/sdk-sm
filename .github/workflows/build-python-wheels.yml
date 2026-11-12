@@ -1,12 +1,6 @@
 name: Build Python Wheels
 
 on:
-  pull_request:
-  push:
-    branches:
-      - "main"
-      - "rc"
-      - "hotfix-rc"
   workflow_dispatch:
     inputs:
       dev_version:

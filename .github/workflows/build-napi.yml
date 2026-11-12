@@ -1,13 +1,8 @@
 name: Build @bitwarden/sdk-napi
 
 on:
-  pull_request:
-  push:
-    branches:
-      - "main"
-      - "rc"
-      - "hotfix-rc"
   workflow_dispatch:
+  workflow_call:
 
 defaults:
   run:

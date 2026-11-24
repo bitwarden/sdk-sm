@@ -77,6 +77,7 @@ function Add-BwsToUserPath {
   }
 
   Set-ItemProperty -Path HKCU:\Environment -Name Path -Value (($entries + $installDir) -join ";") -Type ExpandString
+  # SetEnvironmentVariable broadcasts WM_SETTINGCHANGE, so new shells see the updated PATH
   [Environment]::SetEnvironmentVariable("BWS_INSTALL_TMP", $null, "User")
   Write-Output "$installDir has been added to your PATH"
 }

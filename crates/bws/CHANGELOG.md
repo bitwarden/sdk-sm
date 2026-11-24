@@ -15,7 +15,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - No longer panic if access token has access to no secrets (#1255)
 - The Windows install script no longer overwrites the user `PATH` with a truncated copy of the full
-  `PATH` (#1304)
+  `PATH` (#1595)
 
 ## [1.0.0] - 2024-09-26
 

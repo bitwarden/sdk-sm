@@ -30,13 +30,12 @@ function Test-BwsInstallation {
 }
 
 function Invoke-BwsDownload {
+  param($zipPath)
   Write-Output "Detected architecture: $arch"
 
   $bwsUrl = "https://github.com/bitwarden/sdk-sm/releases/download/bws-v$bwsVersion/bws-$arch-pc-windows-msvc-$bwsVersion.zip"
   Write-Output "Downloading bws from: $bwsUrl"
-  $outputPath = Join-Path $env:TEMP "bws.zip"
-  Invoke-WebRequest -Uri $bwsUrl -OutFile $outputPath
-  return $outputPath
+  Invoke-WebRequest -Uri $bwsUrl -OutFile $zipPath
 }
 
 function Test-Checksum {
@@ -101,7 +100,8 @@ if ($Uninstall) {
   Remove-Bws
 } else {
   Test-BwsInstallation
-  $zipPath = Invoke-BwsDownload
+  $zipPath = Join-Path $env:TEMP "bws.zip"
+  Invoke-BwsDownload -zipPath $zipPath
   Test-Checksum -zipPath $zipPath
   Install-Bws -zipPath $zipPath
   Test-Bws

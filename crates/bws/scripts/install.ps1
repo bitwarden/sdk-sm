@@ -63,9 +63,24 @@ function Install-Bws {
   New-Item -ItemType Directory -Force -Path $installDir | Out-Null
   Expand-Archive -Force $zipPath -DestinationPath $installDir
   Write-Output "bws installed to $installDir"
-  setx PATH "$env:PATH;$installDir"
-  Write-Output "$installDir has been added to your PATH"
+  Add-BwsToUserPath
   Write-Output "Please restart your shell to use bws"
+}
+
+function Add-BwsToUserPath {
+  $userPath = (Get-Item HKCU:\Environment).GetValue("Path", "", "DoNotExpandEnvironmentNames")
+  $entries = @($userPath -split ";" | Where-Object { $_ -ne "" })
+
+  if ($entries -contains $installDir) {
+    Write-Output "$installDir is already in your PATH"
+    return
+  }
+
+  Set-ItemProperty -Path HKCU:\Environment -Name Path -Value (($entries + $installDir) -join ";") -Type ExpandString
+  # SetEnvironmentVariable broadcasts WM_SETTINGCHANGE, so new shells see the updated PATH.
+  # [NullString]::Value deletes the variable; PowerShell would pass $null as "" and leave it set.
+  [Environment]::SetEnvironmentVariable("BWS_INSTALL_TMP", [NullString]::Value, "User")
+  Write-Output "$installDir has been added to your PATH"
 }
 
 function Test-Bws {

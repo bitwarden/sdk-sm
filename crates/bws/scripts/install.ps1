@@ -68,25 +68,16 @@ function Install-Bws {
 }
 
 function Add-BwsToUserPath {
-  $envKey = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey("Environment", $true)
-  try {
-    $userPath = $envKey.GetValue("Path", "", [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
-    $entries = @($userPath -split ";" | Where-Object { $_ -ne "" })
+  $userPath = (Get-Item HKCU:\Environment).GetValue("Path", "", "DoNotExpandEnvironmentNames")
+  $entries = @($userPath -split ";" | Where-Object { $_ -ne "" })
 
-    if ($entries -contains $installDir) {
-      Write-Output "$installDir is already in your PATH"
-      return
-    }
-
-    $newPath = ($entries + $installDir) -join ";"
-    $envKey.SetValue("Path", $newPath, [Microsoft.Win32.RegistryValueKind]::ExpandString)
-  } finally {
-    $envKey.Dispose()
+  if ($entries -contains $installDir) {
+    Write-Output "$installDir is already in your PATH"
+    return
   }
 
-  [Environment]::SetEnvironmentVariable("BWS_INSTALL_TMP", "1", "User")
+  Set-ItemProperty -Path HKCU:\Environment -Name Path -Value (($entries + $installDir) -join ";") -Type ExpandString
   [Environment]::SetEnvironmentVariable("BWS_INSTALL_TMP", $null, "User")
-
   Write-Output "$installDir has been added to your PATH"
 }
 

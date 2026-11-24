@@ -63,9 +63,36 @@ function Install-Bws {
   New-Item -ItemType Directory -Force -Path $installDir | Out-Null
   Expand-Archive -Force $zipPath -DestinationPath $installDir
   Write-Output "bws installed to $installDir"
-  setx PATH "$env:PATH;$installDir"
-  Write-Output "$installDir has been added to your PATH"
+  Add-BwsToUserPath
   Write-Output "Please restart your shell to use bws"
+}
+
+function Add-BwsToUserPath {
+  # Update only the user PATH in the registry. Don't use `setx PATH "$env:PATH;..."`:
+  # $env:PATH also contains the machine PATH, and setx truncates values to 1024 characters.
+  $envKey = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey("Environment", $true)
+  try {
+    # Read the raw value so %VAR% references in the user PATH are kept.
+    $userPath = $envKey.GetValue("Path", "", [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+    $entries = @($userPath -split ";" | Where-Object { $_ -ne "" })
+
+    if ($entries -contains $installDir) {
+      Write-Output "$installDir is already in your PATH"
+      return
+    }
+
+    $newPath = ($entries + $installDir) -join ";"
+    $envKey.SetValue("Path", $newPath, [Microsoft.Win32.RegistryValueKind]::ExpandString)
+  } finally {
+    $envKey.Dispose()
+  }
+
+  # Setting a user variable through .NET broadcasts WM_SETTINGCHANGE,
+  # so new shells started from Explorer see the updated PATH.
+  [Environment]::SetEnvironmentVariable("BWS_INSTALL_TMP", "1", "User")
+  [Environment]::SetEnvironmentVariable("BWS_INSTALL_TMP", $null, "User")
+
+  Write-Output "$installDir has been added to your PATH"
 }
 
 function Test-Bws {
